@@ -1,0 +1,31 @@
+{
+  "_readme": "External things the harness depends on, pinned. `mode` is reference (installed from upstream, never edited), vendored (copied into skills/ with upstream license), or cli. `ref` is the upstream commit or tag verified on `checked`. Update refs deliberately and record why in an ADR or change.",
+  "updated": "2026-09-05",
+  "runtimes": {
+    "mise": { "version": "2026.9.1", "install": "curl -fsSL https://mise.run | sh", "role": "Node and Python for hooks and CLIs; shims work in non-interactive shells" },
+    "node": { "version": "24", "via": "mise", "pin": "mise.toml" }
+  },
+  "clis": {
+    "openspec": { "package": "@fission-ai/openspec", "version": "1.12.0", "repo": "Fission-AI/OpenSpec", "role": "spec-driven development; schema `uskn` forks `spec-driven`", "install": "npm install -g @fission-ai/openspec@1.12.0", "checked": "2026-09-05" },
+    "skills": { "package": "skills", "version": "latest", "repo": "vercel-labs/skills", "role": "installs skills into each agent's directory via symlink", "install": "npx skills@latest add <source> -g", "checked": "2026-09-05" },
+    "textlint": { "package": "textlint", "version": "TBD (phase 3)", "presets": ["textlint-rule-preset-ja-technical-writing", "textlint-rule-preset-ai-writing"], "role": "computational sensor for Japanese prose", "checked": "2026-09-05" },
+    "impeccable": { "package": "impeccable", "version": "cli-v4.0.1", "repo": "pbakaus/impeccable", "role": "UI commands (audit, critique, polish, ...). `init` is not used; DESIGN.md follows the Google spec instead", "checked": "2026-09-05" },
+    "designmd": { "repo": "google-labs-code/design.md", "ref": "9bf8eae67128", "status": "alpha", "role": "DESIGN.md lint / diff / export", "checked": "2026-09-05" }
+  },
+  "skills": {
+    "grilling": { "mode": "reference", "source": "mattpocock/skills", "path": "skills/productivity/grilling", "ref": "3cca18b368ae", "role": "mandatory interview before any spec decision", "install": "npx skills@latest add mattpocock/skills --skill=grilling -g", "checked": "2026-09-05" },
+    "grill-me": { "mode": "reference", "source": "mattpocock/skills", "path": "skills/productivity/grill-me", "ref": "3cca18b368ae", "role": "user-invoked wrapper for grilling", "checked": "2026-09-05" },
+    "handoff": { "mode": "reference", "source": "mattpocock/skills", "path": "skills/productivity/handoff", "ref": "3cca18b368ae", "role": "compact a conversation into a handoff document", "checked": "2026-09-05" },
+    "writing-for-agents": { "mode": "reference", "source": "mattpocock/skills", "path": "skills/productivity/writing-for-agents", "ref": "3cca18b368ae", "role": "rules for writing SKILL.md and AGENTS.md", "checked": "2026-09-05" },
+    "humanizer": { "mode": "reference", "source": "blader/humanizer", "ref": "v2.11.1", "role": "English prose de-AI pass; accepts voice samples", "checked": "2026-09-05" },
+    "agent-style": { "mode": "reference", "source": "yzhao062/agent-style", "ref": "99722a59e5ab", "role": "21 English writing rules, adapters per tool", "checked": "2026-09-05" },
+    "expo-skills": { "mode": "reference", "source": "expo/skills", "ref": "d0075ffa0992", "role": "React Native / Expo guidance for monolith", "checked": "2026-09-05" },
+    "frontend-design": { "mode": "reference", "source": "anthropics/claude-plugins-official", "path": "plugins/frontend-design", "role": "fallback UI guidance", "checked": "2026-09-05" }
+  },
+  "forks": {
+    "test-driven-development": { "mode": "vendored", "source": "obra/superpowers", "ref": "v6.3.0", "license": "MIT", "status": "planned (phase 3)" },
+    "systematic-debugging": { "mode": "vendored", "source": "obra/superpowers", "ref": "v6.3.0", "license": "MIT", "status": "planned (phase 3)" },
+    "verification-before-completion": { "mode": "vendored", "source": "obra/superpowers", "ref": "v6.3.0", "license": "MIT", "status": "planned (phase 3)" },
+    "using-git-worktrees": { "mode": "vendored", "source": "obra/superpowers", "ref": "v6.3.0", "license": "MIT", "status": "planned (phase 3)" }
+  }
+}
