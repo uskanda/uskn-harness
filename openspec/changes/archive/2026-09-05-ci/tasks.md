@@ -10,10 +10,10 @@
 
 ## 3. workflow と文書
 
-- [ ] 3.1 `.github/workflows/verify.yml` を書く。中身はトリガー 3 つ、concurrency、timeout 15 分、mise-action。続けて `sync --tools`、claude CLI の導入と reshim、`make verify VERIFY_STRICT=1`。`gh workflow list` に verify が現れることを確認する
+- [x] 3.1 `.github/workflows/verify.yml` を書く。中身はトリガー 3 つ、concurrency、timeout 15 分、mise-action。続けて `sync --tools`、claude CLI の導入と reshim、`make verify VERIFY_STRICT=1`。`gh workflow list` に verify が現れることを確認する
 - [x] 3.2 README の「開発」に CI の 1 行、AGENTS.md の「How work happens here」3 に CI が strict で同じターゲットを走らせる旨を足す。textlint が通ることを確認する
 
 ## 4. 検証
 
 - [x] 4.1 `make verify` がローカルで通ることを確認する
-- [ ] 4.2 commit して push し、`gh run watch` で workflow が緑になることを確認する。plugin validate が CI で落ちたら design.md の対処に従って免除に切り替え、spec と grilling を更新する
+- [x] 4.2 commit して push し、`gh run watch` で workflow が緑になることを確認する。plugin validate が CI で落ちたら design.md の対処に従って免除に切り替え、spec と grilling を更新する
