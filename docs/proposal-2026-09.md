@@ -434,3 +434,21 @@ Codex 等の実機検証、episodic-memory、OpenSpec stores、intake tier（tin
 | Q38 | dotfiles PR | **1 本（PR #10）に積み、実用可能になるまでそこで管轄する**（推奨は分割だったがユーザー判断で一本化） |
 
 前提（change を 2 つに分ける、`sync` 冪等、`pr` の意味論、エイリアス、bats、`npx skills` の使い方）はすべて承認。
+
+## 14. Phase 2 の grilling
+
+### 第6ラウンド（2026-09-05）
+
+| # | 論点 | 決定 |
+|---|---|---|
+| Q39 | sessions repo | GitHub private `uskanda/ai-sessions` を作成し `~/.ai-sessions` に clone。commit と push は SessionEnd で自動（push 失敗は無視して次回再試行） |
+| Q40 | journal の命名 | `~/.ai-sessions/<owner>__<repo>/<YYYY-MM-DD>-<HHMM>-<slug>.md`。slug はエージェントが付け、無ければ session id 先頭 8 桁 |
+| Q41 | スケルトン | メタ、ユーザープロンプト各先頭 200 字、変更ファイル、期間中のコミット、使ったスキル。ツール出力とアシスタント本文は含めない |
+| Q42 | 生成タイミング | Stop ごとに増分更新、SessionEnd は commit / push のみ（timeout 60 秒）。決定欄はセッション中 1 回だけ Stop を block して書かせる |
+| Q43 | verify gate | 作業ツリーが変化したときだけ `make verify` → `pnpm run verify` / `npm run verify`。失敗は block、`stop_hook_active` で再ブロックしない、`USKN_SKIP_VERIFY=1` で回避 |
+| Q44 | grilling ガード | uskn schema で `grilling` を proposal の前提に + PreToolUse Write/Edit で `grilling.md` 無しの成果物書き込みを deny |
+| Q45 | cross-repo ガード | Write/Edit/NotebookEdit はルート外 deny（許可リストあり）。Bash は chezmoi と他 repo への git 操作を deny、外への書き込みは警告。`/allow-repo` はセッション限定 |
+| Q46 | SessionStart 注入 | 同プロジェクトの直近 3 件の「タイトル、決定、次の一手」 |
+| Q47 | Session トレーラ | `<repo-context>` に session 情報を載せ、`commit` スキルがトレーラを付ける |
+
+前提（change 4 分割、schema の配置、grilling.md 形式、bash + jq / bats、サブエージェント除外、`recall`）はすべて承認。

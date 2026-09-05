@@ -19,8 +19,8 @@ installer that distributes them. This file is the entry point; it stays short an
 
 ## How work happens here
 
-1. A change starts with a spec decision. Run the grilling interview before writing proposal, design, or tasks.
-   Until the `spec` skill exists, use the grilling skill directly, then `/opsx:propose`.
+1. A change starts with `/spec <idea>`: the grilling interview, its record (`grilling.md`), then the OpenSpec
+   artifacts. Writing proposal / design / tasks / specs without `grilling.md` is denied by a hook.
 2. Implement through `/opsx:apply`. Scripts get bats tests first (TDD); skills get a worked example in their body.
 3. `make verify` must pass before a change is called done. Hooks call the same target.
 4. Archive with `/opsx:archive`. The archive is the decision history; do not delete it.

@@ -29,3 +29,10 @@
 #### Scenario: 読み取り専用
 - **WHEN** `doctor` を実行する
 - **THEN** `~/.claude` と `~/.local` の内容は実行前後で同一
+
+### Requirement: schema の検査
+`doctor` は `~/.local/share/openspec/schemas/uskn` の存在と向き先を他の symlink と同じ規則で検査しなければならない（MUST）。
+
+#### Scenario: 欠落
+- **WHEN** symlink が無い
+- **THEN** `warn` として報告され、`sync` の実行が案内される

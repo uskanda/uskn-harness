@@ -9,7 +9,8 @@
 Phase 1（installer と既存スキルの移管）完了。次は Phase 2（spec / verify / journal / recall、cross-repo ガード hook、uskn schema）。決定事項は [docs/adr/0001-harness-architecture.md](docs/adr/0001-harness-architecture.md) と [docs/adr/0002-plugin-distribution-via-skills-dir.md](docs/adr/0002-plugin-distribution-via-skills-dir.md)、進行中の change は `openspec/changes/` を参照。
 
 - `skills/git/`: commit / push / pr / sync-base / switch-base / rebase / cleanup-merged / pre-merge / fix-ci / release / nessun-dorma と旧名エイリアス
-- `plugins/uskn-harness/`: SessionStart で `<repo-context>`（hosting とブランチモデル）を注入する hook
+- `plugins/uskn-harness/`: SessionStart で `<repo-context>`（hosting とブランチモデル）を注入する hook、grilling 記録の無い change への成果物書き込みを止める hook
+- `skills/spec/`: `/spec <idea>` で grilling → `grilling.md` → OpenSpec 成果物。schema `uskn`（`schemas/uskn/`）が grilling を proposal の前提にする
 
 ## 読む順番
 

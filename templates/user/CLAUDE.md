@@ -8,8 +8,8 @@
 
 ## Deciding what to build
 
-- A spec decision starts with the grilling interview (`/grill-me`, or the grilling skill). Only after the interview reaches shared understanding do you create OpenSpec artifacts (`/opsx:propose`) and implement (`/opsx:apply`).
-- Save the interview outcome as `openspec/changes/<name>/grilling.md` before proposing.
+- Planning a change starts with `/spec <idea>`: it runs the grilling interview, records it as `openspec/changes/<name>/grilling.md`, then generates proposal, specs, design, and tasks. Implementation starts with `/opsx:apply`.
+- Never write proposal / design / tasks / specs for a change that has no `grilling.md`; a hook denies it. If the interview has not happened, run `/spec` or the grilling skill first.
 
 ## Boundaries
 

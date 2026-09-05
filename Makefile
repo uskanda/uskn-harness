@@ -15,6 +15,8 @@ verify: verify-openspec verify-shell verify-skills verify-plugin ## Run every ch
 verify-openspec:
 	@if command -v openspec >/dev/null && [ -d openspec ]; then \
 	  echo "[openspec] validate --all --strict"; openspec validate --all --strict --no-interactive || exit 1; \
+	  if openspec schema which uskn >/dev/null 2>&1; then echo "[openspec] schema validate uskn"; openspec schema validate uskn || exit 1; \
+	  else echo "[openspec] schema uskn not resolvable here (run uskn-harness sync); skipped"; fi; \
 	else echo "[openspec] skipped (cli or openspec/ missing)"; fi
 
 verify-shell:
