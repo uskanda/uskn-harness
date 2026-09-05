@@ -44,6 +44,7 @@ SessionEnd はアプリがセッションを閉じたときに走る。デスク
 ## 導入
 
 新しいマシンでは dotfiles を適用すると、run_once が mise を入れて `~/.local/share/uskn-harness` を用意する。続けて `uskn-harness sync` が走る。
+OS ごとの手順と確認方法は [docs/setup-new-machine.md](docs/setup-new-machine.md) にある。
 この checkout がある開発機では、次のコマンドを使う。
 
 ```bash
