@@ -25,6 +25,7 @@ journal() { cat "$USKN_STATE_DIR/sessions/$SID/journal"; }
 @test "prompts: user text only, 200 chars max, no tool results, no command echoes, <private> stripped" {
   stop >/dev/null; f="$(journal)"
   ! grep -q SECRET_TOOL_OUTPUT "$f"; ! grep -q "command-name" "$f"; ! grep -q hunter2 "$f"
+  ! grep -q "Base directory for this skill" "$f"   # skill expansions (isMeta) are not prompts
   grep -q "ログイン画面を作って" "$f"; grep -q "Q1: A、Q2: B" "$f"
   n=$(sed -n '/^## Prompts/,/^## Changes/p' "$f" | grep -c '^- '); [ "$n" -eq 3 ]
   longest=$(sed -n '/^## Prompts/,/^## Changes/p' "$f" | grep '^- ' | awk '{ print length($0) }' | sort -n | tail -1); [ "$longest" -le 230 ]
@@ -76,6 +77,17 @@ PY
   run "$SCRIPT" --session 01234567 --slug add-login; [ "$status" -eq 0 ]
   new="$(journal)"; [[ "$new" == *-add-login.md ]]; [ -f "$new" ]; [ ! -e "$old" ]
   grep -q "^title: add-login$" "$new"; grep -q "^session: $SID$" "$new"
+}
+
+@test "--path before the first Stop says so; --ensure creates the journal now, idempotently, without blocking" {
+  run "$SCRIPT" --session 01234567 --path; [ "$status" -eq 1 ]
+  echo "$output" | grep -q "no journal yet"; echo "$output" | grep -q "ends normally"; echo "$output" | grep -q -- "--ensure"
+  printf '%s\n' "$TR" > "$USKN_STATE_DIR/sessions/$SID/transcript"
+  run "$SCRIPT" --session 01234567 --ensure; [ "$status" -eq 0 ]; [ -f "$output" ]; [ "$output" = "$(journal)" ]
+  grep -q "^session: $SID$" "$output"; grep -q "^## Decisions" "$output"; grep -q "ログイン画面を作って" "$output"
+  [ ! -e "$USKN_STATE_DIR/sessions/$SID/journal-prompted" ]
+  run "$SCRIPT" --session 01234567 --ensure; [ "$status" -eq 0 ]; [ "$output" = "$(journal)" ]
+  run "$SCRIPT" --session 01234567 --path; [ "$output" = "$(journal)" ]
 }
 
 @test "without ~/.ai-sessions nothing happens" {

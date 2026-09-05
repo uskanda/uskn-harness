@@ -6,6 +6,8 @@
 #   --session <sid8> --path               print the journal path
 #   --session <sid8> --slug <slug>        rename the journal to <date>-<HHMM>-<slug>.md and set its title
 #   --session <sid8> --refresh            refresh the deterministic part without blocking
+#   --session <sid8> --ensure             create the journal now when no Stop has run yet (the hook runs only when a
+#                                         turn ends normally, not after an interrupt or a usage-limit cut); print its path
 #
 # Journal layout: front matter, "# title", Prompts / Changes / Commits / Skills (regenerated), then
 # "<!-- agent -->" followed by Decisions / Open / Next (never touched here).
@@ -21,7 +23,8 @@ while [ $# -gt 0 ]; do
     --path) MODE=path ;;
     --slug) MODE=slug; SLUG="${2:-}"; shift ;;
     --refresh) MODE=refresh ;;
-    -h | --help) sed -n '2,12p' "$0"; exit 0 ;;
+    --ensure) MODE=ensure ;;
+    -h | --help) sed -n '2,14p' "$0"; exit 0 ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
   shift
@@ -44,7 +47,7 @@ regenerate() {
   bh="$(cat "$SDIR/baseline-head" 2>/dev/null || true)"
   if [ -n "$TR" ] && [ -f "$TR" ] && have jq; then
     prompts="$(jq -r '
-      select(.type == "user") | .timestamp as $ts
+      select(.type == "user" and .isMeta != true) | .timestamp as $ts
       | (.message.content
          | if type == "string" then .
            elif type == "array" then ([.[] | select(.type == "text") | .text] | join(" "))
@@ -84,7 +87,20 @@ if [ "$MODE" != hook ]; then
   SDIR="$(session_dir_for_prefix "$SID8")" || true
   [ -n "${SDIR:-}" ] || { echo "no session state matches $SID8 under $USKN_STATE/sessions" >&2; exit 1; }
   SID="$(basename "$SDIR")"
-  [ -s "$SDIR/journal" ] || { echo "no journal yet for session $SID8 (it appears after the first Stop)" >&2; exit 1; }
+  if [ "$MODE" = ensure ]; then
+    if ! { [ -s "$SDIR/journal" ] && [ -f "$(cat "$SDIR/journal")" ]; }; then
+      TOP="$(cat "$SDIR/project" 2>/dev/null || true)"; [ -n "$TOP" ] || { echo "session $SID8 has no project recorded" >&2; exit 1; }
+      TR="$(cat "$SDIR/transcript" 2>/dev/null || true)"
+      if [ -z "$TR" ]; then # Claude Code keeps the transcript under ~/.claude/projects/<cwd with non-alphanumerics as ->/<sid>.jsonl
+        guess="$HOME/.claude/projects/$(printf '%s' "$TOP" | sed 's#[^A-Za-z0-9-]#-#g')/$SID.jsonl"; [ -f "$guess" ] && TR="$guess"
+      fi
+      printf '{"session_id":"%s","cwd":"%s","hook_event_name":"Stop","stop_hook_active":true%s}' "$SID" "$TOP" "${TR:+,\"transcript_path\":\"$TR\"}" \
+        | USKN_SKIP_JOURNAL=1 "$0" >/dev/null 2>&1 || true
+    fi
+    [ -s "$SDIR/journal" ] || { echo "could not create the journal for session $SID8 (is ~/.ai-sessions present and $TOP a git repository?)" >&2; exit 1; }
+    cat "$SDIR/journal"; exit 0
+  fi
+  [ -s "$SDIR/journal" ] || { echo "no journal yet for session $SID8: the Stop hook writes it when a turn ends normally (not after an interrupt or a usage-limit cut). Run --ensure to create it now." >&2; exit 1; }
   J="$(cat "$SDIR/journal")"
   case "$MODE" in
     path) printf '%s\n' "$J" ;;

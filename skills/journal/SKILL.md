@@ -13,7 +13,8 @@ commits, skills used) are written by a hook. Three sections are yours.
 
 1. Find the file. `<repo-context>` shows `session: <sid8>`; run
    `"${USKN_HARNESS_DIR:-$HOME/.local/share/uskn-harness}/plugins/uskn-harness/hooks/scripts/journal-update.sh" --session <sid8> --path`
-   (prints the path). Read it.
+   (prints the path). If it says there is no journal yet, no turn of this session has ended normally, so the Stop hook
+   has not run; run the same command with `--ensure` instead of `--path` to create the journal now. Read it.
 2. Fill the sections after `<!-- agent -->`, in the language of the user instructions (Japanese by default). Only what happened in this conversation:
    - `## Decisions`: one line per decision the user confirmed, with the reason when it is not obvious.
    - `## Open`: questions still unanswered, provisional choices the user has not confirmed.
