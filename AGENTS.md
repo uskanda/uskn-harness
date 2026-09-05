@@ -8,10 +8,9 @@ installer that distributes them. This file is the entry point; it stays short an
 | Path | What lives there |
 |---|---|
 | `skills/<name>/SKILL.md` | Canonical skills. Agent Skills spec (agentskills.io), English, under 500 lines |
-| `hooks/scripts/` , `hooks/adapters/` | Tool-agnostic hook bodies (bash + jq) and per-tool wiring |
-| `templates/repo/` , `templates/user/` | Files installed into product repos and into the user layer |
+| `templates/repo/` , `templates/user/` , `templates/chezmoi/` | Files installed into product repos, into the user layer, and the dotfiles bootstrap |
 | `schemas/` | OpenSpec schema `uskn` (grilling artifact ahead of proposal) |
-| `plugins/uskn-harness/` | Claude Code plugin wrapper: hooks only |
+| `plugins/uskn-harness/` | Claude Code plugin: the hook bodies (bash + jq), `hooks.json`, and their bats tests. No skills |
 | `deps.json` | Pinned sources of every external skill, CLI, and runtime |
 | `docs/adr/` | Architecture decisions. Start with ADR-0001 |
 | `docs/handoffs/` | Instructions for another session: onboarding another repository (mirrored in its draft PR), or picking up work here |

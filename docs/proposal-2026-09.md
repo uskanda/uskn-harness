@@ -354,10 +354,13 @@ frontier 空。以下 §12 が共有理解の確定版。
 6. **作業ディレクトリ外のプロジェクトを直接編集しない**。PR か handoff 文書で渡す
 
 ### 12.2 リポジトリ構成
+
+2026-09-05 時点の合意。現状の構成は `AGENTS.md` の Layout を正とする（`docs/principles.md`、`docs/portability-matrix.md`、`docs/trends/` は作らないことにした。原則と移植性は ADR-0001 §1 と §7 が持つ）。
+
 ```
 uskn-harness/                      # GitHub private uskanda/uskn-harness、main のみ、CalVer
 ├── AGENTS.md / CLAUDE.md / README.md
-├── docs/{principles.md, adr/, handoffs/, portability-matrix.md, trends/, proposal-2026-09.md}
+├── docs/{adr/, handoffs/, proposal-2026-09.md}
 ├── openspec/                      # 自身も OpenSpec + grilling で運用
 ├── skills/                        # 正本。agentskills.io 準拠、英語
 │   ├── spec/  verify/  journal/  recall/  allow-repo/  onboard-harness/

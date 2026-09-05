@@ -30,13 +30,12 @@ AGENTS.md、Agent Skills（`SKILL.md`）、MCP。hook はイベント語彙が�
 GitHub private、`main` のみ、CalVer タグ。置くものは次のとおり。
 
 - `skills/`: スキルの正本（英語）
-- `hooks/scripts/` と `hooks/adapters/`: hook 本体と、ツールごとの配線
-- `templates/repo/` と `templates/user/`: プロダクト repo 向けとユーザー層向けの配布ファイル
+- `templates/{repo,user,chezmoi}/`: プロダクト repo 向け、ユーザー層向け、dotfiles の bootstrap 向けの配布ファイル
 - `schemas/uskn/`: OpenSpec の schema
-- `plugins/uskn-harness/`: Claude Code プラグイン（hook のみ）
+- `plugins/uskn-harness/hooks/`: hook 本体（scripts、tests、hooks.json）。他ツール向けアダプタは `hooks/adapters/<tool>/` に置く。必要が出た時点で作る（ADR-0002）
 - `deps.json`: 外部スキルと CLI のピン
 - `assets/voice/`: 文体サンプル
-- `docs/{adr,handoffs,trends}`: 決定、他 repo への手順書、調査
+- `docs/{adr,handoffs}` と `docs/proposal-2026-09.md`: 決定、別セッション向けの手順書、調査と grilling の記録
 - `openspec/`: 本 repo 自身の運用
 - `bin/uskn-harness`: installer（init / doctor / sync）
 
@@ -68,8 +67,8 @@ repo 側は `openspec/config.yaml` の `schema: uskn` だけ。profile は expan
 | PreToolUse Write / Edit / NotebookEdit | プロジェクトルート外を拒否。許可リストは scratchpad、`~/.ai-sessions`、`~/.claude/projects/*/memory`、`/tmp`。`/allow-repo <path>` でセッション限定に解除 |
 | PreToolUse Bash | `chezmoi apply|add`、他 repo への `git push` などの典型を拒否、他のパターンは警告。`openspec new change` / propose 前に grilling 成果物を確認 |
 | PostToolUse Write / Edit | `openspec/` と `docs/` の `.md` に textlint |
-| Stop | 作業ツリーに変更があれば verify。journal 未記録なら追記を促す。緊急回避は環境変数 1 つ |
-| SessionEnd | journal の決定的スケルトンを生成し sessions repo に commit |
+| Stop | 作業ツリーに変更があれば verify。journal の決定的な部分を生成・更新し、決定欄が空なら 1 回だけ追記を促す。緊急回避は環境変数 1 つ |
+| SessionEnd | journal を最終更新し、sessions repo に commit して push する |
 
 ### 8. 既存スキルの移管
 git ワークフロー系のスキルをハーネスへ移す。
