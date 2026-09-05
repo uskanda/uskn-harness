@@ -214,3 +214,83 @@ snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
   [[ "$output" == *"warn"*"agent-style"*"none"* ]]
   [[ "$output" == *"warn"*"third-party impeccable"* ]]
 }
+
+# ---- phase 4: onboard-check (spec: onboard-check)
+
+fixture_repo() { # <dir> [ui]  -- a bare product repo, optionally with a UI dependency
+  mkdir -p "$1"; ( cd "$1" && git init -q -b main )
+  [ "${2:-}" = ui ] && printf '{"dependencies":{"expo":"~54.0.0","react":"19.1.0"}}\n' > "$1/package.json"
+  return 0
+}
+onboarded_repo() { # <dir> -- everything onboard-harness would place, with a UI dependency
+  fixture_repo "$1" ui
+  printf '# product\n' > "$1/AGENTS.md"
+  printf '@AGENTS.md\n' > "$1/CLAUDE.md"
+  mkdir -p "$1/openspec/specs" "$1/openspec/changes"; printf 'schema: uskn\n' > "$1/openspec/config.yaml"
+  printf 'verify:\n\t@echo ok\n' > "$1/Makefile"
+  printf '%s\n' '---' 'name: x' '---' > "$1/DESIGN.md"; printf '# Product\n' > "$1/PRODUCT.md"
+}
+
+@test "onboard-check on an untouched repo warns about every item and still exits 0" {
+  P="$BATS_TEST_TMPDIR/fresh"; fixture_repo "$P" ui
+  run "$CLI" onboard-check "$P"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"warn"*"AGENTS.md"* ]]
+  [[ "$output" == *"warn"*"CLAUDE.md"* ]]
+  [[ "$output" == *"warn"*"openspec"* ]]
+  [[ "$output" == *"warn"*"verify"* ]]
+  [[ "$output" == *"warn"*"DESIGN.md"* ]]
+  [[ "$output" == *"warn"*"PRODUCT.md"* ]]
+  [[ "$output" != *"ok "* ]] || true
+}
+
+@test "onboard-check on an onboarded repo reports ok for every item" {
+  P="$BATS_TEST_TMPDIR/done"; onboarded_repo "$P"
+  run "$CLI" onboard-check "$P"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"warn"* ]]
+  [[ "$output" == *"ok"*"AGENTS.md"* ]]
+  [[ "$output" == *"ok"*"schema: uskn"* ]]
+  [[ "$output" == *"ok"*"make verify"* ]]
+}
+
+@test "onboard-check writes nothing into the target repository" {
+  P="$BATS_TEST_TMPDIR/ro"; onboarded_repo "$P"
+  before="$( cd "$P" && find . -not -path './.git/*' -printf '%p %s\n' | sort )"
+  run "$CLI" onboard-check "$P"
+  [ "$status" -eq 0 ]
+  [ "$( cd "$P" && find . -not -path './.git/*' -printf '%p %s\n' | sort )" = "$before" ]
+}
+
+@test "onboard-check skips DESIGN.md and PRODUCT.md when the repo has no UI dependency" {
+  P="$BATS_TEST_TMPDIR/noui"; fixture_repo "$P"
+  run "$CLI" onboard-check "$P"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"DESIGN.md"* ]]
+  [[ "$output" != *"PRODUCT.md"* ]]
+  [[ "$output" == *"AGENTS.md"* ]]
+}
+
+@test "onboard-check warns when a project skill shadows a user-layer skill" {
+  P="$BATS_TEST_TMPDIR/dup"; onboarded_repo "$P"
+  mkdir -p "$P/.claude/skills/commit" "$P/.claude/skills/release-expo" "$SKILLS/commit"
+  run "$CLI" onboard-check "$P"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"commit"* ]]
+  [[ "$output" == *"warn"* ]]
+  [[ "$output" != *"warn"*"release-expo"* ]]
+}
+
+@test "onboard-check warns when CLAUDE.md does not point at AGENTS.md" {
+  P="$BATS_TEST_TMPDIR/stale"; onboarded_repo "$P"
+  printf '# rules\n\n色々書いてある\n' > "$P/CLAUDE.md"
+  run "$CLI" onboard-check "$P"
+  [[ "$output" == *"warn"*"CLAUDE.md"* ]]
+}
+
+@test "onboard-check defaults to the current directory and reports the path" {
+  P="$BATS_TEST_TMPDIR/cwd"; onboarded_repo "$P"
+  run bash -c "cd '$P' && '$CLI' onboard-check"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"$P"* ]]
+}

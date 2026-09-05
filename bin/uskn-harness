@@ -3,6 +3,7 @@
 #
 #   uskn-harness sync [--dry-run] [--remove]   idempotent install / update (`init` is an alias)
 #   uskn-harness doctor                        report the state; exit 1 when something is broken
+#   uskn-harness onboard-check [dir]           report what a product repo still needs (read-only, always exit 0)
 #
 # What sync does (openspec: harness-sync)
 #   1. stable path      ~/.local/share/uskn-harness -> this checkout (or a managed clone)
@@ -35,7 +36,7 @@ export MISE_YES=1
 
 DRY=0 REMOVE=0 FAILS=0 WARNS=0 CHANGED=0 HARNESS=""
 
-usage() { sed -n '2,20p' "$0"; }
+usage() { sed -n '2,21p' "$0"; }
 say() { printf '%-9s %s\n' "$1" "$2"; }
 note() {
   case "$1" in
@@ -329,18 +330,74 @@ cmd_doctor() {
   [ "$FAILS" -eq 0 ]
 }
 
+# ------------------------------------------------------------ onboard-check
+# Read-only report on a product repository: what the harness expects there and what is missing.
+# Never writes to the target and never touches the network; exit code is always 0 (openspec: onboard-check).
+repo_has_ui() { # <dir>: a UI framework in package.json dependencies
+  local f="$1/package.json"
+  [ -f "$f" ] || return 1
+  if have jq; then jq -e '((.dependencies // {}) + (.devDependencies // {})) | keys | any(. == ("react","react-native","expo","vue","svelte","next"))' "$f" >/dev/null 2>&1
+  else grep -qE '"(react|react-native|expo|vue|svelte|next)"[[:space:]]*:' "$f"; fi
+}
+has_verify() { # <dir>: the verify convention, printed when found
+  local d="$1" mk
+  for mk in Makefile GNUmakefile; do
+    [ -f "$d/$mk" ] && grep -qE '^verify[[:space:]]*:' "$d/$mk" && { printf 'make verify'; return 0; }
+  done
+  if [ -f "$d/package.json" ]; then
+    if { have jq && jq -e '.scripts.verify' "$d/package.json" >/dev/null 2>&1; } || { ! have jq && grep -q '"verify"' "$d/package.json"; }; then
+      [ -f "$d/pnpm-lock.yaml" ] && printf 'pnpm run verify' || printf 'npm run verify'
+      return 0
+    fi
+  fi
+  return 1
+}
+cmd_onboard_check() { # <dir>
+  local d name cmd n
+  d="$(realpath_f "${1:-.}" 2>/dev/null || printf '%s' "${1:-.}")"
+  [ -d "$d" ] || { echo "not a directory: $d" >&2; exit 2; }
+  say info "repo: $d"
+  if [ -f "$d/AGENTS.md" ]; then note ok "AGENTS.md ($(wc -l < "$d/AGENTS.md") lines)"
+  else note warn "AGENTS.md missing (the entry point for agents)"; fi
+  if [ ! -f "$d/CLAUDE.md" ]; then note warn "CLAUDE.md missing (should be @AGENTS.md plus Claude-specific lines)"
+  elif grep -q '@AGENTS.md' "$d/CLAUDE.md"; then note ok "CLAUDE.md -> @AGENTS.md"
+  else note warn "CLAUDE.md does not reference @AGENTS.md (move the content to AGENTS.md)"; fi
+  if [ ! -f "$d/openspec/config.yaml" ]; then note warn "openspec/ missing (run openspec init, then set schema: uskn)"
+  elif grep -qE '^schema:[[:space:]]*uskn' "$d/openspec/config.yaml"; then note ok "openspec schema: uskn"
+  else note warn "openspec/config.yaml does not set schema: uskn"; fi
+  if cmd="$(has_verify "$d")"; then note ok "verify convention ($cmd)"
+  else note warn "no verify convention (add a make verify target)"; fi
+  if repo_has_ui "$d"; then
+    if [ -f "$d/DESIGN.md" ]; then note ok "DESIGN.md"; else note warn "DESIGN.md missing (UI repo; copy templates/repo/DESIGN.md)"; fi
+    if [ -f "$d/PRODUCT.md" ]; then note ok "PRODUCT.md"; else note warn "PRODUCT.md missing (UI repo; copy templates/repo/PRODUCT.md)"; fi
+  fi
+  n=0
+  if [ -d "$d/.claude/skills" ]; then
+    for name in "$d"/.claude/skills/*; do
+      [ -e "$name" ] || continue
+      name="$(basename "$name")"
+      if [ -e "$SKILLS_DIR/$name" ]; then note warn "project skill $name shadows the user-layer skill of the same name"; n=$((n + 1)); fi
+    done
+    if [ "$n" -eq 0 ]; then note ok "project skills do not shadow user-layer skills"; fi
+  fi
+  say "done" "$WARNS item(s) still to do"
+  return 0
+}
+
 main() {
   local cmd="${1:-}"; shift || true
   case "$cmd" in
     -h | --help | help | "") usage; [ -n "$cmd" ] && exit 0 || exit 2 ;;
-    sync | init | doctor) ;;
+    sync | init | doctor | onboard-check) ;;
     *) echo "unknown command: $cmd" >&2; usage >&2; exit 2 ;;
   esac
+  local target=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --dry-run) DRY=1 ;;
       --remove) REMOVE=1 ;;
-      *) echo "unknown option: $1" >&2; exit 2 ;;
+      -*) echo "unknown option: $1" >&2; exit 2 ;;
+      *) if [ "$cmd" = onboard-check ] && [ -z "$target" ]; then target="$1"; else echo "unexpected argument: $1" >&2; exit 2; fi ;;
     esac
     shift
   done
@@ -348,6 +405,7 @@ main() {
   case "$cmd" in
     sync | init) cmd_sync ;;
     doctor) cmd_doctor ;;
+    onboard-check) cmd_onboard_check "${target:-.}" ;;
   esac
 }
 [ "${USKN_HARNESS_SOURCED:-0}" = 1 ] || main "$@"
