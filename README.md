@@ -53,6 +53,7 @@ OS ごとの手順と確認方法は [docs/setup-new-machine.md](docs/setup-new-
 uskn-harness doctor                                    # 状態レポート。問題があれば終了コード 1
 ```
 
+`sync` は最初に checkout を fast-forward する。clean で fast-forward できるときだけで、`--no-pull` で止められる。
 `sync` は冪等で、既存の実ディレクトリ（chezmoi 管理のスキルなど）は `conflict` として触らない。
 `sync --remove` でハーネス由来の symlink と管理コピーだけを取り除ける。
 

@@ -307,3 +307,72 @@ onboarded_repo() { # <dir> -- everything onboard-harness would place, with a UI 
   [ "$status" -eq 0 ]
   [[ "$output" == *"$P"* ]]
 }
+
+# ---------------------------------------------------------------- checkout update (spec: harness-sync)
+# A throwaway bare origin plus a clone that looks like a harness checkout, so the pull never touches this repo.
+make_checkout() {
+  export GIT_CONFIG_GLOBAL=/dev/null GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@x GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@x
+  ORIGIN="$BATS_TEST_TMPDIR/origin.git"; SEED="$BATS_TEST_TMPDIR/seed"; WORK="$BATS_TEST_TMPDIR/work"
+  git init -q --bare "$ORIGIN"; git --git-dir="$ORIGIN" symbolic-ref HEAD refs/heads/main
+  git init -q "$SEED"; ( cd "$SEED" && git checkout -q -b main )
+  cp "$REPO/deps.json" "$SEED/deps.json"
+  ( cd "$SEED" && git add -A && git commit -qm init && git remote add origin "$ORIGIN" && git push -q -u origin main )
+  git clone -q "$ORIGIN" "$WORK"
+}
+advance_origin() { ( cd "$SEED" && echo "$1" > marker.txt && git add -A && git commit -qm "$1" && git push -q origin main ); }
+head_of() { git -C "$WORK" rev-parse HEAD; }
+# update_checkout with the script sourced: the pull runs for real against the local origin.
+update() { run env USKN_HARNESS_STUB_NET=0 bash -c "USKN_HARNESS_SOURCED=1 . '$CLI'; HARNESS='$WORK'; update_checkout"; }
+
+@test "update: a clean checkout behind its upstream is fast-forwarded and reported" {
+  make_checkout; before="$(head_of)"; advance_origin one
+  update
+  [ "$status" -eq 0 ]; [[ "$output" == *"updated"* ]]
+  [ "$(head_of)" != "$before" ]; [ -f "$WORK/marker.txt" ]
+}
+
+@test "update: already current says so and pulls nothing new" {
+  make_checkout; before="$(head_of)"
+  update
+  [ "$status" -eq 0 ]; [[ "$output" == *"up to date"* ]]; [ "$(head_of)" = "$before" ]
+}
+
+@test "update: uncommitted changes, detached HEAD, and a branch without upstream all skip" {
+  make_checkout; advance_origin one; before="$(head_of)"
+  echo dirt >> "$WORK/deps.json"
+  update; [[ "$output" == *"uncommitted"* ]]; [ "$(head_of)" = "$before" ]
+  git -C "$WORK" checkout -q -- deps.json
+  git -C "$WORK" checkout -q --detach
+  update; [[ "$output" == *"detached"* ]]; [ "$(head_of)" = "$before" ]
+  git -C "$WORK" checkout -q main && git -C "$WORK" checkout -q -b local-only
+  update; [[ "$output" == *"upstream"* ]]; [ "$(head_of)" = "$before" ]
+}
+
+@test "update: a diverged checkout is never merged; it reports the failure and returns 0" {
+  make_checkout; advance_origin one
+  ( cd "$WORK" && echo x > local.txt && git add -A && git commit -qm local )
+  before="$(head_of)"
+  update
+  [ "$status" -eq 0 ]; [ "$(head_of)" = "$before" ]; [[ "$output" == *"fail"* ]]
+}
+
+@test "update: USKN_HARNESS_REEXEC=1 does nothing, so the re-exec cannot loop" {
+  make_checkout; advance_origin one; before="$(head_of)"
+  run env USKN_HARNESS_STUB_NET=0 USKN_HARNESS_REEXEC=1 bash -c "USKN_HARNESS_SOURCED=1 . '$CLI'; HARNESS='$WORK'; update_checkout"
+  [ "$status" -eq 0 ]; [ -z "$output" ]; [ "$(head_of)" = "$before" ]
+}
+
+@test "sync updates the checkout first; --tools, --remove, --no-pull and --dry-run do not" {
+  make_checkout; advance_origin one
+  USKN_HARNESS_DIR="$WORK" run "$CLI" sync
+  [ "$status" -eq 0 ]; grep -q "pull --ff-only" "$USKN_HARNESS_STUB_LOG"
+  for opt in --tools --remove --no-pull; do
+    : > "$USKN_HARNESS_STUB_LOG"
+    USKN_HARNESS_DIR="$WORK" run "$CLI" sync "$opt"
+    [ "$status" -eq 0 ]; ! grep -q "pull --ff-only" "$USKN_HARNESS_STUB_LOG"
+  done
+  : > "$USKN_HARNESS_STUB_LOG"
+  USKN_HARNESS_DIR="$WORK" run "$CLI" sync --dry-run
+  [ "$status" -eq 0 ]; [[ "$output" == *"plan"* ]]; [[ "$output" == *"pull --ff-only"* ]]
+  ! grep -q "pull --ff-only" "$USKN_HARNESS_STUB_LOG"
+}

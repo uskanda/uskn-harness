@@ -78,11 +78,12 @@ Stop hook と SessionEnd hook の確認方法は README の「hook の発火を�
 
 ```bash
 chezmoi update                          # dotfiles の更新。run_once は再実行されない
-git -C ~/.local/share/uskn-harness pull --ff-only   # managed clone の端末。開発機は ~/repos/uskn-harness で pull
 uskn-harness sync && uskn-harness doctor
 ```
 
-`sync` は clone を pull しない。更新はこの順に手で行う。
+`sync` は最初に checkout を fast-forward する。実行するのは clean な checkout で、branch に upstream があり、fast-forward できるときだけ。
+作業中の checkout（開発機など）ではスキップして理由を出し、導入は続ける。`--no-pull` で止められる。
+更新で HEAD が動いたときは、新しい `bin/uskn-harness` を同じ引数で実行し直す。
 
 ## 取り除く
 
