@@ -160,5 +160,14 @@
       "license": "MIT",
       "status": "planned (phase 3)"
     }
+  },
+  "repos": {
+    "sessions": {
+      "url": "https://github.com/uskanda/ai-sessions.git",
+      "path": "~/.ai-sessions",
+      "role": "session journals (summaries only); cloned by sync, written by the journal hooks",
+      "visibility": "private",
+      "created": "2026-09-05"
+    }
   }
 }

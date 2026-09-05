@@ -20,9 +20,9 @@ verify-openspec:
 	else echo "[openspec] skipped (cli or openspec/ missing)"; fi
 
 verify-shell:
-	@files=$$(find $(SCRIPT_DIRS) -type f \( -name '*.sh' -o -perm -u+x \) 2>/dev/null | grep -v '/tests/' || true); \
+	@files=$$(find $(SCRIPT_DIRS) -type f \( -name '*.sh' -o -perm -u+x \) 2>/dev/null | grep -v '/tests/' | grep -v '/lib/' || true); \
 	if [ -z "$$files" ]; then echo "[shell] skipped (no scripts yet)"; \
-	elif command -v shellcheck >/dev/null; then echo "[shell] shellcheck"; shellcheck $$files; \
+	elif command -v shellcheck >/dev/null; then echo "[shell] shellcheck"; shellcheck -x -P SCRIPTDIR $$files; \
 	else echo "[shell] bash -n only (shellcheck not installed)"; for f in $$files; do bash -n "$$f" || exit 1; done; fi; \
 	tests=$$(for d in $(TEST_DIRS); do [ -d "$$d" ] && echo "$$d"; done); \
 	if [ -n "$$tests" ] && command -v bats >/dev/null; then echo "[shell] bats $$tests"; bats $$tests || exit 1; \

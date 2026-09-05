@@ -3,7 +3,14 @@
     "SessionStart": [
       {
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/session-start.sh" }
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/session-start.sh"
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/session-baseline.sh"
+          }
         ]
       }
     ],
@@ -11,7 +18,21 @@
       {
         "matcher": "Write|Edit|MultiEdit|NotebookEdit",
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/grilling-guard.sh" }
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/grilling-guard.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/verify-gate.sh",
+            "timeout": 600
+          }
         ]
       }
     ]
