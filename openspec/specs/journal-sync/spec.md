@@ -1,7 +1,7 @@
 # journal-sync Specification
 
 ## Purpose
-journal をセッション終了時に sessions repo へ確定し、マシン間で共有する。
+journal をセッション終了時に sessions repo へ確定し、push によってマシン間で共有する。ネットワークが無い端末でも commit だけは残し、次回に追いつく。
 
 ## Requirements
 

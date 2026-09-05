@@ -1,7 +1,7 @@
 # bash-guard Specification
 
 ## Purpose
-Bash 経由で他のプロジェクトを書き換える典型を止め、それ以外の疑わしい操作は警告に留める。
+Bash 経由で他のプロジェクトを書き換える典型（chezmoi の適用、他 repo への git 操作）を止め、それ以外の疑わしい操作は警告に留める hook。誤検知よりも取りこぼしを許容する。
 
 ## Requirements
 

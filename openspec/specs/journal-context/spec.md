@@ -1,7 +1,7 @@
 # journal-context Specification
 
 ## Purpose
-前回までの判断をセッションの冒頭で思い出させ、コミットとセッションを結びつける。
+前回までの判断をセッションの冒頭で思い出させ、コミットとセッションを session id で結びつける。SessionStart で注入する量は常時ロードのコストに直結するので最小限にする。
 
 ## Requirements
 

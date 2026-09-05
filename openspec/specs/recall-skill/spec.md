@@ -1,7 +1,7 @@
 # recall-skill Specification
 
 ## Purpose
-過去のセッションの判断を、キーワードで素早く引く。
+過去のセッションの判断をキーワードや session id で素早く引き、同じ論点を再決定する前に前提を思い出すためのスキル。journal を読むだけで編集はしない。
 
 ## Requirements
 
