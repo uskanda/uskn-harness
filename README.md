@@ -6,7 +6,10 @@
 
 ## 状態
 
-Phase 0（骨格）。実装フェーズと決定事項は [docs/adr/0001-harness-architecture.md](docs/adr/0001-harness-architecture.md) を参照。
+Phase 1（installer と既存スキルの移管）を実装中。決定事項は [docs/adr/0001-harness-architecture.md](docs/adr/0001-harness-architecture.md) と [docs/adr/0002-plugin-distribution-via-skills-dir.md](docs/adr/0002-plugin-distribution-via-skills-dir.md)、進行中の change は `openspec/changes/` を参照。
+
+- `skills/git/`: commit / push / pr / sync-base / switch-base / rebase / cleanup-merged / pre-merge / fix-ci / release / nessun-dorma と旧名エイリアス
+- `plugins/uskn-harness/`: SessionStart で `<repo-context>`（hosting とブランチモデル）を注入する hook
 
 ## 読む順番
 
@@ -17,6 +20,6 @@ Phase 0（骨格）。実装フェーズと決定事項は [docs/adr/0001-harnes
 ## 開発
 
 ```bash
-mise install      # Node 24（mise.toml）
-make verify       # 検証。hook も同じターゲットを呼ぶ
+mise install      # Node 24, bats, shellcheck（mise.toml）
+make verify       # openspec validate / shellcheck / bats / SKILL.md 検査 / claude plugin validate
 ```

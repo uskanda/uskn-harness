@@ -1,0 +1,8 @@
+{
+  "name": "uskn-harness",
+  "description": "Hooks for the uskn harness: repository context at session start. Skills are installed separately by `uskn-harness sync`.",
+  "version": "0.1.0",
+  "author": { "name": "uskanda" },
+  "repository": "https://github.com/uskanda/uskn-harness",
+  "license": "MIT"
+}

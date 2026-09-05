@@ -4,28 +4,41 @@ SHELL := /usr/bin/env bash
 SHIMS := $(HOME)/.local/share/mise/shims
 export PATH := $(SHIMS):$(HOME)/.local/bin:$(PATH)
 
-.PHONY: verify verify-openspec verify-shell verify-skills
+SCRIPT_DIRS := plugins/uskn-harness/hooks/scripts bin
+TEST_DIRS   := plugins/uskn-harness/hooks/tests bin/tests
 
-verify: verify-openspec verify-shell verify-skills ## Run every check that applies to this repo
+.PHONY: verify verify-openspec verify-shell verify-skills verify-plugin
+
+verify: verify-openspec verify-shell verify-skills verify-plugin ## Run every check that applies to this repo
 	@echo "verify: ok"
 
 verify-openspec:
 	@if command -v openspec >/dev/null && [ -d openspec ]; then \
-	  echo "[openspec] validate --all"; openspec validate --all --no-interactive || exit 1; \
+	  echo "[openspec] validate --all --strict"; openspec validate --all --strict --no-interactive || exit 1; \
 	else echo "[openspec] skipped (cli or openspec/ missing)"; fi
 
 verify-shell:
-	@files=$$(find hooks/scripts bin -type f \( -name '*.sh' -o -perm -u+x \) 2>/dev/null); \
+	@files=$$(find $(SCRIPT_DIRS) -type f \( -name '*.sh' -o -perm -u+x \) 2>/dev/null | grep -v '/tests/' || true); \
 	if [ -z "$$files" ]; then echo "[shell] skipped (no scripts yet)"; \
 	elif command -v shellcheck >/dev/null; then echo "[shell] shellcheck"; shellcheck $$files; \
 	else echo "[shell] bash -n only (shellcheck not installed)"; for f in $$files; do bash -n "$$f" || exit 1; done; fi; \
-	if command -v bats >/dev/null && [ -d hooks/tests ]; then echo "[shell] bats"; bats hooks/tests; fi
+	tests=$$(for d in $(TEST_DIRS); do [ -d "$$d" ] && echo "$$d"; done); \
+	if [ -n "$$tests" ] && command -v bats >/dev/null; then echo "[shell] bats $$tests"; bats $$tests || exit 1; \
+	elif [ -n "$$tests" ]; then echo "[shell] bats not installed; tests skipped"; fi
 
 verify-skills:
-	@dirs=$$(find skills -mindepth 1 -maxdepth 2 -name SKILL.md -exec dirname {} \; 2>/dev/null); \
+	@dirs=$$(find skills -mindepth 1 -maxdepth 3 -name SKILL.md -exec dirname {} \; 2>/dev/null); \
 	if [ -z "$$dirs" ]; then echo "[skills] skipped (no skills yet)"; \
 	elif command -v skills-ref >/dev/null; then for d in $$dirs; do skills-ref validate "$$d" || exit 1; done; \
 	else echo "[skills] frontmatter check (skills-ref not installed)"; \
 	  for d in $$dirs; do head -1 "$$d/SKILL.md" | grep -q '^---$$' || { echo "missing frontmatter: $$d"; exit 1; }; \
-	  grep -qE '^name: ' "$$d/SKILL.md" || { echo "missing name: $$d"; exit 1; }; \
-	  grep -qE '^description: ' "$$d/SKILL.md" || { echo "missing description: $$d"; exit 1; }; done; fi
+	  n=$$(sed -n 's/^name: *//p' "$$d/SKILL.md" | head -1); [ "$$n" = "$$(basename "$$d")" ] || { echo "name/dir mismatch: $$d ($$n)"; exit 1; }; \
+	  grep -qE '^description: ' "$$d/SKILL.md" || { echo "missing description: $$d"; exit 1; }; \
+	  [ "$$(wc -l < "$$d/SKILL.md")" -le 500 ] || { echo "over 500 lines: $$d"; exit 1; }; done; \
+	  names=$$(for d in $$dirs; do basename "$$d"; done | sort); dup=$$(echo "$$names" | uniq -d); \
+	  [ -z "$$dup" ] || { echo "duplicate skill names: $$dup"; exit 1; }; fi
+
+verify-plugin:
+	@if command -v claude >/dev/null && [ -d plugins/uskn-harness ]; then \
+	  echo "[plugin] claude plugin validate --strict"; claude plugin validate --strict plugins/uskn-harness || exit 1; \
+	else echo "[plugin] skipped (claude cli or plugin dir missing)"; fi
