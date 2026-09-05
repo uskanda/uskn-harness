@@ -25,7 +25,7 @@
 
 - [x] 5.1 `uskn-harness sync --dry-run` の出力を確認してから `sync` を実行し、`doctor` の出力で旧スキルとの `conflict` が warn、他が ok であることを確認する
 - [x] 5.2 `claude plugin list` に `uskn-harness@skills-dir` が loaded で現れ、`claude plugin details` に SessionStart が 1 件あることを確認する
-- [ ] 5.3 このリポジトリの `.claude/skills/openspec-*` と `.claude/commands/opsx` を削除し、ユーザー層のコピーで `openspec status` 系スキルが見えることを確認する（**保留**: ユーザー層の `openspec-*` 4 つは dotfiles PR #10 のマージまで chezmoi の 1.3.1 世代コピーが残るため、マージ後に実施）
+- [x] 5.3 このリポジトリの `.claude/skills/openspec-*` と `.claude/commands/opsx` を削除し、ユーザー層のコピーで `openspec status` 系スキルが見えることを確認する（PR #10 マージ後に実施済み）
 
 ## 6. dotfiles PR #10
 
