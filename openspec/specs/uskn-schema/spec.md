@@ -24,7 +24,9 @@ schema はハーネスの `schemas/uskn/` を正本とし、`sync` 後に `opens
 - **THEN** `Source: user` と `~/.local/share/openspec/schemas/uskn` が表示される
 
 ### Requirement: 記録のテンプレート
-`grilling.md` のテンプレートは「決定 / 選択 / 出典」の表、「後回しにしたもの」、「frontier は空。共有理解は <日付> に確認済み」の状態行を持ち、`openspec schema validate uskn` が成功しなければならない（MUST）。
+`grilling.md` のテンプレートは「決定 / 選択 / 出典」の表と、「後回しにしたもの」の節を持たなければならない（MUST）。
+続けて「frontier は空。共有理解は <日付> に確認済み」の状態行を持つ。
+`openspec schema validate uskn` は成功しなければならない（MUST）。
 
 #### Scenario: 検証
 - **WHEN** `openspec schema validate uskn` を実行する

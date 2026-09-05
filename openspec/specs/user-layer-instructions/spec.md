@@ -6,7 +6,15 @@
 ## Requirements
 
 ### Requirement: 内容
-`templates/user/CLAUDE.md` は次を含まなければならない（MUST）: 先頭行の管理印（`<!-- managed by uskn-harness; edit templates/user/CLAUDE.md -->`）、チャットと生成物の言語（日本語）、仕様決定は grilling を通してから OpenSpec の成果物を作ること、作業ディレクトリ外のプロジェクトを直接編集しないこと（PR か handoff）、検証は `make verify` → `pnpm run verify` / `npm run verify` の規約で行うこと。60 行以内。
+`templates/user/CLAUDE.md` は次を含まなければならない（MUST）。
+
+- 先頭行の管理印（`<!-- managed by uskn-harness; edit templates/user/CLAUDE.md -->`）
+- チャットと生成物の言語（日本語）
+- 仕様決定は grilling を通してから OpenSpec の成果物を作ること
+- 作業ディレクトリ外のプロジェクトを直接編集しないこと。他 repo は PR か handoff で渡す
+- 検証は `make verify` → `pnpm run verify` / `npm run verify` の規約に従うこと
+
+全体で 60 行以内。
 
 #### Scenario: 行数
 - **WHEN** ファイルの行数を数える

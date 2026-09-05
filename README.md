@@ -1,19 +1,26 @@
 # uskn-harness
 
 個人プロダクト群で共用する、エージェントコーディング用ハーネス。
-スキル、hook、テンプレート、配布用インストーラをこのリポジトリに集約し、各プロダクトのリポジトリには
-`AGENTS.md` `CLAUDE.md` `openspec/` `DESIGN.md` `PRODUCT.md` だけを置く。
+スキル、hook、テンプレート、配布用インストーラをこのリポジトリに集約する。
+各プロダクトのリポジトリには `AGENTS.md` `CLAUDE.md` `openspec/` `DESIGN.md` `PRODUCT.md` だけを置く。
 
 ## 状態
 
-Phase 1（installer と既存スキルの移管）完了。次は Phase 2（spec / verify / journal / recall、cross-repo ガード hook、uskn schema）。決定事項は [docs/adr/0001-harness-architecture.md](docs/adr/0001-harness-architecture.md) と [docs/adr/0002-plugin-distribution-via-skills-dir.md](docs/adr/0002-plugin-distribution-via-skills-dir.md)、進行中の change は `openspec/changes/` を参照。
+Phase 3（ライティング、UI、方法論スキルの fork）まで完了。
+次は Phase 4（`onboard-harness` と、monolith から uskn75-kb への導入）。
+決定は [docs/adr/0001-harness-architecture.md](docs/adr/0001-harness-architecture.md) と [docs/adr/0002-plugin-distribution-via-skills-dir.md](docs/adr/0002-plugin-distribution-via-skills-dir.md) にある。
+進行中の change は `openspec/changes/` を見る。
 
-- `skills/git/`: commit / push / pr / sync-base / switch-base / rebase / cleanup-merged / pre-merge / fix-ci / release / nessun-dorma と旧名エイリアス
-- `plugins/uskn-harness/`: SessionStart で `<repo-context>`（hosting とブランチモデル）を注入する hook、grilling 記録の無い change への成果物書き込みを止める hook
-- `skills/spec/`: `/spec <idea>` で grilling → `grilling.md` → OpenSpec 成果物。schema `uskn`（`schemas/uskn/`）が grilling を proposal の前提にする
-- `skills/journal/` / `skills/recall/` と hook 群: セッションごとの journal（事実は hook、判断はエージェント）を private repo `uskanda/ai-sessions`（`~/.ai-sessions`）に貯め、SessionEnd で commit / push。SessionStart で直近 3 件を注入。コミットには `Session: <sid8>` トレーラ
-- PreToolUse hook `write-guard` / `bash-guard` と `skills/allow-repo/`: プロジェクトルート外への書き込み、`chezmoi apply`、他 repo への git 操作を止める。ユーザーが明示したときだけ `/allow-repo <path>` でそのセッションに限り解除
-- `skills/verify/` と Stop hook `verify-gate`: セッションで作業ツリーが変わったとき `make verify`（無ければ `pnpm run verify` / `npm run verify`）を実行し、失敗中は終了させない。`USKN_SKIP_VERIFY=1` で回避
+- `skills/git/`: git ワークフローのスキル 11 個（commit、push、pr、rebase、release ほか）。旧名は 1 行のエイリアスで残す
+- `plugins/uskn-harness/`: hook だけを載せた Claude Code プラグイン。SessionStart で `<repo-context>`（hosting とブランチモデル）を注入する
+- `skills/spec/`: `/spec <idea>` が grilling を回し、`grilling.md` を残してから OpenSpec 成果物を作る。schema `uskn`（`schemas/uskn/`）が grilling を proposal の前提にする
+- `skills/journal/` と `skills/recall/`: セッションごとの journal を private repo `uskanda/ai-sessions` に貯める。事実は hook、判断はエージェントが書く。SessionEnd で commit と push を行い、SessionStart で直近 3 件を注入する。コミットには `Session: <sid8>` トレーラが付く
+- `skills/allow-repo/` と PreToolUse hook `write-guard` / `bash-guard`: ルート外への書き込みを止める。`chezmoi apply` と他 repo への git 操作も止める。ユーザーが明示したときだけ `/allow-repo <path>` で解除する。解除はそのセッションに限る
+- `skills/verify/` と Stop hook `verify-gate`: セッションで作業ツリーが変わったとき検証規約を実行する。規約は `make verify`、無ければ `pnpm run verify` / `npm run verify`。失敗している間は終了させない。`USKN_SKIP_VERIFY=1` で回避できる
+- `skills/ja-writing/` と PostToolUse hook `textlint-check`: 日本語を含む Markdown を書くたびに textlint が走る。設定は `skills/ja-writing/textlintrc.json`
+- `skills/en-writing/`: 人が読む英語の文章に agent-style の 21 ルールと humanizer を当てる。エージェント向け文書は `writing-for-agents` に任せる
+- `skills/ui-guidelines/` と `templates/repo/DESIGN.md`: UI の正本は Google DESIGN.md 形式と PRODUCT.md。Impeccable は評価と改善のコマンドだけ使う
+- `skills/test-driven-development/` ほか 3 件: obra/superpowers から fork した方法論スキル。TDD、系統的デバッグ、完了前検証、git worktree を扱う
 
 ## 読む順番
 
@@ -23,12 +30,12 @@ Phase 1（installer と既存スキルの移管）完了。次は Phase 2（spec
 
 ## 導入
 
-新しいマシン: dotfiles を適用すると run_once が mise を入れ、`~/.local/share/uskn-harness` を用意して `uskn-harness sync` を実行する。
-開発機（この checkout がある場合）:
+新しいマシンでは dotfiles を適用すると、run_once が mise を入れて `~/.local/share/uskn-harness` を用意する。続けて `uskn-harness sync` が走る。
+この checkout がある開発機では、次のコマンドを使う。
 
 ```bash
 ~/repos/uskn-harness/bin/uskn-harness sync --dry-run   # 予定を確認
-~/repos/uskn-harness/bin/uskn-harness sync             # 参照点、mise、openspec、symlink、ユーザー層 CLAUDE.md
+~/repos/uskn-harness/bin/uskn-harness sync             # 参照点、mise、npm の CLI、symlink、ユーザー層 CLAUDE.md
 uskn-harness doctor                                    # 状態レポート。問題があれば終了コード 1
 ```
 
@@ -38,6 +45,6 @@ uskn-harness doctor                                    # 状態レポート。�
 ## 開発
 
 ```bash
-mise install      # Node 24, bats, shellcheck（mise.toml）
-make verify       # openspec validate / shellcheck / bats / SKILL.md 検査 / claude plugin validate
+mise install      # Node 24、bats、shellcheck（mise.toml）
+make verify       # openspec validate、shellcheck、bats、SKILL.md 検査、claude plugin validate、textlint、design.md lint
 ```

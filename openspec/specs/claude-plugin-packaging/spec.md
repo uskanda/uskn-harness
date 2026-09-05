@@ -6,7 +6,10 @@
 ## Requirements
 
 ### Requirement: プラグインの構成
-`plugins/uskn-harness/` は `.claude-plugin/plugin.json`（name `uskn-harness`、version、description、author）と `hooks/hooks.json` を持ち、hook のコマンドは `${CLAUDE_PLUGIN_ROOT}` 起点の相対パスで自身の `hooks/scripts/` を参照しなければならない（MUST）。プラグイン外へ向く symlink を含んではならない（MUST NOT）。
+`plugins/uskn-harness/` は `.claude-plugin/plugin.json` と `hooks/hooks.json` を持たなければならない（MUST）。
+`plugin.json` は name `uskn-harness`、version、description、author を持つ。
+hook のコマンドは `${CLAUDE_PLUGIN_ROOT}` 起点の相対パスで自身の `hooks/scripts/` を参照する。
+プラグイン外へ向く symlink を含んではならない（MUST NOT）。
 
 #### Scenario: symlink で読み込む
 - **WHEN** `~/.claude/skills/uskn-harness` が `plugins/uskn-harness` への symlink である

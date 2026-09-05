@@ -6,11 +6,18 @@
 ## Requirements
 
 ### Requirement: 手順
-`templates/chezmoi/run_once_install-uskn-harness.sh.tmpl` は、Linux と macOS で次を非対話で行わなければならない（MUST）: git の存在確認、mise が無ければ `~/.local/bin/mise` に導入、`~/.local/share/uskn-harness` が無ければ `~/repos/uskn-harness` への symlink（存在時）か GitHub からの clone、最後に `uskn-harness sync` の実行。Windows では何もしない。
+`templates/chezmoi/run_once_install-uskn-harness.sh.tmpl` は、Linux と macOS で次を非対話で実行しなければならない（MUST）。
+
+- git の存在確認
+- mise が無ければ `~/.local/bin/mise` に導入
+- `~/.local/share/uskn-harness` が無ければ用意する。`~/repos/uskn-harness` があれば symlink、無ければ GitHub から clone
+- 最後に `uskn-harness sync`
+
+Windows では何もしない。
 
 #### Scenario: 新しい Linux マシン
 - **WHEN** `chezmoi apply` が初回実行される
-- **THEN** スクリプトが 1 回だけ走り、終了時に `uskn-harness doctor` が終了コード 0 になる
+- **THEN** スクリプトは 1 回だけ走り、終了時の `uskn-harness doctor` が終了コード 0 になる
 
 #### Scenario: 2 回目の apply
 - **WHEN** 同じマシンで再度 `chezmoi apply` する

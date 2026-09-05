@@ -17,8 +17,17 @@
 
 ## Verification
 
-- Before calling work done, run the repository's verify convention: `make verify` if a Makefile has that target, otherwise `pnpm run verify` / `npm run verify`. If none exists, say so instead of claiming verification.
-- When adding behavior to scripts or code, write the failing test first (TDD).
+- Before calling work done, run the repository's verify convention: `make verify` if a Makefile has that target, otherwise `pnpm run verify` / `npm run verify`. If none exists, say so instead of claiming verification. The `verification-before-completion` skill is the checklist; a Stop hook runs the same command.
+- When adding behavior to scripts or code, write the failing test first: follow the `test-driven-development` skill. A bug or failing test you do not yet understand goes through `systematic-debugging` before any fix. An isolated workspace comes from `using-git-worktrees`.
+
+## Writing
+
+- Japanese prose (commits, pull requests, specs, docs, UI copy): follow the `ja-writing` skill. A hook runs textlint after every Markdown write; fix its findings before you finish.
+- English prose a person reads: follow the `en-writing` skill (agent-style rules, then a humanizer pass). Skills, AGENTS.md, and CLAUDE.md follow `writing-for-agents`.
+
+## UI
+
+- Building or changing a user interface starts with the `ui-guidelines` skill. `DESIGN.md` (Google DESIGN.md format) and `PRODUCT.md` at the repository root are the source of truth; Impeccable commands review and refine, never `init`.
 
 ## Repository context
 

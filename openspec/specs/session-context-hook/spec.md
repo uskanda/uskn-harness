@@ -17,7 +17,8 @@ hook は stdin の JSON の `cwd` を作業ディレクトリとして使い、`
 - **THEN** `$PWD` を作業ディレクトリとして扱い、処理を続ける
 
 ### Requirement: ホスティングの判定
-hook は remote URL のホスト名、gh / glab の設定ファイル、リポジトリ内の CI ファイルの順で GitHub / GitLab / unknown を判定しなければならない（MUST）。判定根拠を出力に含める。
+hook は GitHub / GitLab / unknown を判定しなければならない（MUST）。
+見る順序は remote URL のホスト名、gh / glab の設定ファイル、リポジトリ内の CI ファイル。判定根拠を出力に含める。
 
 #### Scenario: github.com の remote
 - **WHEN** `origin` の URL が `git@github.com:owner/repo.git`
@@ -28,11 +29,12 @@ hook は remote URL のホスト名、gh / glab の設定ファイル、リポ�
 - **THEN** platform は `gitlab`
 
 #### Scenario: 判定できない
-- **WHEN** remote が無く、`.github/workflows/` も `.gitlab-ci.yml` も無い
+- **WHEN** remote が無く、`.github/workflows/` と `.gitlab-ci.yml` のどちらも無い
 - **THEN** platform は `unknown` で、出力にはスキル側で判定するよう促す文を含む
 
 ### Requirement: ブランチモデルの注入
-hook は `branch-model` の解決結果（default / integration / qa / release_tag と、それぞれの根拠）を `<repo-context>` ブロック内に含めなければならない（MUST）。
+hook は `branch-model` の解決結果を `<repo-context>` ブロック内に含めなければならない（MUST）。
+含めるのは default、integration、qa、release_tag と、それぞれの根拠。
 
 #### Scenario: develop と qa があるリポジトリ
 - **WHEN** `origin/HEAD` が `main` を指し、`origin/develop` と `origin/qa` が存在する
@@ -43,7 +45,10 @@ hook は `branch-model` の解決結果（default / integration / qa / release_t
 - **THEN** 出力に `integration: main` と `qa: (none)` が含まれる
 
 ### Requirement: 機械可読モード
-`--plain hosting` は `github` / `gitlab` / `unknown` のいずれか 1 語を、`--plain branches` は `key=value` 形式の行（default, integration, qa, release_tag）を、`--json` は同じ内容を 1 つの JSON オブジェクトで出力しなければならない（MUST）。これらのモードでは `<repo-context>` ブロックを出力しない。
+`--plain hosting` は `github` / `gitlab` / `unknown` のいずれか 1 語を出力しなければならない（MUST）。
+`--plain branches` は `key=value` 形式の行を出力する。キーは default、integration、qa、release_tag。
+`--json` は同じ内容を 1 つの JSON オブジェクトで出力する。
+これらのモードでは `<repo-context>` ブロックを出力しない。
 
 #### Scenario: スキルからの直接呼び出し
 - **WHEN** `session-start.sh --plain branches` を git リポジトリ内で実行する

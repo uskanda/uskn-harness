@@ -6,7 +6,7 @@
 ## Requirements
 
 ### Requirement: 冪等性
-`uskn-harness sync` を連続して 2 回実行したとき、2 回目は変更を行わず、変更が無かったことを報告しなければならない（MUST）。
+`uskn-harness sync` を連続して 2 回実行したとき、2 回目は何も変更せず、変更が無かったことを報告しなければならない（MUST）。
 
 #### Scenario: 2 回目の実行
 - **WHEN** 導入済みの環境で `sync` を再実行する
@@ -24,7 +24,10 @@
 - **THEN** 参照点は `ok`（managed clone）として報告され、symlink は作られない
 
 ### Requirement: ランタイムと CLI
-`sync` は mise が無ければ `~/.local/bin/mise` に導入し、グローバル既定として `node@24` と `jq` を設定し、`deps.json` の `clis.openspec.version` と一致する openspec を導入しなければならない（MUST）。既に一致していれば何もしない。
+`sync` は mise が無ければ `~/.local/bin/mise` に導入しなければならない（MUST）。
+続けてグローバル既定として `node@24` と `jq` を設定する。
+`deps.json` の `clis` のうち `global` が真のものを、ピンの版で npm の global に導入する。
+既に一致していれば何もしない。
 
 #### Scenario: openspec が古い
 - **WHEN** 導入済みの openspec が `deps.json` の version と異なる
@@ -49,14 +52,19 @@
 - **THEN** symlink が作られ、`claude plugin list` に `uskn-harness@skills-dir` が現れる
 
 ### Requirement: サードパーティスキル
-`sync` は `deps.json` の `skills` のうち `mode` が `reference` で `install` を持つものを、`~/.claude/skills/<name>` が無いときだけ `install` のコマンドで導入しなければならない（MUST）。既にあるものは触らない。
+`sync` は `deps.json` の `skills` のうち、`mode` が `reference` で `install` を持つものを導入しなければならない（MUST）。
+導入するのは `~/.claude/skills/<name>` が無いときだけで、コマンドは `install` の値を使う。既にあるものは触らない。
 
 #### Scenario: grilling が未導入
 - **WHEN** `~/.claude/skills/grilling` が無い
 - **THEN** `npx skills add mattpocock/skills --skill=grilling -g -a claude-code` 相当が実行され、導入後に `SKILL.md` が存在する
 
 ### Requirement: OpenSpec のユーザー層スキル
-`sync` は openspec が Claude Code 向けに生成するスキルとコマンドを、一時ディレクトリで生成してから `~/.claude/skills/openspec-*` と `~/.claude/commands/opsx/` にコピーし、各ディレクトリにハーネス管理の印（`.uskn-harness-managed` ファイル）を置かなければならない（MUST）。コピー先に印の無い同名ディレクトリがあれば上書きせず警告する（`generatedBy` は chezmoi 管理の旧コピーにも含まれるため印には使わない）。
+`sync` は openspec が Claude Code 向けに生成するスキルとコマンドを、一時ディレクトリで作らなければならない（MUST）。
+生成物は `~/.claude/skills/openspec-*` と `~/.claude/commands/opsx/` にコピーする。
+各ディレクトリにはハーネス管理の印として `.uskn-harness-managed` ファイルを置く。
+コピー先に印の無い同名ディレクトリがあれば、上書きせず警告する。
+`generatedBy` は chezmoi 管理の旧コピーにも含まれるため、印には使わない。
 
 #### Scenario: バージョン更新
 - **WHEN** openspec の version が上がった状態で `sync` を実行する

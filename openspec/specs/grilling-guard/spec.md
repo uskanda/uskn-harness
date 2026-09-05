@@ -6,7 +6,10 @@ grilling の記録が無い change に成果物が書き込まれるのを、ツ
 ## Requirements
 
 ### Requirement: 記録の無い change への書き込みを拒否
-Write / Edit / NotebookEdit の対象が `openspec/changes/<name>/` 配下の `proposal.md`、`design.md`、`tasks.md`、`specs/**` で、同じ change に `grilling.md` が無いとき、hook は `permissionDecision: deny` と理由を返さなければならない（MUST）。理由には grilling を先に行うよう書く。
+Write / Edit / NotebookEdit の対象が `openspec/changes/<name>/` 配下にあるとする。
+対象は `proposal.md`、`design.md`、`tasks.md`、`specs/**` のいずれか。
+同じ change に `grilling.md` が無いとき、hook は `permissionDecision: deny` と理由を返さなければならない（MUST）。
+理由には grilling を先に済ませるよう書く。
 
 #### Scenario: 記録なし
 - **WHEN** `openspec/changes/add-x/proposal.md` への Write を、`grilling.md` が無い状態で行う
@@ -17,7 +20,8 @@ Write / Edit / NotebookEdit の対象が `openspec/changes/<name>/` 配下の `p
 - **THEN** hook は何も出力せず終了コード 0
 
 ### Requirement: 対象外は素通し
-`grilling.md` 自身、`openspec/changes/archive/` 配下、`openspec/specs/`、change 外のファイルへの書き込みには何もしてはならない（MUST NOT）。
+次への書き込みには何もしてはならない（MUST NOT）。
+`grilling.md` 自身、`openspec/changes/archive/` 配下、`openspec/specs/`、change 外のファイル。
 
 #### Scenario: grilling.md の作成
 - **WHEN** `openspec/changes/add-x/grilling.md` を Write する

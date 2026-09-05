@@ -6,7 +6,16 @@
 ## Requirements
 
 ### Requirement: 検査項目
-`uskn-harness doctor` は次を検査し、各項目を `ok` / `warn` / `fail` で報告しなければならない（MUST）: 参照点の存在と向き先、mise と node と jq の有無、openspec の version と `deps.json` の一致、`~/.claude/skills` の各 symlink の存在と向き先、chezmoi 管理の同名スキルとの衝突、プラグイン symlink と `claude plugin validate` の結果、サードパーティスキルの有無、`~/.claude/CLAUDE.md` の管理印。
+`uskn-harness doctor` は次を検査し、各項目を `ok` / `warn` / `fail` で報告しなければならない（MUST）。
+
+- 参照点の存在と向き先
+- mise、node、jq の有無
+- `deps.json` でピン止めした npm の CLI の版
+- `~/.claude/skills` の各 symlink の存在と向き先
+- chezmoi 管理の同名スキルとの衝突
+- プラグイン symlink と `claude plugin validate` の結果
+- サードパーティスキルの有無
+- `~/.claude/CLAUDE.md` の管理印
 
 #### Scenario: 健全な環境
 - **WHEN** `sync` 直後に `doctor` を実行する

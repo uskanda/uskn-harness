@@ -6,7 +6,10 @@
 ## Requirements
 
 ### Requirement: スキルの集合と命名
-システムは `commit` `push` `pr` `sync-base` `switch-base` `rebase` `cleanup-merged` `pre-merge` `fix-ci` `release` `nessun-dorma` の 11 スキルを提供しなければならない（MUST）。加えて `mr` `mr-main` `mr-qa` `merge-develop` `switch-develop-branch` は対応するスキルを呼ぶだけのエイリアスとして提供し、モデルからの自動起動を無効にする。
+システムは次の 11 スキルを提供しなければならない（MUST）。
+`commit` `push` `pr` `sync-base` `switch-base` `rebase` `cleanup-merged` `pre-merge` `fix-ci` `release` `nessun-dorma`。
+加えて `mr` `mr-main` `mr-qa` `merge-develop` `switch-develop-branch` をエイリアスとして提供する。
+エイリアスは対応するスキルを呼ぶだけで、モデルからの自動起動を無効にする。
 
 #### Scenario: エイリアスの起動
 - **WHEN** ユーザーが `/mr-qa` を実行する
@@ -27,7 +30,12 @@
 - **THEN** スキルは `session-start.sh --plain branches` を実行して integration を得てから進める
 
 ### Requirement: pr の対象と意味論
-`pr` は引数で対象ブランチを受け取る。引数なしは現在のブランチから integration への PR / MR を作り、CI 通過後の auto-merge を有効にする。引数が default と一致し integration と異なるときは、integration から default へのリリース PR / MR を作り、タイトルは `<default> YYYYMMDD HH:MM`（JST）とする。引数が qa と一致するときは現在のブランチから qa への PR / MR を作り、ソースブランチをマージ時に削除してはならない（MUST NOT）。
+`pr` は引数で対象ブランチを受け取る。
+引数なしは現在のブランチから integration への PR / MR を作り、CI 通過後の auto-merge を有効にする。
+引数が default と一致し、かつ integration と異なるときは、integration から default へのリリース PR / MR を作る。
+そのタイトルは `<default> YYYYMMDD HH:MM`（JST）とする。
+引数が qa と一致するときは現在のブランチから qa への PR / MR を作る。
+このときソースブランチをマージ時に削除してはならない（MUST NOT）。
 
 #### Scenario: 引数なし
 - **WHEN** feature ブランチで `/pr` を実行する
@@ -53,11 +61,13 @@ auto-merge を設定する前に CI の存在を確認し、CI が現れない�
 - **THEN** auto-merge を設定せず、PR の URL と理由を報告して終了する
 
 ### Requirement: 保護ブランチの扱い
-`push` は保護判定を「AGENTS.md / CLAUDE.md の明記 → ホストの API → ブランチ名の推定」の順で行い、保護されたブランチに未コミットの変更がある場合は新規ブランチの作成をユーザーに確認しなければならない（MUST）。`--force` 系のオプションを使ってはならない（MUST NOT）。
+`push` は保護判定を「AGENTS.md / CLAUDE.md の明記 → ホストの API → ブランチ名の推定」の順で行う。
+保護されたブランチに未コミットの変更があるときは、新規ブランチの作成をユーザーに確認しなければならない（MUST）。
+`--force` 系のオプションを使ってはならない（MUST NOT）。
 
 #### Scenario: 明記がある
 - **WHEN** AGENTS.md に「master は保護されていない」と明記されている
-- **THEN** API 判定を行わず、そのまま現在のブランチへ push する
+- **THEN** API では判定せず、そのまま現在のブランチへ push する
 
 ### Requirement: 破壊的操作の抑制
 `sync-base` と `switch-base` は未コミットの変更があれば何もせず中止しなければならない（MUST）。`sync-base` は fast-forward を試み、できなければユーザーに確認せず `--no-ff` マージを行い、コンフリクト時はマージを中断したまま報告する。
@@ -67,7 +77,9 @@ auto-merge を設定する前に CI の存在を確認し、CI が現れない�
 - **THEN** ブランチは切り替わらず、変更ファイル一覧とともに中止が報告される
 
 ### Requirement: release のタグ形式
-`release` は default ブランチの先端に `release_tag` 形式（既定 `vYY.MM.X`、当月の最大 X に 1 を足す）のタグを打ち、GitHub / GitLab のリリースを作成しなければならない（MUST）。同じタグやリリースが既にあれば作り直さない。
+`release` は default ブランチの先端に `release_tag` 形式のタグを打たなければならない（MUST）。
+既定は `vYY.MM.X` で、当月の最大 X に 1 を足す。
+続けて GitHub / GitLab のリリースを作成する。同じタグやリリースが既にあれば作り直さない。
 
 #### Scenario: 当月 2 回目
 - **WHEN** 既に `v26.09.1` があり default の先端にタグが無い

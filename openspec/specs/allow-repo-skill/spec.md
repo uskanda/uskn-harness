@@ -6,7 +6,10 @@
 ## Requirements
 
 ### Requirement: セッション限定の追記
-`allow-repo <path>` は `allow-repo.sh --session <sid8> <path>` でパスの実体を `sessions/<session_id>/allow` に追記し、以後そのセッションのガードが通すようにしなければならない（MUST）。ユーザーの依頼なしにエージェントが自発的に実行してはならない（MUST NOT）。`--list` は現在の許可を表示する。
+`allow-repo <path>` は `allow-repo.sh --session <sid8> <path>` を呼ばなければならない（MUST）。
+スクリプトはパスの実体を `sessions/<session_id>/allow` に追記する。
+以後そのセッションのガードは、そのパスへの書き込みを通さなければならない（MUST）。
+ユーザーの依頼なしにエージェントが自発的に実行してはならない（MUST NOT）。`--list` は現在の許可を表示する。
 
 #### Scenario: 許可
 - **WHEN** ユーザーが「dotfiles を直接直してよい」と言い `/allow-repo ~/dotfiles` を実行する

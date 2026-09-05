@@ -466,3 +466,30 @@ Codex 等の実機検証、episodic-memory、OpenSpec stores、intake tier（tin
 - この Bash ツールは zsh なので、アドホックなループは bash ヒアドキュメントで書く
 
 Phase 2 後の hook 構成: SessionStart（session-start / session-baseline / journal-recent）、PreToolUse（grilling-guard / write-guard / bash-guard）、Stop（verify-gate / journal-update）、SessionEnd（journal-end）。bats 67 件、`make verify` で検証。
+
+## 15. Phase 3 の grilling と実装
+
+### 第7ラウンド（2026-09-05）
+
+Phase 3 の論点はハーネス全体の grilling（§10 第1〜4ラウンド）と共有理解（§12）で確定済みだった。
+新しい決定は無く、各 change の `grilling.md` に該当箇所を抜粋して記録した。
+対象は writing-guidelines、ui-guidelines、methodology-forks の 3 つ。
+
+### Phase 3 の実装メモ（2026-09-05）
+
+3 change を実装した。実装中に決めた細部:
+
+- textlint の設定は `skills/ja-writing/textlintrc.json` に 1 つだけ置く。指針（SKILL.md）とセンサー（設定）を同じディレクトリに同居させ、hook と `make verify` の両方がこれを参照する。プロダクト repo に `.textlintrc*` があればそちらが優先
+- プリセットは既定値のまま使う。`sentence-length` を緩めず、既存文書のほうを直した。インラインコードの除外（`exclusionPatterns`）は文の分割位置が変わって指摘が増えたので使わない
+- 日本語判定は UTF-8 のバイト列（ひらがなとカタカナ）で行う。ロケールに依存しない。英語の SKILL.md に技術文書プリセットが誤爆するのを避けられる
+- textlint hook は block しない。`additionalContext` で最大 20 件返すだけにした。仕様の下書きが止まると困るため
+- `sync` の npm global 導入を汎用化した。`deps.json` の `clis` に `global: true` と `bundle` を持たせ、openspec / textlint / agent-style / design.md を 1 つのループで扱う。版の確認は `npm root -g` 配下の `package.json` を読む。導入後に `mise reshim` を呼ぶ
+- `make verify` の textlint 対象は生きている文書に限る。README、`docs/adr/`、`openspec/specs/`、進行中の change。本ファイルと archive は記録なので対象外
+- 長い識別子が原因の `sentence-length` は、識別子を独立した文に出して直す（「置き場は `<path>`。」）。この直し方を `ja-writing` スキルの表に足した
+- Impeccable は CLI ではなくスキルとして扱う（`deps.json` の `skills`）。届く物がスキルなので、既存の「無いときだけ入れる」経路に乗る。`npx impeccable install --no-hooks` で検出器 hook は入れない
+- DESIGN.md は Google 形式のテンプレートを `templates/repo/` に置き、`designmd lint` でエラー 0 を保つ。PRODUCT.md は Impeccable が読む節構成をテンプレートで用意し、`/impeccable init` は使わない
+- superpowers の 4 スキルは upstream と同じディレクトリ名で取り込んだ。§12.2 の木にあった `tdd/` は使わない。差分の追従がしやすく、mattpocock の `tdd` とも衝突しない
+- fork の変更は最小にした。`superpowers:` プレフィックスの置き換え、verify 規約と Stop hook への言及、worktree をルート内に限る 3 点
+
+Phase 3 後の hook 構成: SessionStart 3、PreToolUse 3、PostToolUse 1（textlint）、Stop 2、SessionEnd 1。
+bats は 97 件。`make verify` は openspec、shellcheck、bats、SKILL.md 検査、plugin validate、textlint、design.md lint を通す。

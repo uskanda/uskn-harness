@@ -6,7 +6,11 @@
 ## Requirements
 
 ### Requirement: ルート外の拒否
-対象パス（`file_path` または `notebook_path`）の実体がプロジェクトルート（`CLAUDE_PROJECT_DIR`、無ければ `cwd` の git ルート、無ければ `cwd`）の外にあるとき、hook は `permissionDecision: deny` と、`/allow-repo <path>` で解除できる旨の理由を返さなければならない（MUST）。ルート内、および許可リスト（`/tmp`、`$TMPDIR`、`~/.ai-sessions`、`~/.claude/projects/*/memory`、ハーネスの状態ディレクトリ、`$CLAUDE_PLUGIN_DATA`）内は何も出力しない。
+プロジェクトルートは `CLAUDE_PROJECT_DIR`、無ければ `cwd` の git ルート、それも無ければ `cwd`。
+対象パス（`file_path` または `notebook_path`）の実体がその外にあるとき、hook は `permissionDecision: deny` と理由を返さなければならない（MUST）。
+理由には `/allow-repo <path>` で解除できる旨を書く。
+ルート内と許可リスト内は何も出力しない。
+許可リストは `/tmp`、`$TMPDIR`、`~/.ai-sessions`、`~/.claude/projects/*/memory`、ハーネスの状態ディレクトリ、`$CLAUDE_PLUGIN_DATA`。
 
 #### Scenario: 他のリポジトリ
 - **WHEN** ルートが `~/repos/a` のセッションで `~/repos/b/x.md` を Write する

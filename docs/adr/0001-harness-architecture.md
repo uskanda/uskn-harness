@@ -25,9 +25,18 @@ AGENTS.md、Agent Skills（`SKILL.md`）、MCP。hook はイベント語彙が�
 動作保証は Claude Code のみ。Codex CLI、Gemini CLI、OpenCode 向けにはアダプタの置き場を用意するが検証しない。
 
 ### 3. リポジトリ構成
-`skills/`（正本、英語）、`hooks/scripts/` + `hooks/adapters/`、`templates/repo/` + `templates/user/`、`schemas/uskn/`、
-`plugins/uskn-harness/`（hook のみ）、`deps.json`、`assets/voice/`、`docs/{adr,handoffs,trends}`、`openspec/`（自身の運用）、
-`bin/uskn-harness`（init / doctor / sync）。GitHub private、`main` のみ、CalVer タグ。
+GitHub private、`main` のみ、CalVer タグ。置くものは次のとおり。
+
+- `skills/`: スキルの正本（英語）
+- `hooks/scripts/` と `hooks/adapters/`: hook 本体と、ツールごとの配線
+- `templates/repo/` と `templates/user/`: プロダクト repo 向けとユーザー層向けの配布ファイル
+- `schemas/uskn/`: OpenSpec の schema
+- `plugins/uskn-harness/`: Claude Code プラグイン（hook のみ）
+- `deps.json`: 外部スキルと CLI のピン
+- `assets/voice/`: 文体サンプル
+- `docs/{adr,handoffs,trends}`: 決定、他 repo への手順書、調査
+- `openspec/`: 本 repo 自身の運用
+- `bin/uskn-harness`: installer（init / doctor / sync）
 
 ### 4. 配布
 - スキル: `npx skills add uskanda/uskn-harness -g`。Claude Code では `~/.claude/skills/` へ symlink、名前はプレフィックスなし
@@ -40,10 +49,15 @@ AGENTS.md、Agent Skills（`SKILL.md`）、MCP。hook はイベント語彙が�
 `~/.claude/CLAUDE.md` へ配置。スキル、hook、テンプレート、本 repo の AGENTS.md は英語。チャット、コミット、PR、ADR、OpenSpec 成果物は日本語。
 
 ### 6. ワークフロー
-`/spec <idea>` → grilling（ラウンド形式、mattpocock/skills の `grilling` を参照）→ `openspec/changes/<name>/grilling.md` に保存 →
-proposal / design / specs / tasks を一括生成（`--step` で段階生成）→ `/opsx:apply` を TDD で → Stop hook が verify → `/opsx:archive`。
+1. `/spec <idea>` が grilling を回す（ラウンド形式。mattpocock/skills の `grilling` を参照）。
+2. 結果を `openspec/changes/<name>/grilling.md` に保存する。
+3. proposal、design、specs、tasks を一括生成する（`--step` で段階生成）。
+4. `/opsx:apply` を TDD で進め、Stop hook が verify を実行する。
+5. `/opsx:archive` で main specs に反映する。
+
 OpenSpec は `spec-driven` schema を `uskn` にフォークし、`grilling` アーティファクトを proposal の前提に置く。
-schema は user-level `~/.local/share/openspec/schemas/uskn/`、repo 側は `openspec/config.yaml` の `schema: uskn` のみ。profile は expanded。
+schema は user-level の `~/.local/share/openspec/schemas/uskn/` に置く。
+repo 側は `openspec/config.yaml` の `schema: uskn` だけ。profile は expanded。
 
 ### 7. hook（v1）
 | イベント | 役割 |
@@ -56,18 +70,31 @@ schema は user-level `~/.local/share/openspec/schemas/uskn/`、repo 側は `ope
 | SessionEnd | journal の決定的スケルトンを生成し sessions repo に commit |
 
 ### 8. 既存スキルの移管
-git ワークフロー系（commit, push, pr/mr, mr-main, mr-qa, rebase, merge-develop, switch-develop-branch, cleanup-merged, pre-merge,
-fix-ci, release, nessun-dorma）をハーネスへ移す。`develop` / `main` / `qa` の固定は「自動検出 + AGENTS.md『ブランチ運用』節で上書き」に
-汎用化し、判定は SessionStart hook が行う。`pr`（引数で main / qa）、`sync-base`、`switch-base` に統合し、旧名は
-`disable-model-invocation: true` の 1 行エイリアスで残す。プロジェクト履歴への言及（Issue 番号など）は削除する。
-chezmoi-merge、sync-claude-settings、set-workspace-theme、cleanup は dotfiles に残す。`openspec-*` は CLI 生成物に置き換える。
+git ワークフロー系のスキルをハーネスへ移す。
+対象は commit、push、pr / mr、mr-main、mr-qa、rebase、merge-develop、switch-develop-branch。
+cleanup-merged、pre-merge、fix-ci、release、nessun-dorma も移す。
+`develop` / `main` / `qa` の固定は「自動検出と、AGENTS.md『ブランチ運用』節での上書き」に汎用化する。
+判定は SessionStart hook が担う。
+`pr`（引数で main / qa）、`sync-base`、`switch-base` に統合する。
+旧名は `disable-model-invocation: true` の 1 行エイリアスで残す。
+プロジェクト履歴への言及（Issue 番号など）は削除する。
+chezmoi-merge、sync-claude-settings、set-workspace-theme、cleanup は dotfiles に残す。
+`openspec-*` は CLI 生成物に置き換える。
 
 ### 9. 方法論スキル
-superpowers は丸ごと採用しない。test-driven-development、systematic-debugging、verification-before-completion、using-git-worktrees の
-4 つを MIT 表記付きで fork する。grilling、grill-me、handoff、writing-for-agents（mattpocock/skills）、humanizer、Impeccable、expo/skills は参照 + ピン。
+superpowers は丸ごと採用しない。fork するのは次の 4 つで、どれにも MIT 表記を付ける。
+
+- test-driven-development
+- systematic-debugging
+- verification-before-completion
+- using-git-worktrees
+
+mattpocock/skills の grilling、grill-me、handoff、writing-for-agents は参照してピン止めする。
+humanizer、agent-style、Impeccable、expo/skills も同じ扱いにする。
 
 ### 10. 履歴
-sessions repo（GitHub private `uskanda/ai-sessions` → `~/.ai-sessions`）に `<project>/<日付>-<slug>.md` の要約を commit + push。
+要約は sessions repo（GitHub private `uskanda/ai-sessions`、`~/.ai-sessions`）に commit と push する。
+ファイル名は `<project>/<日付>-<slug>.md`。
 要約は bash + jq の決定的スケルトンに、変更があったセッションだけエージェントが「決定 / 未解決 / 次の一手」を追記する。
 全文トランスクリプトは同配下で gitignore（ローカルのみ）。プロダクトのコミットに `Session:` トレーラ。検索は ripgrep + `recall`。
 
@@ -78,8 +105,11 @@ sessions repo（GitHub private `uskanda/ai-sessions` → `~/.ai-sessions`）に 
   文体サンプルは `assets/voice/`。適用範囲はコミット、PR、仕様、ドキュメント、UI 文言。文体基準はスキル作成時に短い grilling で決める
 
 ### 12. 実装フェーズ
-0 骨格（本 ADR、`openspec init`、GitHub repo）→ 1 installer・chezmoi 連携（PR）・既存スキルの移管と汎用化・hosting hook の移管 →
-2 `spec` / `verify` / `journal` / `recall` / cross-repo ガード → 3 writing / UI / TDD fork → 4 `onboard-harness`・monolith → uskn75-kb
+0. 骨格（本 ADR、`openspec init`、GitHub repo）
+1. installer、chezmoi 連携（PR）、既存スキルの移管と汎用化、hosting hook の移管
+2. `spec`、`verify`、`journal`、`recall`、cross-repo ガード
+3. ライティング、UI、方法論スキルの fork
+4. `onboard-harness`、monolith と uskn75-kb への導入
 
 ## 検討した代替案
 

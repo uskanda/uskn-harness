@@ -6,7 +6,9 @@
 ## Requirements
 
 ### Requirement: 変化があるときだけ実行
-Stop hook は現在の指紋を計算し、開始時の `baseline` と一致するか、前回成功時に記録した `verified` と一致するときは何もせず終了コード 0 で終わらなければならない（MUST）。`baseline` が無いときは現在の指紋を `baseline` として記録し、今回は検証しない。
+Stop hook は現在の指紋を計算しなければならない（MUST）。
+開始時の `baseline`、または前回成功時に記録した `verified` と一致するときは、何もせず終了コード 0 で終わる。
+`baseline` が無いときは現在の指紋を `baseline` として記録し、今回は検証しない。
 
 #### Scenario: 読むだけのセッション
 - **WHEN** ファイルを変更していない状態で Stop が発火する
@@ -17,7 +19,9 @@ Stop hook は現在の指紋を計算し、開始時の `baseline` と一致す�
 - **THEN** 検証コマンドは再実行されない
 
 ### Requirement: 検証規約の探索
-検証コマンドは `Makefile` に `verify` ターゲットがあれば `make verify`、無ければ `package.json` の `scripts.verify`（`pnpm-lock.yaml` があれば `pnpm run verify`、無ければ `npm run verify`）。どちらも無ければ何もしない（MUST）。
+検証コマンドは `Makefile` に `verify` ターゲットがあれば `make verify`。
+無ければ `package.json` の `scripts.verify` を使う。`pnpm-lock.yaml` があれば `pnpm run verify`、無ければ `npm run verify`。
+どちらも無ければ何もしない（MUST）。
 
 #### Scenario: Makefile
 - **WHEN** リポジトリのルートに `verify:` ターゲットを持つ Makefile がある
@@ -28,7 +32,9 @@ Stop hook は現在の指紋を計算し、開始時の `baseline` と一致す�
 - **THEN** 何も実行せず、出力は空
 
 ### Requirement: 失敗で block
-検証が非ゼロで終わったとき、hook は `decision: block` と、コマンド、終了コード、出力の末尾（最大 40 行）、ログの場所、回避方法（`USKN_SKIP_VERIFY=1`）を含む理由を返さなければならない（MUST）。成功したときは現在の指紋を `verified` に記録し、何も出力しない。
+検証が非ゼロで終わったとき、hook は `decision: block` と理由を返さなければならない（MUST）。
+理由にはコマンド、終了コード、出力の末尾（最大 40 行）、ログの場所、回避方法（`USKN_SKIP_VERIFY=1`）を含める。
+成功したときは現在の指紋を `verified` に記録し、何も出力しない。
 
 #### Scenario: テスト失敗
 - **WHEN** `make verify` が exit 2 で失敗する
@@ -39,7 +45,9 @@ Stop hook は現在の指紋を計算し、開始時の `baseline` と一致す�
 - **THEN** 出力は空で、`sessions/<session_id>/verified` に指紋が書かれる
 
 ### Requirement: 実行しない条件
-`stop_hook_active` が true のとき、環境変数 `USKN_SKIP_VERIFY` が `1` のとき、入力に `agent_type` があるとき（サブエージェント）、`cwd` が git 管理外のときは、検証を実行せず終了コード 0 で終わらなければならない（MUST）。
+次のときは検証せず、終了コード 0 で終わらなければならない（MUST）。
+`stop_hook_active` が true のとき。環境変数 `USKN_SKIP_VERIFY` が `1` のとき。
+入力に `agent_type` があるとき（サブエージェント）。`cwd` が git 管理外のとき。
 
 #### Scenario: 二重ブロックの防止
 - **WHEN** `stop_hook_active` が true で、検証が失敗する状態

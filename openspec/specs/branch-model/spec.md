@@ -17,7 +17,10 @@
 - **THEN** default は `main`
 
 ### Requirement: AGENTS.md による上書き
-リポジトリ直下の `AGENTS.md` に見出し `## Branch model` があり、その直後の fenced code block（言語 `yaml`）に `default` `integration` `qa` `release_tag` のいずれかのキーがあれば、その値が自動検出より優先されなければならない（MUST）。書かれていないキーは自動検出の値を使う。`qa: none` は「QA ブランチ無し」を意味する。
+リポジトリ直下の `AGENTS.md` に見出し `## Branch model` があるとする。
+その直後に言語 `yaml` の fenced code block が続くとき、hook はそれを読まなければならない（MUST）。
+`default` `integration` `qa` `release_tag` のいずれかのキーがあれば、その値が自動検出より優先される。
+書かれていないキーは自動検出の値を使う。`qa: none` は「QA ブランチ無し」を意味する。
 
 #### Scenario: 統合ブランチだけを上書き
 - **WHEN** AGENTS.md の `## Branch model` に `integration: trunk` だけが書かれている

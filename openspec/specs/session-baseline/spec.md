@@ -6,11 +6,15 @@
 ## Requirements
 
 ### Requirement: 指紋の記録
-SessionStart hook は、`cwd` が git リポジトリのとき、`${XDG_STATE_HOME:-~/.local/state}/uskn-harness/sessions/<session_id>/baseline` に作業ツリーの指紋（HEAD の SHA、`git status --porcelain` と `git diff HEAD` のハッシュ）と、`project`（リポジトリのルート）、`started`（ISO 8601）を記録しなければならない（MUST）。標準出力には何も出さない。
+`cwd` が git リポジトリのとき、SessionStart hook は状態ディレクトリに記録しなければならない（MUST）。
+場所は `${XDG_STATE_HOME:-~/.local/state}/uskn-harness/sessions/<session_id>/`。
+`baseline` には作業ツリーの指紋を書く。指紋は HEAD の SHA と、`git status --porcelain`、`git diff HEAD` のハッシュ。
+`project` にはリポジトリのルート、`started` には ISO 8601 の開始時刻を書く。
+標準出力には何も出さない。
 
 #### Scenario: 開始時
 - **WHEN** git リポジトリで SessionStart が発火する
-- **THEN** `sessions/<session_id>/baseline` と `project` と `started` が作られる
+- **THEN** `sessions/<session_id>/` に `baseline`、`project`、`started` が作られる
 
 #### Scenario: 非 git
 - **WHEN** git 管理外のディレクトリで発火する

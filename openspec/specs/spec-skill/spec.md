@@ -6,7 +6,8 @@
 ## Requirements
 
 ### Requirement: インタビュー先行
-`spec` は成果物を作る前に grilling スキルによるインタビューを行い、frontier が空になりユーザーが共有理解を確認するまで `openspec new change` を実行してはならない（MUST NOT）。
+`spec` は成果物を作る前に grilling スキルでインタビューしなければならない（MUST）。
+frontier が空になり、ユーザーが共有理解を確認するまで `openspec new change` を実行してはならない（MUST NOT）。
 
 #### Scenario: 確認前
 - **WHEN** ユーザーが質問に答えている途中

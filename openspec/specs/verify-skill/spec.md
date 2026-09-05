@@ -6,7 +6,9 @@
 ## Requirements
 
 ### Requirement: 規約の探索と実行
-`verify` スキルは hook と同じ順序（`make verify` → `pnpm run verify` / `npm run verify`）で検証コマンドを見つけて実行し、結果を pass / fail で報告しなければならない（MUST）。無いときは「このリポジトリに検証規約が無い」と明言し、検証したと言ってはならない（MUST NOT）。
+`verify` スキルは hook と同じ順序で検証コマンドを見つけて実行しなければならない（MUST）。
+順序は `make verify` → `pnpm run verify` / `npm run verify`。結果は pass / fail で報告する。
+規約が無いときは「このリポジトリに検証規約が無い」と明言し、検証したと言ってはならない（MUST NOT）。
 
 #### Scenario: 規約なし
 - **WHEN** 規約の無いリポジトリで `/verify` を実行する
