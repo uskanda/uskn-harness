@@ -53,6 +53,7 @@ snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
   grep -q "mise use -g node@24" "$USKN_HARNESS_STUB_LOG"
   grep -q "openspec@1.12.0" "$USKN_HARNESS_STUB_LOG"
   grep -q "skills@latest add mattpocock/skills --skill grilling" "$USKN_HARNESS_STUB_LOG"
+  grep -q "git clone --quiet https://github.com/uskanda/ai-sessions.git $HOME/.ai-sessions" "$USKN_HARNESS_STUB_LOG"
   [[ "$output" == *"created"* ]]
 }
 
@@ -132,6 +133,13 @@ snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
   [ ! -e "$SKILLS/commit" ] && [ ! -e "$SKILLS/uskn-harness" ] && [ ! -e "$HOME/.local/bin/uskn-harness" ] && [ ! -e "$STABLE" ] && [ ! -e "$HOME/.local/share/openspec/schemas/uskn" ]
   [ -d "$SKILLS/keepme" ]
   [ ! -e "$CLAUDE_CONFIG_DIR/CLAUDE.md" ]
+}
+
+@test "existing ~/.ai-sessions git repo is left alone and reported ok" {
+  mkdir -p "$HOME/.ai-sessions/.git"
+  run "$CLI" sync
+  [[ "$output" == *"ok"*"sessions repo"* ]]
+  ! grep -q "ai-sessions" "$USKN_HARNESS_STUB_LOG"
 }
 
 @test "doctor after sync exits 0 and writes nothing" {

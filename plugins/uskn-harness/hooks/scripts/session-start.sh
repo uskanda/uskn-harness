@@ -21,6 +21,7 @@ usage() { sed -n '2,15p' "$0"; }
 MODE=context
 PLAIN=""
 DIR=""
+SID=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --plain) MODE=plain; PLAIN="${2:-}"; shift ;;
@@ -39,8 +40,10 @@ if [ -z "$DIR" ] && [ "$MODE" = context ] && [ ! -t 0 ]; then
   if [ -n "$STDIN" ]; then
     if have jq; then
       DIR="$(printf '%s' "$STDIN" | jq -r '.cwd // empty' 2>/dev/null || true)"
+      SID="$(printf '%s' "$STDIN" | jq -r '.session_id // empty' 2>/dev/null || true)"
     else
       DIR="$(printf '%s' "$STDIN" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
+      SID="$(printf '%s' "$STDIN" | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
     fi
   fi
 fi
@@ -216,6 +219,10 @@ case "$MODE" in
       echo "  - qa: ${QA:-(none)} ($QA_SRC)"
       echo "  - release_tag: $TAG ($TAG_SRC)"
       echo "  Override per repository with a \`## Branch model\` heading in AGENTS.md followed by a yaml block (default / integration / qa / release_tag; \`qa: none\` disables qa)."
+      if [ -n "$SID" ]; then
+        echo "- session: ${SID:0:8}"
+        echo "  Commits made in this session carry the trailer \`Session: ${SID:0:8}\` (the commit skill adds it); \`recall ${SID:0:8}\` finds this session's journal later."
+      fi
       echo "</repo-context>"
     }
     ;;

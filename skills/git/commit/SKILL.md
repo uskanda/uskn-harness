@@ -14,6 +14,7 @@ allowed-tools: Bash, Read, Grep, Glob
 4. If `$ARGUMENTS` is a number or `#<number>`, treat it as an issue-tracker id and prefix every summary line with `#<number> ` (add the `#` when it is missing).
 5. Do not use `--no-verify`, `--amend`, or anything that rewrites published history. Reorganizing commits is the `rebase` skill's job.
 6. If a staged file looks like a secret (`.env*`, credentials, tokens, private keys), do not commit it. Stop and report.
+7. If the session's `<repo-context>` block has a `session:` line, end every message with the trailer `Session: <sid8>` (blank line before it). It links the commit to the session journal (`recall <sid8>`). Without that line, add no trailer.
 
 ## Steps
 
@@ -27,6 +28,8 @@ allowed-tools: Bash, Read, Grep, Glob
 
    <detail line>
    <detail line>
+
+   Session: <sid8>
    MSG
    ```
 

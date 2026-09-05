@@ -89,3 +89,10 @@
 #### Scenario: 初回
 - **WHEN** 未導入の環境で `sync` を実行する
 - **THEN** symlink が作られ、`openspec schema which uskn` が user レベルを返す
+
+### Requirement: sessions repo の clone
+`sync` は `~/.ai-sessions` が無いとき `deps.json` の `repos.sessions.url` から clone しなければならない（MUST）。既にあれば触らない。
+
+#### Scenario: 既存
+- **WHEN** `~/.ai-sessions` が git リポジトリとして存在する
+- **THEN** `ok` として報告される

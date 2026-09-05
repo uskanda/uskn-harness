@@ -160,6 +160,13 @@ MD
   [[ "$output" == *"Use these values"* ]]
 }
 
+@test "hook mode prints session: <sid8> and the trailer rule" {
+  make_repo "$BATS_TEST_TMPDIR/r" git@github.com:o/r.git
+  run bash -c "printf '{\"session_id\":\"abcdef1234567890-x\",\"cwd\":\"$BATS_TEST_TMPDIR/r\"}' | '$SCRIPT'"
+  [[ "$output" == *"- session: abcdef12"* ]]
+  [[ "$output" == *"Session: abcdef12"* ]]
+}
+
 @test "works without jq on PATH (stdin cwd still parsed)" {
   make_repo "$BATS_TEST_TMPDIR/r" git@github.com:o/r.git
   local fakebin="$BATS_TEST_TMPDIR/bin"; mkdir -p "$fakebin"

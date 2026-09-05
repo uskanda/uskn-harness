@@ -25,3 +25,25 @@ tree_fingerprint() {
   } | sha
 }
 now_iso() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+# ---- session journals
+USKN_SESSIONS="${USKN_SESSIONS_DIR:-$HOME/.ai-sessions}"
+sid8() { printf '%s' "${1:0:8}"; }
+# project_key <repo-top>: origin owner/repo as owner__repo (nested groups keep joining with __); else the dir name
+project_key() {
+  local url path
+  url="$(git -C "$1" remote get-url origin 2>/dev/null || true)"
+  if [ -n "$url" ]; then
+    path="$(printf '%s' "$url" | sed -E 's#\.git/?$##; s#^[a-z+]+://[^/]+/##; s#^[^@/]+@[^:]+:##; s#^/##')"
+    printf '%s' "$path" | sed 's#/#__#g'
+  else basename "$1"; fi
+}
+# session_dir_for_prefix <sid8>: the newest state dir whose name starts with the prefix
+session_dir_for_prefix() {
+  local d; d="$(ls -1dt "$USKN_STATE/sessions/$1"* 2>/dev/null | head -n 1)"
+  [ -n "$d" ] && [ -d "$d" ] && printf '%s' "$d"
+}
+# to_local_stamp <iso-utc>: YYYY-MM-DD-HHMM in local time; falls back to now
+to_local_stamp() {
+  date -d "$1" +%Y-%m-%d-%H%M 2>/dev/null || date -j -u -f '%Y-%m-%dT%H:%M:%SZ' "$1" +%Y-%m-%d-%H%M 2>/dev/null || date +%Y-%m-%d-%H%M
+}
+# json_out <jq-program> [--arg k v ...]: emit JSON with jq when present (callers keep a printf fallback)

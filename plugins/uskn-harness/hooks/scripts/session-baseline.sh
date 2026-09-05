@@ -12,6 +12,7 @@ TOP="$(git -C "${CWD:-$PWD}" rev-parse --show-toplevel 2>/dev/null || true)"; [ 
 DIR="$USKN_STATE/sessions/$SID"; mkdir -p "$DIR" 2>/dev/null || exit 0
 [ -s "$DIR/baseline" ] && exit 0
 tree_fingerprint "$TOP" > "$DIR/baseline"
+git -C "$TOP" rev-parse HEAD > "$DIR/baseline-head" 2>/dev/null || true
 ( cd "$TOP" && pwd -P ) > "$DIR/project"
 now_iso > "$DIR/started"
 exit 0
