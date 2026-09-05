@@ -14,4 +14,4 @@
 
 - [x] 3.1 `deps.json` の `forks` を `vendored` にし、取り込み日と変更点を書く
 - [x] 3.2 `templates/user/CLAUDE.md` の TDD と検証の行をスキル名で指す
-- [ ] 3.3 README を更新し、`make verify` を通してからコミットする
+- [x] 3.3 README を更新し、`make verify` を通してからコミットする

@@ -14,4 +14,4 @@
 - [x] 3.1 `skills/ui-guidelines/SKILL.md` を書き、frontmatter 検査を通す
 - [x] 3.2 `templates/user/CLAUDE.md` に UI の 1 行を足す
 - [x] 3.3 このマシンで `uskn-harness sync` を実行し、impeccable、frontend-design、designmd が入ることを確認する
-- [ ] 3.4 README を更新し、`make verify` を通してからコミットする
+- [x] 3.4 README を更新し、`make verify` を通してからコミットする

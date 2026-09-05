@@ -23,4 +23,4 @@
 - [x] 4.1 `Makefile` に `verify-textlint` を足す。対象は README、docs/adr、openspec/specs、進行中の change。textlint が無ければスキップ
 - [x] 4.2 README、ADR、main specs、進行中の change の textlint 指摘を直す
 - [x] 4.3 このマシンで `uskn-harness sync` と `doctor` を実行し、textlint と agent-style が入ることを確認する
-- [ ] 4.4 README と `docs/proposal-2026-09.md` §15 に実装メモを書き、`make verify` を通してからコミットする
+- [x] 4.4 README と `docs/proposal-2026-09.md` §15 に実装メモを書き、`make verify` を通してからコミットする
