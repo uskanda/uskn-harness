@@ -452,3 +452,17 @@ Codex 等の実機検証、episodic-memory、OpenSpec stores、intake tier（tin
 | Q47 | Session トレーラ | `<repo-context>` に session 情報を載せ、`commit` スキルがトレーラを付ける |
 
 前提（change 4 分割、schema の配置、grilling.md 形式、bash + jq / bats、サブエージェント除外、`recall`）はすべて承認。
+
+### Phase 2 の実装メモ（2026-09-05）
+
+4 change（spec-workflow / verify-gate / session-journal / cross-repo-guard）を実装し archive。実装中に決めた細部:
+
+- 状態は `${XDG_STATE_HOME:-~/.local/state}/uskn-harness/sessions/<session_id>/` に置く（`CLAUDE_PLUGIN_DATA` は hook からしか見えず、スキル側のヘルパが同じ場所を参照できないため）
+- `Session:` トレーラは journal のパスではなく session id 先頭 8 桁。slug による改名でリンクが切れないようにし、`recall <sid8>` が front matter で引く
+- journal のファイル名は最初 `<日付>-<HHMM>-<sid8>.md`、`journal` スキルが `--slug` で改名する
+- verify gate の成功時は「検証実行後」の指紋を記録する（検証自体がログ等を書いても再実行ループにならない）。指紋には untracked ファイルの内容ハッシュも含める
+- guard の許可リストのうち /tmp と $TMPDIR は `USKN_GUARD_ALLOW_DIRS` で差し替え可能（bats 自体が /tmp で動くため）
+- `npx skills add` の `--skill` はイコール形式だと無視され全スキルが入る。空白区切りで指定する
+- この Bash ツールは zsh なので、アドホックなループは bash ヒアドキュメントで書く
+
+Phase 2 後の hook 構成: SessionStart（session-start / session-baseline / journal-recent）、PreToolUse（grilling-guard / write-guard / bash-guard）、Stop（verify-gate / journal-update）、SessionEnd（journal-end）。bats 67 件、`make verify` で検証。
