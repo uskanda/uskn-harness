@@ -1,12 +1,12 @@
 # git-workflow-skills Specification
 
 ## Purpose
-どのリポジトリでも同じ名前で呼べる git ワークフロー用スキルの集合。ブランチ名は `branch-model` の解決結果に従い、プロジェクト固有の履歴を持たない。
+どのリポジトリでも同じ名前で呼べるgitワークフロー用スキルの集合。ブランチ名は `branch-model` の解決結果に従い、プロジェクト固有の履歴を持たない。
 
 ## Requirements
 
 ### Requirement: スキルの集合と命名
-システムは次の 11 スキルを提供しなければならない（MUST）。
+システムは次の11スキルを提供しなければならない（MUST）。
 `commit` `push` `pr` `sync-base` `switch-base` `rebase` `cleanup-merged` `pre-merge` `fix-ci` `release` `nessun-dorma`。
 加えて `mr` `mr-main` `mr-qa` `merge-develop` `switch-develop-branch` をエイリアスとして提供する。
 エイリアスは対応するスキルを呼ぶだけで、モデルからの自動起動を無効にする。
@@ -16,7 +16,7 @@
 - **THEN** `pr` スキルが対象 `qa` で実行され、エイリアス自身は追加の手順を持たない
 
 ### Requirement: 本文の言語と生成物の言語
-スキル本文は英語で書かれなければならない（MUST）。コミットメッセージ、PR / MR のタイトルと説明、ユーザーへの報告は、ユーザー層またはリポジトリの指示で定めた言語（既定は日本語）で生成しなければならない（MUST）。
+スキル本文は英語で書かれなければならない（MUST）。コミットメッセージ、PR / MRのタイトルと説明、ユーザーへの報告は、ユーザー層またはリポジトリの指示で定めた言語（既定は日本語）で生成しなければならない（MUST）。
 
 #### Scenario: 既定の言語
 - **WHEN** 言語に関する指示が無いリポジトリで `commit` を実行する
@@ -27,66 +27,66 @@
 
 #### Scenario: repo-context が無いセッション
 - **WHEN** `<repo-context>` が注入されていないセッションで `sync-base` を実行する
-- **THEN** スキルは `session-start.sh --plain branches` を実行して integration を得てから進める
+- **THEN** スキルは `session-start.sh --plain branches` を実行してintegrationを得てから進める
 
 ### Requirement: pr の対象と意味論
 `pr` は引数で対象ブランチを受け取る。
-引数なしは現在のブランチから integration への PR / MR を作り、CI 通過後の auto-merge を有効にする。
-引数が default と一致し、かつ integration と異なるときは、integration から default へのリリース PR / MR を作る。
+引数なしは現在のブランチからintegrationへのPR / MRを作り、CI通過後のauto-mergeを有効にする。
+引数がdefaultと一致し、かつintegrationと異なるときは、integrationからdefaultへのリリースPR / MRを作る。
 そのタイトルは `<default> YYYYMMDD HH:MM`（JST）とする。
-引数が qa と一致するときは現在のブランチから qa への PR / MR を作る。
+引数がqaと一致するときは現在のブランチからqaへのPR / MRを作る。
 このときソースブランチをマージ時に削除してはならない（MUST NOT）。
 
 #### Scenario: 引数なし
-- **WHEN** feature ブランチで `/pr` を実行する
-- **THEN** 現在のブランチ → integration の PR / MR が作られ、auto-merge が設定される
+- **WHEN** featureブランチで `/pr` を実行する
+- **THEN** 現在のブランチ → integrationのPR / MRが作られ、auto-mergeが設定される
 
 #### Scenario: リリース PR
-- **WHEN** default が `main`、integration が `develop` のリポジトリで `/pr main` を実行する
-- **THEN** `develop` → `main` の PR / MR が作られ、タイトルは `main YYYYMMDD HH:MM` 形式
+- **WHEN** defaultが `main`、integrationが `develop` のリポジトリで `/pr main` を実行する
+- **THEN** `develop` → `main` のPR / MRが作られ、タイトルは `main YYYYMMDD HH:MM` 形式
 
 #### Scenario: QA PR
-- **WHEN** qa が `qa` のリポジトリで `/pr qa` を実行する
-- **THEN** 現在のブランチ → `qa` の PR / MR が作られ、マージ時にソースブランチが残る
+- **WHEN** qaが `qa` のリポジトリで `/pr qa` を実行する
+- **THEN** 現在のブランチ → `qa` のPR / MRが作られ、マージ時にソースブランチが残る
 
 #### Scenario: QA ブランチが無い
-- **WHEN** qa が無いリポジトリで `/pr qa` を実行する
-- **THEN** スキルは PR / MR を作らず、QA ブランチが未定義であることを報告する
+- **WHEN** qaが無いリポジトリで `/pr qa` を実行する
+- **THEN** スキルはPR / MRを作らず、QAブランチが未定義であることを報告する
 
 ### Requirement: auto-merge の安全弁
-auto-merge を設定する前に CI の存在を確認し、CI が現れないときは即時マージを避けて中断し、その旨を URL とともに報告しなければならない（MUST）。auto-merge 設定後は状態を再確認し、即時マージされていた場合はその事実を報告する。
+auto-mergeを設定する前にCIの存在を確認し、CIが現れないときは即時マージを避けて中断し、その旨をURLとともに報告しなければならない（MUST）。auto-merge設定後は状態を再確認し、即時マージされていた場合はその事実を報告する。
 
 #### Scenario: チェックが登録されない
-- **WHEN** PR 作成後 3 分待ってもチェックが 1 件も現れない
-- **THEN** auto-merge を設定せず、PR の URL と理由を報告して終了する
+- **WHEN** PR作成後3分待ってもチェックが1件も現れない
+- **THEN** auto-mergeを設定せず、PRのURLと理由を報告して終了する
 
 ### Requirement: 保護ブランチの扱い
-`push` は保護判定を「AGENTS.md / CLAUDE.md の明記 → ホストの API → ブランチ名の推定」の順で行う。
+`push` は保護判定を「AGENTS.md / CLAUDE.mdの明記 → ホストのAPI → ブランチ名の推定」の順で行う。
 保護されたブランチに未コミットの変更があるときは、新規ブランチの作成をユーザーに確認しなければならない（MUST）。
 `--force` 系のオプションを使ってはならない（MUST NOT）。
 
 #### Scenario: 明記がある
-- **WHEN** AGENTS.md に「master は保護されていない」と明記されている
-- **THEN** API では判定せず、そのまま現在のブランチへ push する
+- **WHEN** AGENTS.mdに「masterは保護されていない」と明記されている
+- **THEN** APIでは判定せず、そのまま現在のブランチへpushする
 
 ### Requirement: 破壊的操作の抑制
-`sync-base` と `switch-base` は未コミットの変更があれば何もせず中止しなければならない（MUST）。`sync-base` は fast-forward を試み、できなければユーザーに確認せず `--no-ff` マージを行い、コンフリクト時はマージを中断したまま報告する。
+`sync-base` と `switch-base` は未コミットの変更があれば何もせず中止しなければならない（MUST）。`sync-base` はfast-forwardを試み、できなければユーザーに確認せず `--no-ff` マージを行い、コンフリクト時はマージを中断したまま報告する。
 
 #### Scenario: 未コミットの変更
 - **WHEN** 作業ツリーに変更がある状態で `/switch-base` を実行する
 - **THEN** ブランチは切り替わらず、変更ファイル一覧とともに中止が報告される
 
 ### Requirement: release のタグ形式
-`release` は default ブランチの先端に `release_tag` 形式のタグを打たなければならない（MUST）。
-既定は `vYY.MM.X` で、当月の最大 X に 1 を足す。
-続けて GitHub / GitLab のリリースを作成する。同じタグやリリースが既にあれば作り直さない。
+`release` はdefaultブランチの先端に `release_tag` 形式のタグを打たなければならない（MUST）。
+既定は `vYY.MM.X` で、当月の最大Xに1を足す。
+続けてGitHub / GitLabのリリースを作成する。同じタグやリリースが既にあれば作り直さない。
 
 #### Scenario: 当月 2 回目
-- **WHEN** 既に `v26.09.1` があり default の先端にタグが無い
+- **WHEN** 既に `v26.09.1` がありdefaultの先端にタグが無い
 - **THEN** 新しいタグは `v26.09.2`
 
 ### Requirement: プロジェクト履歴を持たない
-スキル本文は特定プロジェクトの Issue 番号、廃止済みブランチの経緯、特定サービスの設定値を含んではならない（MUST NOT）。
+スキル本文は特定プロジェクトのIssue番号、廃止済みブランチの経緯、特定サービスの設定値を含んではならない（MUST NOT）。
 
 #### Scenario: 監査
 - **WHEN** `skills/git/**/SKILL.md` を `Issue #` や `staging` で検索する

@@ -99,6 +99,19 @@ artifacts:
       - **REMOVED Requirements**: Deprecated features - MUST include **Reason** and **Migration**
       - **RENAMED Requirements**: Name changes only - use FROM:/TO: format
 
+      Requirement sentences follow EARS (Easy Approach to Requirements Syntax). Fix the clause order; drop the
+      clauses that do not apply. In Japanese the order is 〈前提〉〈契機〉〈対象〉〈振る舞い〉:
+
+      - 常時（ubiquitous）: 「〈対象〉は〈振る舞い〉しなければならない（MUST）。」
+      - 状態駆動（state-driven）: 「〈前提〉の間、〈対象〉は〈振る舞い〉しなければならない（MUST）。」
+      - イベント駆動（event-driven）: 「〈契機〉のとき、〈対象〉は〈振る舞い〉しなければならない（MUST）。」
+      - 不要動作（unwanted）: 「〈契機〉のとき、〈対象〉は〈振る舞い〉してはならない（MUST NOT）。」
+      - 選択機能（optional）: 「〈機能〉があるとき、〈対象〉は〈振る舞い〉しなければならない（MUST）。」
+      - 複合（complex）: 上の節を順に重ねる。「〈前提〉の間、〈契機〉のとき、〈対象〉は〈振る舞い〉しなければならない（MUST）。」
+
+      One requirement, one behavior. A sentence that needs 「かつ」 or 「または」 to hold two behaviors is two
+      requirements. Scenarios keep the existing WHEN / THEN form; they are the test cases for the sentence above.
+
       Format requirements:
       - Each requirement: `### Requirement: <name>` followed by description
       - Use SHALL/MUST for normative requirements (avoid should/may)

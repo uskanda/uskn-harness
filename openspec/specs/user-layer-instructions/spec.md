@@ -1,7 +1,7 @@
 # user-layer-instructions Specification
 
 ## Purpose
-すべてのリポジトリに共通するエージェント向けの方針（言語、仕様決定の手順、作業ディレクトリ外の扱い、検証の規約）を、ユーザー層の指示として 1 ファイルで届ける。
+すべてのリポジトリに共通するエージェント向けの方針（言語、仕様決定の手順、作業ディレクトリ外の扱い、検証の規約）を、ユーザー層の指示として1ファイルで届ける。
 
 ## Requirements
 
@@ -10,15 +10,15 @@
 
 - 先頭行の管理印（`<!-- managed by uskn-harness; edit templates/user/CLAUDE.md -->`）
 - チャットと生成物の言語（日本語）
-- 仕様決定は grilling を通してから OpenSpec の成果物を作ること
-- 作業ディレクトリ外のプロジェクトを直接編集しないこと。他 repo は PR か handoff で渡す
+- 仕様決定はgrillingを通してからOpenSpecの成果物を作ること
+- 作業ディレクトリ外のプロジェクトを直接編集しないこと。他リポジトリはPRかhandoffで渡す
 - 検証は `make verify` → `pnpm run verify` / `npm run verify` の規約に従うこと
 
-全体で 60 行以内。
+全体で60行以内。
 
 #### Scenario: 行数
 - **WHEN** ファイルの行数を数える
-- **THEN** 60 行以下
+- **THEN** 60行以下
 
 ### Requirement: 配置
 `sync` は本ファイルを `~/.claude/CLAUDE.md` にコピーし、`doctor` は配置先が印を持つことを検査しなければならない（MUST）。
@@ -30,14 +30,14 @@
 ### Requirement: Writing 節
 ユーザー層の `CLAUDE.md` は、文章の指針への導線を含まなければならない（MUST）。
 日本語の文章は `ja-writing`、人が読む英語の文章は `en-writing` に従う。
-Markdown を書いたあとに出る textlint の指摘は、直してから終える。
+Markdownを書いたあとに出るtextlintの指摘は、直してから終える。
 
 #### Scenario: hook の指摘
-- **WHEN** textlint hook が指摘を返す
+- **WHEN** textlint hookが指摘を返す
 - **THEN** エージェントは指摘を直してから作業を終えたと報告する
 
 ### Requirement: UI 節
-ユーザー層の `CLAUDE.md` は、UI を作る・直すときは `ui-guidelines` に従い、`DESIGN.md` と `PRODUCT.md` を正本にすることを含まなければならない（MUST）。
+ユーザー層の `CLAUDE.md` は、UIを作る・直すときは `ui-guidelines` に従い、`DESIGN.md` と `PRODUCT.md` を正本にすることを含まなければならない（MUST）。
 
 #### Scenario: UI 作業の開始
 - **WHEN** ユーザーが画面の作成や修正を頼む

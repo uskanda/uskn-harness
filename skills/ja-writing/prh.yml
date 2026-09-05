@@ -1,0 +1,32 @@
+# Terminology dictionary for Japanese prose (textlint-rule-prh). Referenced from textlintrc.json.
+# Small on purpose: entries that fired on the real corpus, plus guards against drift seen in the wild.
+# Identifiers keep their English spelling, so every pattern excludes word characters and hyphens around
+# the match (`uskn-harness`, `cross-repo`, `~/repos` stay untouched).
+version: 1
+rules:
+  - expected: リポジトリ
+    patterns:
+      - レポジトリ
+      - /(?<![-\w])repo(?![-\w])/
+  - expected: ハーネス
+    patterns:
+      - /(?<![-\w])harness(?![-\w])/
+  - expected: ユーザー
+    patterns:
+      - /ユーザ(?![ーザ])/
+  - expected: サーバー
+    patterns:
+      - /サーバ(?!ー)/
+  - expected: ディレクトリ
+    patterns:
+      - ディレクトリー
+  - expected: インターフェース
+    patterns:
+      - インタフェース
+      - インターフェイス
+  - expected: プラグイン
+    patterns:
+      - プラグ・イン
+  - expected: フォルダー
+    patterns:
+      - /フォルダ(?!ー)/

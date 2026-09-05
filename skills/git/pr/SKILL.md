@@ -35,6 +35,17 @@ If the argument is the qa branch but the context has no qa branch (`qa: (none)`)
 - Release: list every change between the target and the source (`git log --oneline origin/<default>..origin/<integration>`), grouped by feature, not only the latest work.
 - QA: list every change in `git log --oneline origin/<qa>..HEAD`.
 
+## Japanese body
+
+Lint it before creating the PR / MR. Write the body to a scratch `.md` (the title goes in as a heading), run
+
+```bash
+textlint --config ~/.local/share/uskn-harness/skills/ja-writing/textlintrc.json --format compact <scratch>.md
+```
+
+and fix what it reports; the `ja-writing` skill has the rules, the fixes, and the register (PR text is 敬体).
+Skip this when textlint is not installed and say so. Then pass the file with `--body-file`.
+
 ## Safety rules for auto-merge
 
 Auto-merge must wait for CI. Both hosts merge immediately when there is nothing to wait for, so:

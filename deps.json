@@ -43,10 +43,12 @@
       "global": true,
       "bundle": {
         "textlint-rule-preset-ja-technical-writing": "12.0.2",
-        "@textlint-ja/textlint-rule-preset-ai-writing": "1.7.0"
+        "@textlint-ja/textlint-rule-preset-ai-writing": "1.7.0",
+        "textlint-rule-preset-jtf-style": "3.0.3",
+        "textlint-rule-prh": "6.1.0"
       },
       "repo": "textlint/textlint",
-      "role": "computational sensor for Japanese prose; config skills/ja-writing/textlintrc.json, run by the textlint-check hook and by make verify",
+      "role": "computational sensor for Japanese prose; config skills/ja-writing/textlintrc.json with the prh dictionary skills/ja-writing/prh.yml, run by the textlint-check hook and by make verify",
       "checked": "2026-09-05"
     },
     "designmd": {

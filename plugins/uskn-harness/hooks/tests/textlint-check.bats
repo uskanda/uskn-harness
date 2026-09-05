@@ -59,6 +59,28 @@ $F3"
   [ ! -e "$LOG" ]
 }
 
+@test "an English document that only quotes Japanese is not linted" {
+  # skills and AGENTS.md are English by policy; a few Japanese examples must not turn them into Japanese documents.
+  { printf '# Skill\n\nEnglish body that keeps going for a while so the ratio stays low. '
+    printf 'More English prose here, describing what the skill does and when to use it. '
+    printf 'Even more English so the document looks like a real skill document with sections.\n\n'
+    printf 'Before: 日本語の例。 After: 直した例。\n'; } > "$R/docs/skill.md"
+  export FAKE_FINDINGS="$F1"
+  run call "$R/docs/skill.md"
+  [ "$status" -eq 0 ] && [ -z "$output" ]
+  [ ! -s "$LOG" ]
+}
+
+@test "a document that is mostly Japanese is linted even with English in it" {
+  { printf '# 見出し\n\n'
+    printf 'この文書は日本語で書かれている。英語の識別子 `uskn-harness` や `make verify` を含む。\n'
+    printf '検査の対象になることを確かめる。文の数を増やして比率を上げる。日本語の割合が高い文書である。\n'; } > "$R/docs/mixed.md"
+  export FAKE_FINDINGS="$F1"
+  run call "$R/docs/mixed.md"
+  [ "$status" -eq 0 ]
+  ctx | grep -q "1 problem"
+}
+
 @test "missing file, missing textlint, and USKN_SKIP_TEXTLINT=1 are silent" {
   export FAKE_FINDINGS="$F1"
   run call "$R/docs/nope.md"; [ "$status" -eq 0 ]; [ -z "$output" ]

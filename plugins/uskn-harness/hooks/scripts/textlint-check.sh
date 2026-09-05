@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# textlint-check.sh: PostToolUse hook (Write | Edit | MultiEdit). When the written file is Markdown that contains
-# Japanese (hiragana or katakana), run textlint on it and return the findings as additionalContext. This is the
+# textlint-check.sh: PostToolUse hook (Write | Edit | MultiEdit). When the written file is Markdown written in
+# Japanese (kana at or above a share of the file), run textlint on it and return the findings as additionalContext. This is the
 # sensor for the ja-writing skill. Config: the repository's own .textlintrc* when present, else
 # skills/ja-writing/textlintrc.json in the harness checkout.
 # Contract (openspec: textlint-hook): never blocks; exit 0 always; silent unless textlint reports problems;
@@ -17,7 +17,12 @@ CWD="$(json_field "$INPUT" '.cwd' cwd)"
 case "$FILE" in /*) ABS="$FILE" ;; *) ABS="${CWD:-$PWD}/$FILE" ;; esac
 ABS="$(realpath_m "$ABS")"
 [ -f "$ABS" ] || exit 0
-LC_ALL=C grep -qE $'\xe3[\x81\x82\x83]' "$ABS" 2>/dev/null || exit 0
+# Japanese enough to lint? Kana bytes as a share of the file. A skill or an AGENTS.md quotes Japanese examples
+# (2% and under here) but is English by policy; a Japanese document runs 11% and up. USKN_TEXTLINT_MIN_JA overrides.
+KANA="$(LC_ALL=C grep -oE $'\xe3[\x81\x82\x83].' "$ABS" 2>/dev/null | wc -l)"
+BYTES="$(wc -c < "$ABS" 2>/dev/null || echo 0)"
+[ "$BYTES" -gt 0 ] || exit 0
+[ $((KANA * 100 / BYTES)) -ge "${USKN_TEXTLINT_MIN_JA:-6}" ] || exit 0
 have textlint || exit 0
 ROOT="$(project_root "${CWD:-$PWD}")"
 CONF=""

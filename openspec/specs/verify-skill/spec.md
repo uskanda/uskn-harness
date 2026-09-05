@@ -1,13 +1,13 @@
 # verify-skill Specification
 
 ## Purpose
-エージェントが自分で検証規約を見つけて実行し、失敗を直すための手順。Stop hook が block したときの復帰手順でもある。
+エージェントが自分で検証規約を見つけて実行し、失敗を直すための手順。Stop hookがblockしたときの復帰手順でもある。
 
 ## Requirements
 
 ### Requirement: 規約の探索と実行
-`verify` スキルは hook と同じ順序で検証コマンドを見つけて実行しなければならない（MUST）。
-順序は `make verify` → `pnpm run verify` / `npm run verify`。結果は pass / fail で報告する。
+`verify` スキルはhookと同じ順序で検証コマンドを見つけて実行しなければならない（MUST）。
+順序は `make verify` → `pnpm run verify` / `npm run verify`。結果はpass / failで報告する。
 規約が無いときは「このリポジトリに検証規約が無い」と明言し、検証したと言ってはならない（MUST NOT）。
 
 #### Scenario: 規約なし
@@ -18,5 +18,5 @@
 失敗したとき、スキルは原因を直して同じコマンドを再実行し、通るまで繰り返すか、コード起因でない失敗（外部サービス、ネットワーク）を理由付きで報告しなければならない（MUST）。コミットは行わない。
 
 #### Scenario: lint 失敗
-- **WHEN** `make verify` が lint で失敗する
-- **THEN** 該当箇所を直し、再実行して pass を確認してから報告する
+- **WHEN** `make verify` がlintで失敗する
+- **THEN** 該当箇所を直し、再実行してpassを確認してから報告する

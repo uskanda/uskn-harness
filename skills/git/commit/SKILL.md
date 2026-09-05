@@ -20,7 +20,16 @@ allowed-tools: Bash, Read, Grep, Glob
 
 1. Inspect everything, including untracked files: `git status --porcelain`, `git diff`, `git diff --cached`.
 2. Group the changes by concern and decide the order.
-3. For each group: `git add <paths>` for that group only, then commit with the message on stdin so quoting cannot break it:
+3. Japanese messages: lint them before committing. Write the message to a scratch `.md` with the summary line as
+   a heading (`# <summary>`) so the subject is not read as an unterminated sentence, then run
+
+   ```bash
+   textlint --config ~/.local/share/uskn-harness/skills/ja-writing/textlintrc.json --format compact <scratch>.md
+   ```
+
+   and fix what it reports (the `ja-writing` skill has the rules and the fixes). Skip this when textlint is not
+   installed, and say so in the report. English messages follow `writing-for-agents`; they are not linted.
+4. For each group: `git add <paths>` for that group only, then commit with the message on stdin so quoting cannot break it:
 
    ```bash
    git commit -q -F - <<'MSG'
@@ -33,8 +42,8 @@ allowed-tools: Bash, Read, Grep, Glob
    MSG
    ```
 
-4. Confirm with `git status --short` (should be empty unless files were deliberately left out) and `git log --oneline -5`.
-5. Report the commits made and anything intentionally left uncommitted.
+5. Confirm with `git status --short` (should be empty unless files were deliberately left out) and `git log --oneline -5`.
+6. Report the commits made and anything intentionally left uncommitted.
 
 ## Example message
 

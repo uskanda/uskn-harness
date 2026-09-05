@@ -208,7 +208,8 @@ snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
 
 @test "sync skips an npm CLI whose package and bundle are already at the pinned versions" {
   export USKN_NPM_ROOT="$BATS_TEST_TMPDIR/npm"
-  for p in textlint:15.8.0 textlint-rule-preset-ja-technical-writing:12.0.2 @textlint-ja/textlint-rule-preset-ai-writing:1.7.0 agent-style:0.4.2; do
+  for p in textlint:15.8.0 textlint-rule-preset-ja-technical-writing:12.0.2 @textlint-ja/textlint-rule-preset-ai-writing:1.7.0 \
+           textlint-rule-preset-jtf-style:3.0.3 textlint-rule-prh:6.1.0 agent-style:0.4.2; do
     mkdir -p "$USKN_NPM_ROOT/${p%%:*}"; printf '{"version":"%s"}\n' "${p##*:}" > "$USKN_NPM_ROOT/${p%%:*}/package.json"
   done
   run "$CLI" sync

@@ -1,24 +1,24 @@
 # 新しい端末へのハーネス導入
 
-macOS、Ubuntu、WSL2（Ubuntu）の端末に uskn-harness を入れる手順。
-導入の実体は dotfiles の `chezmoi apply` が呼ぶ run_once スクリプトと、その中の `uskn-harness sync` にある。
-ここでは順番と、OS ごとに違う点と、確認方法をまとめる。
+macOS、Ubuntu、WSL2（Ubuntu）の端末にuskn-harnessを入れる手順。
+導入の実体はdotfilesの `chezmoi apply` が呼ぶrun_onceスクリプトと、その中の `uskn-harness sync` にある。
+ここでは順番と、OSごとに違う点と、確認方法をまとめる。
 
 ## 仕組み
 
-1. dotfiles（`uskanda/dotfiles`）を chezmoi で適用すると、`run_once_install-uskn-harness.sh` が 1 回だけ走る
-2. スクリプトは mise を `~/.local/bin/mise` に入れ、`~/.local/share/uskn-harness` を用意する。`~/repos/uskn-harness` に checkout があれば symlink、無ければ GitHub から clone する
-3. 最後に `uskn-harness sync` が走り、6 つを揃える。mise の Node と jq、ピンした CLI、スキルとプラグインの symlink、OpenSpec schema、sessions repo、ユーザー層 CLAUDE.md
-4. 以後の更新は `git pull` と `uskn-harness sync` の再実行。sync は冪等で、手で置いたものは `conflict` として触らない
+1. dotfiles（`uskanda/dotfiles`）をchezmoiで適用すると、`run_once_install-uskn-harness.sh` が1回だけ走る
+2. スクリプトはmiseを `~/.local/bin/mise` に入れ、`~/.local/share/uskn-harness` を用意する。`~/repos/uskn-harness` にcheckoutがあればsymlink、無ければGitHubからcloneする
+3. 最後に `uskn-harness sync` が走り、6つを揃える。miseのNodeとjq、ピンしたCLI、スキルとプラグインのsymlink、OpenSpec schema、sessionsリポジトリ、ユーザー層CLAUDE.md
+4. 以後の更新は `git pull` と `uskn-harness sync` の再実行。syncは冪等で、手で置いたものは `conflict` として触らない
 
-run_once は Windows では何もしない（spec `machine-bootstrap`）。Windows は WSL2 の中で Linux の手順を踏む。
+run_onceはWindowsでは何もしない（spec `machine-bootstrap`）。WindowsはWSL2の中でLinuxの手順を踏む。
 
 ## 事前に要るもの（全 OS 共通）
 
 - git
-- GitHub の認証。`uskanda/uskn-harness` と `uskanda/ai-sessions` は private。clone の前に `gh auth login` と `gh auth setup-git` を済ませる。認証が無いと run_once は「clone failed」で止まる。その場合は認証後に `~/.local/share/uskn-harness/bin/uskn-harness sync` を手で実行する
-- ネットワーク。mise、Node、npm global の CLI、サードパーティスキルをダウンロードする
-- Claude Code 本体（デスクトップアプリか CLI）。ハーネスは Claude Code を入れない。導入と login は公式手順に従う
+- GitHubの認証。`uskanda/uskn-harness` と `uskanda/ai-sessions` はprivate。cloneの前に `gh auth login` と `gh auth setup-git` を済ませる。認証が無いとrun_onceは「clone failed」で止まる。その場合は認証後に `~/.local/share/uskn-harness/bin/uskn-harness sync` を手で実行する
+- ネットワーク。mise、Node、npm globalのCLI、サードパーティスキルをダウンロードする
+- Claude Code本体（デスクトップアプリかCLI）。ハーネスはClaude Codeを入れない。導入とloginは公式手順に従う
 
 ## 手順
 
@@ -31,11 +31,11 @@ git clone https://github.com/uskanda/dotfiles.git ~/dotfiles
 cd ~/dotfiles && ./setup                # apt update、chezmoi、chezmoi init --apply、zsh
 ```
 
-`./setup` の中の `chezmoi apply` が run_once を走らせる。終わったら新しいシェルを開く。
-zshrc が `mise activate zsh --shims` を評価し、`~/.local/share/mise/shims` が PATH に載る。
+`./setup` の中の `chezmoi apply` がrun_onceを走らせる。終わったら新しいシェルを開く。
+zshrcが `mise activate zsh --shims` を評価し、`~/.local/share/mise/shims` がPATHに載る。
 
-WSL2 では、Windows 側ではなく WSL の Ubuntu で上を実行する。Claude Code も WSL 側で動かす（CLI、または VS Code の WSL 拡張）。
-dotfiles の WezTerm 設定は既定で WSL ドメインを開くので、ターミナルは WezTerm でよい。
+WSL2では、Windows側ではなくWSLのUbuntuで上を実行する。Claude CodeもWSL側で動かす（CLI、またはVS CodeのWSL拡張）。
+dotfilesのWezTerm設定は既定でWSLドメインを開くので、ターミナルはWezTermでよい。
 
 ### macOS
 
@@ -46,21 +46,21 @@ git clone https://github.com/uskanda/dotfiles.git ~/dotfiles
 cd ~/dotfiles && ./setup                # Homebrew、chezmoi、chezmoi init --apply、zsh
 ```
 
-Brewfile が git、gh、jq を入れる。mise は run_once が `~/.local/bin/mise` に入れる。
-hook スクリプトは macOS の BSD 系コマンドに対応している。`date -j`、`shasum`、`realpath -m` が無いときの python3 へのフォールバックを持つ。
-`timeout` コマンドは macOS に無いので、verify gate の検証は時間制限なしで走る。
+Brewfileがgit、gh、jqを入れる。miseはrun_onceが `~/.local/bin/mise` に入れる。
+hookスクリプトはmacOSのBSD系コマンドに対応している。`date -j`、`shasum`、`realpath -m` が無いときのpython3へのフォールバックを持つ。
+`timeout` コマンドはmacOSに無いので、verify gateの検証は時間制限なしで走る。
 
 ### Windows（ネイティブ）
 
-推奨しない。WSL2 を使う。ネイティブで試す場合の既知の論点を挙げる。
+推奨しない。WSL2を使う。ネイティブで試す場合の既知の論点を挙げる。
 
-- run_once は Windows で何もしないので、clone と `bash bin/uskn-harness sync` を Git Bash で手動実行する
-- sync と hook は symlink を前提にする。Git Bash では開発者モードを有効にし、`MSYS=winsymlinks:nativestrict` を設定しないとコピーになる
-- Windows の `timeout.exe` は GNU の timeout と互換が無い。verify gate と textlint hook は `timeout` を見つけると使うので、PATH の順序によっては失敗する
-- mise for Windows の shims の場所は `~/.local/share/mise/shims` と異なる。Makefile と verify gate はこの場所を PATH の先頭に足す
-- jq は winget などで別途入れる
+- run_onceはWindowsで何もしないので、cloneと `bash bin/uskn-harness sync` をGit Bashで手動実行する
+- syncとhookはsymlinkを前提にする。Git Bashでは開発者モードを有効にし、`MSYS=winsymlinks:nativestrict` を設定しないとコピーになる
+- Windowsの `timeout.exe` はGNUのtimeoutと互換が無い。verify gateとtextlint hookは `timeout` を見つけると使うので、PATHの順序によっては失敗する
+- mise for Windowsのshimsの場所は `~/.local/share/mise/shims` と異なる。Makefileとverify gateはこの場所をPATHの先頭に足す
+- jqはwingetなどで別途入れる
 
-ネイティブ Windows で動かすなら、まず上の 4 点を検証し、結果をこの文書に追記する。
+ネイティブWindowsで動かすなら、まず上の4点を検証し、結果をこの文書に追記する。
 
 ## 確認
 
@@ -71,8 +71,8 @@ ls -la ~/.claude/skills/uskn-harness    # plugins/uskn-harness への symlink
 claude plugin list                      # uskn-harness@skills-dir が出る
 ```
 
-続けて任意の git リポジトリで Claude Code のセッションを始める。最初の応答の前に `<repo-context>` が注入されていれば SessionStart hook が動いている。
-Stop hook と SessionEnd hook の確認方法は README の「hook の発火を確かめる」にある。
+続けて任意のgitリポジトリでClaude Codeのセッションを始める。最初の応答の前に `<repo-context>` が注入されていればSessionStart hookが動いている。
+Stop hookとSessionEnd hookの確認方法はREADMEの「hookの発火を確かめる」にある。
 
 ## 更新
 
@@ -81,9 +81,9 @@ chezmoi update                          # dotfiles の更新。run_once は再�
 uskn-harness sync && uskn-harness doctor
 ```
 
-`sync` は最初に checkout を fast-forward する。実行するのは clean な checkout で、branch に upstream があり、fast-forward できるときだけ。
-作業中の checkout（開発機など）ではスキップして理由を出し、導入は続ける。`--no-pull` で止められる。
-更新で HEAD が動いたときは、新しい `bin/uskn-harness` を同じ引数で実行し直す。
+`sync` は最初にcheckoutをfast-forwardする。実行するのはcleanなcheckoutで、branchにupstreamがあり、fast-forwardできるときだけ。
+作業中のcheckout（開発機など）ではスキップして理由を出し、導入は続ける。`--no-pull` で止められる。
+更新でHEADが動いたときは、新しい `bin/uskn-harness` を同じ引数で実行し直す。
 
 ## 取り除く
 
@@ -91,7 +91,7 @@ uskn-harness sync && uskn-harness doctor
 uskn-harness sync --remove              # ハーネス由来の symlink と管理コピーだけを消す
 ```
 
-`~/.ai-sessions`、mise、npm global の CLI は残る。
+`~/.ai-sessions`、mise、npm globalのCLIは残る。
 
 ## よくある warn
 

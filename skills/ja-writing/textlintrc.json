@@ -1,6 +1,17 @@
 {
   "rules": {
-    "preset-ja-technical-writing": true,
-    "@textlint-ja/preset-ai-writing": true
+    "preset-ja-technical-writing": {
+      "no-mix-dearu-desumasu": {
+        "preferInHeader": "",
+        "preferInBody": "である",
+        "preferInList": "である",
+        "strict": false
+      }
+    },
+    "@textlint-ja/preset-ai-writing": true,
+    "preset-jtf-style": true,
+    "prh": {
+      "rulePaths": ["./prh.yml"]
+    }
   }
 }
