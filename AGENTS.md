@@ -14,7 +14,7 @@ installer that distributes them. This file is the entry point; it stays short an
 | `plugins/uskn-harness/` | Claude Code plugin wrapper: hooks only |
 | `deps.json` | Pinned sources of every external skill, CLI, and runtime |
 | `docs/adr/` | Architecture decisions. Start with ADR-0001 |
-| `docs/handoffs/` | Instructions for other sessions working in other repositories, mirrored in a draft PR |
+| `docs/handoffs/` | Instructions for another session: onboarding another repository (mirrored in its draft PR), or picking up work here |
 | `openspec/` | This repository's own specs and changes (dogfooding) |
 
 ## How work happens here
