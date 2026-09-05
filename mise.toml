@@ -1,4 +1,7 @@
-# Runtime pins for working in this repository. Installed by `mise install`.
+# Runtime and tool pins for working in this repository. Installed by `mise install`.
 # Node is required by OpenSpec, textlint, `npx skills`, and Impeccable.
+# bats and shellcheck are for hook script tests (`make verify`).
 [tools]
 node = "24"
+bats = "1"
+shellcheck = "0.10"

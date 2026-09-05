@@ -407,3 +407,30 @@ sessions repo（GitHub private `uskanda/ai-sessions` → `~/.ai-sessions`）に 
 
 ### 12.9 後回しにしたもの
 Codex 等の実機検証、episodic-memory、OpenSpec stores、intake tier（tiny / normal / high-risk）、ja-writing の文体基準、nessun-dorma の `/goal` ベース書き直しの詳細
+
+---
+
+## 13. Phase 1 の grilling
+
+### 第5ラウンドの前提となる確認済み事実（2026-09-05）
+
+- **symlink した skills-dir プラグインは hook 込みで読み込まれる**（sandbox の `CLAUDE_CONFIG_DIR` で検証。`~/.claude/skills/<name> -> <repo>/plugins/<name>` で `SessionStart` hook が認識され、`claude plugin details` で token cost も出る）。marketplace と `claude plugin install` を使わずに hook を配れる。skills-dir プラグインは `bin/` 非対応、プラグイン外へ向く内部 symlink は無視される
+- **`npx skills add <ローカルパス> -g` はコピーする**（symlink ではない）。自作スキルの live 編集には `sync` 自身が symlink を張るほうが確実。`npx skills` は GitHub 上のサードパーティスキル向けに使う
+- **mise の shims はグローバル設定が無いと他ディレクトリで解決しない**（`mise.toml` の無い場所で `npx is not a valid shim`）。installer は `mise use -g node@24` で `~/.config/mise/config.toml` を書く必要がある
+- Claude Code のプラグイン hook は `${CLAUDE_PLUGIN_ROOT}`、`${CLAUDE_PROJECT_DIR}`、`$HOME` が shell で展開される。マーケットプレイス経由のローカルパス導入はキャッシュへコピーされる
+- `claude plugin validate --strict` と `claude plugin details` が使える
+- 既存 `claude-hosting-hook` は bash 約 200 行。stdin の JSON から cwd を取り、remote URL → gh/glab 設定 → CI ファイルの順で判定し、`<repo-hosting>` ブロックを出力する。`--plain` でスキルから直接呼べる
+
+### 第5ラウンド（2026-09-05）
+
+| # | 論点 | 決定 |
+|---|---|---|
+| Q32 | 配置 | 安定パス `~/.local/share/uskn-harness`（開発機は `~/repos/uskn-harness` への symlink、他端末は managed clone、`USKN_HARNESS_DIR` で上書き） |
+| Q33 | プラグイン配布 | skills-dir 方式のみ。`~/.claude/skills/uskn-harness -> <harness>/plugins/uskn-harness`。marketplace は作らない（ADR-0002） |
+| Q34 | hook の置き場 | 正本は `plugins/uskn-harness/hooks/scripts/`。トップレベル `hooks/` は他ツール向けアダプタのみ |
+| Q35 | 自作スキルの導入 | `sync` が `skills/**/<name>` ごとに symlink。`npx skills` はサードパーティ専用 |
+| Q36 | ブランチモデル上書き | AGENTS.md の `## Branch model` 見出し下の fenced yaml |
+| Q37 | このマシンでの `sync` | 実行する。chezmoi 管理の同名スキルはスキップして警告 |
+| Q38 | dotfiles PR | **1 本（PR #10）に積み、実用可能になるまでそこで管轄する**（推奨は分割だったがユーザー判断で一本化） |
+
+前提（change を 2 つに分ける、`sync` 冪等、`pr` の意味論、エイリアス、bats、`npx skills` の使い方）はすべて承認。
