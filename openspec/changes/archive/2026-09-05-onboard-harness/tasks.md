@@ -26,4 +26,4 @@
 ## 5. 仕上げ
 
 - [x] 5.1 `Makefile` の textlint 対象に `docs/handoffs/` を足す
-- [ ] 5.2 README を更新し、`make verify` を通してからコミットする
+- [x] 5.2 README を更新し、`make verify` を通してからコミットする
