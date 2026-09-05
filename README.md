@@ -24,6 +24,17 @@ monolith と uskn75-kb には draft PR を出してある。マージは他作�
 - `skills/onboard-harness/` と `uskn-harness onboard-check`: プロダクト repo に何を置くかを決めて draft PR で渡す。点検は読み取り専用
 - `docs/handoffs/`: 他 repo へ渡した手順書。draft PR の本文と同じ内容を残す
 
+## hook の発火を確かめる
+
+Stop hook は応答が正常に終わったときだけ走る。利用上限で切れたターンや、ユーザーが中断したターンでは走らない。
+SessionEnd はアプリがセッションを閉じたときに走る。デスクトップアプリではセッションが数時間開いたままになる。
+走ったかどうかは 2 か所で分かる。
+
+- 状態ディレクトリ `~/.local/state/uskn-harness/sessions/<session_id>/`。SessionStart が `baseline` を、Stop が `transcript` と `journal` を、verify gate が `verify.log` を書く
+- トランスクリプト `~/.claude/projects/<cwd>/<session_id>.jsonl` の `stop_hook_summary` 行。Stop hook が走るたびに 1 行増える
+
+まだ 1 ターンも終わっていないセッションで journal が要るときは、`journal-update.sh --session <sid8> --ensure` で先に作れる。
+
 ## 読む順番
 
 1. [AGENTS.md](AGENTS.md): エージェント向けの入口と制約
