@@ -6,7 +6,7 @@
 #
 # What sync does (openspec: harness-sync)
 #   1. stable path      ~/.local/share/uskn-harness -> this checkout (or a managed clone)
-#   2. runtime          mise, global node + jq, openspec at the version pinned in deps.json
+#   2. runtime          mise, global node + jq, then every deps.json cli with global:true at its pinned version
 #   3. executable       ~/.local/bin/uskn-harness -> bin/uskn-harness
 #   4. own skills       ~/.claude/skills/<name> -> skills/**/<name>   (existing real dirs are left alone)
 #   5. plugin           ~/.claude/skills/uskn-harness -> plugins/uskn-harness
@@ -143,7 +143,7 @@ ensure_managed_dir() { # src-dir dest-dir label
 # ------------------------------------------------------------------ runtime
 mise_bin() { if have mise; then command -v mise; else echo "$HOME/.local/bin/mise"; fi; }
 ensure_runtime() {
-  local node_ver mise want have_v
+  local node_ver mise
   node_ver="$(deps_get '.runtimes.node.version' 24)"
   if [ -x "$(mise_bin)" ]; then note ok "mise ($(mise_bin))"
   else run_step "install mise" bash -c "curl -fsSL https://mise.run | MISE_INSTALL_PATH='$HOME/.local/bin/mise' sh" && note created "mise -> ~/.local/bin/mise"; fi
@@ -153,13 +153,54 @@ ensure_runtime() {
   else run_step "mise global node" "$mise" use -g "node@$node_ver" && note created "node $node_ver (mise global)"; fi
   if have jq; then note ok "jq ($(command -v jq))"
   else run_step "mise global jq" "$mise" use -g "jq@$(deps_get '.runtimes.jq.version' 1.7)" && note created "jq (mise global)"; fi
-  want="$(deps_get '.clis.openspec.version' '')"
-  if stub || [ "$DRY" = 1 ]; then run_step "openspec $want" "$mise" exec -- npm install -g "@fission-ai/openspec@$want"
-  else
-    have_v="$( (cd / && "$mise" exec -- openspec --version 2>/dev/null) | tail -n 1 || true)"
-    if [ "$have_v" = "$want" ]; then note ok "openspec $want"
-    else run_step "openspec $want" "$mise" exec -- npm install -g "@fission-ai/openspec@$want" && note updated "openspec ${have_v:-none} -> $want"; fi
-  fi
+}
+
+# ---------------------------------------------------------- pinned npm globals
+# npm_root: where `npm install -g` puts packages. USKN_NPM_ROOT overrides it (tests); fails under the stub.
+npm_root() {
+  local r
+  if [ -n "${USKN_NPM_ROOT:-}" ]; then printf '%s' "$USKN_NPM_ROOT"; return 0; fi
+  stub && return 1
+  r="$( (cd / && "$(mise_bin)" exec -- npm root -g 2>/dev/null) | tail -n 1 )"
+  [ -n "$r" ] || return 1
+  printf '%s' "$r"
+}
+pkg_version() { # <npm root> <package>: the installed version, or failure
+  local f="$1/$2/package.json"
+  [ -f "$f" ] || return 1
+  if have jq; then jq -r '.version // empty' "$f"; else sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$f" | head -n 1; fi
+}
+# npm_pins: one line per cli with global:true -- key, install specs (pkg@ver ...), checks (pkg=ver ...)
+npm_pins() {
+  jq -r '.clis | to_entries[] | select(.value.global == true) |
+    [ .key,
+      ([ "\(.value.package)@\(.value.version)" ] + ((.value.bundle // {}) | to_entries | map("\(.key)@\(.value)")) | join(" ")),
+      ([ "\(.value.package)=\(.value.version)" ] + ((.value.bundle // {}) | to_entries | map("\(.key)=\(.value)")) | join(" "))
+    ] | @tsv' "$HARNESS/deps.json"
+}
+ensure_npm_globals() {
+  have jq || { note warn "jq missing: pinned npm CLIs skipped"; return 0; }
+  local key specs checks root c name want cur stale v installed=0
+  root="$(npm_root || true)"
+  while IFS=$'\t' read -r -u 3 key specs checks; do
+    [ -n "$key" ] || continue
+    stale=""
+    if [ -z "$root" ]; then stale="not checked"
+    else
+      for c in $checks; do
+        name="${c%=*}"; want="${c##*=}"
+        cur="$(pkg_version "$root" "$name" 2>/dev/null || true)"
+        [ "$cur" = "$want" ] || { stale="$name ${cur:-none} -> $want"; break; }
+      done
+    fi
+    if [ -z "$stale" ]; then v="${checks%% *}"; note ok "$key ${v##*=}"
+    else
+      # shellcheck disable=SC2086
+      run_step "npm global $key" "$(mise_bin)" exec -- npm install -g $specs && { note created "$key ($specs)"; installed=1; }
+    fi
+  done 3< <(npm_pins)
+  [ "$installed" = 1 ] && run_step "mise reshim" "$(mise_bin)" reshim >/dev/null 2>&1
+  return 0
 }
 
 ensure_third_party() {
@@ -211,6 +252,7 @@ cmd_sync() {
   if [ -d "$STABLE" ] && [ ! -L "$STABLE" ] && [ "$(realpath_f "$STABLE")" = "$HARNESS" ]; then note ok "stable path (managed clone)"
   else ensure_link "$STABLE" "$HARNESS" "stable path"; fi
   ensure_runtime
+  ensure_npm_globals
   ensure_link "$BIN_LINK" "$HARNESS/bin/uskn-harness" "executable"
   for d in $(own_skills); do name="$(basename "$d")"; ensure_link "$SKILLS_DIR/$name" "$d" "skill $name"; done
   ensure_link "$SKILLS_DIR/uskn-harness" "$HARNESS/plugins/uskn-harness" "plugin uskn-harness"
@@ -231,8 +273,24 @@ check_link() { # target source label  (doctor)
     conflict-foreign) note fail "$3: $1 points outside the harness ($(readlink "$1"))" ;;
   esac
 }
+check_npm_globals() { # doctor: every pinned npm cli, with the installed version when it differs
+  have jq || return 0
+  local key specs checks root c name want cur bad v
+  if ! root="$(npm_root)"; then say stub "pinned npm CLIs not checked"; return 0; fi
+  while IFS=$'\t' read -r -u 3 key specs checks; do
+    [ -n "$key" ] || continue
+    bad=""
+    for c in $checks; do
+      name="${c%=*}"; want="${c##*=}"
+      cur="$(pkg_version "$root" "$name" 2>/dev/null || true)"
+      [ "$cur" = "$want" ] || bad="${bad:+$bad, }$name: have '${cur:-none}', want '$want'"
+    done
+    if [ -z "$bad" ]; then v="${checks%% *}"; note ok "$key ${v##*=}"; else note warn "$key ($bad)"; fi
+  done 3< <(npm_pins)
+}
+
 cmd_doctor() {
-  local d name mise want have_v
+  local d name mise
   say info "harness: $HARNESS"
   if [ -d "$STABLE" ] && [ ! -L "$STABLE" ] && [ "$(realpath_f "$STABLE")" = "$HARNESS" ]; then note ok "stable path (managed clone)"
   else check_link "$STABLE" "$HARNESS" "stable path"; fi
@@ -242,10 +300,8 @@ cmd_doctor() {
     if [ -x "$mise" ]; then note ok "mise"; else note warn "mise missing"; fi
     if [ -x "$mise" ] && (cd / && "$mise" exec -- node --version >/dev/null 2>&1); then note ok "node ($(cd / && "$mise" exec -- node --version 2>/dev/null)) outside the checkout"; else note warn "node not resolvable through mise outside the checkout (run sync)"; fi
     if have jq; then note ok "jq"; else note warn "jq missing"; fi
-    want="$(deps_get '.clis.openspec.version' '')"
-    have_v=""; if [ -x "$mise" ]; then have_v="$( (cd / && "$mise" exec -- openspec --version 2>/dev/null) | tail -n 1 || true)"; fi
-    if [ "$have_v" = "$want" ]; then note ok "openspec $want"; else note warn "openspec: have '${have_v:-none}', deps.json wants '$want'"; fi
   fi
+  check_npm_globals
   check_link "$BIN_LINK" "$HARNESS/bin/uskn-harness" "executable"
   for d in $(own_skills); do name="$(basename "$d")"; check_link "$SKILLS_DIR/$name" "$d" "skill $name"; done
   check_link "$SKILLS_DIR/uskn-harness" "$HARNESS/plugins/uskn-harness" "plugin uskn-harness"

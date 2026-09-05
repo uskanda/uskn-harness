@@ -177,3 +177,40 @@ snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
   [ "$(wc -l < "$REPO/templates/user/CLAUDE.md")" -le 60 ]
   head -1 "$REPO/templates/user/CLAUDE.md" | grep -q "managed by uskn-harness"
 }
+
+# ---- phase 3: pinned npm CLIs (textlint, agent-style, design.md) and UI skills (spec: harness-sync, harness-doctor)
+
+@test "sync installs the pinned npm CLIs with their bundles and the UI / writing skills from deps.json" {
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+  grep -q "npm install -g textlint@15.8.0 textlint-rule-preset-ja-technical-writing@12.0.2 @textlint-ja/textlint-rule-preset-ai-writing@1.7.0" "$USKN_HARNESS_STUB_LOG"
+  grep -q "npm install -g agent-style@0.4.2" "$USKN_HARNESS_STUB_LOG"
+  grep -q "npm install -g @google/design.md@0.4.0" "$USKN_HARNESS_STUB_LOG"
+  grep -q "impeccable@4.0.1 install" "$USKN_HARNESS_STUB_LOG"
+  grep -q "skills@latest add anthropics/claude-plugins-official --skill frontend-design" "$USKN_HARNESS_STUB_LOG"
+  for s in ja-writing en-writing ui-guidelines test-driven-development systematic-debugging verification-before-completion using-git-worktrees; do
+    [ -L "$SKILLS/$s" ] && [ "$(readlink -f "$SKILLS/$s")" = "$REPO/skills/$s" ]
+  done
+}
+
+@test "sync skips an npm CLI whose package and bundle are already at the pinned versions" {
+  export USKN_NPM_ROOT="$BATS_TEST_TMPDIR/npm"
+  for p in textlint:15.8.0 textlint-rule-preset-ja-technical-writing:12.0.2 @textlint-ja/textlint-rule-preset-ai-writing:1.7.0 agent-style:0.4.2; do
+    mkdir -p "$USKN_NPM_ROOT/${p%%:*}"; printf '{"version":"%s"}\n' "${p##*:}" > "$USKN_NPM_ROOT/${p%%:*}/package.json"
+  done
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+  ! grep -q "textlint@15.8.0" "$USKN_HARNESS_STUB_LOG"
+  ! grep -q "agent-style@0.4.2" "$USKN_HARNESS_STUB_LOG"
+  grep -q "@google/design.md@0.4.0" "$USKN_HARNESS_STUB_LOG"
+  [[ "$output" == *"ok"*"textlint 15.8.0"* ]]
+}
+
+@test "doctor warns about a missing or mismatched npm CLI and reports the pinned version" {
+  export USKN_NPM_ROOT="$BATS_TEST_TMPDIR/npm"
+  mkdir -p "$USKN_NPM_ROOT/textlint"; echo '{"version":"15.0.0"}' > "$USKN_NPM_ROOT/textlint/package.json"
+  run "$CLI" doctor
+  [[ "$output" == *"warn"*"textlint"*"15.0.0"*"15.8.0"* ]]
+  [[ "$output" == *"warn"*"agent-style"*"none"* ]]
+  [[ "$output" == *"warn"*"third-party impeccable"* ]]
+}

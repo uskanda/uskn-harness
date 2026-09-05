@@ -7,9 +7,14 @@ export PATH := $(SHIMS):$(HOME)/.local/bin:$(PATH)
 SCRIPT_DIRS := plugins/uskn-harness/hooks/scripts bin
 TEST_DIRS   := plugins/uskn-harness/hooks/tests bin/tests
 
-.PHONY: verify verify-openspec verify-shell verify-skills verify-plugin
+.PHONY: verify verify-openspec verify-shell verify-skills verify-plugin verify-textlint verify-design
 
-verify: verify-openspec verify-shell verify-skills verify-plugin ## Run every check that applies to this repo
+# Japanese prose that is still alive: README, ADRs, main specs, active changes. docs/proposal-2026-09.md and
+# openspec/changes/archive/ are records and stay as written.
+DOCS_JA := README.md $(wildcard docs/adr/*.md) $(shell find openspec/specs -name '*.md' 2>/dev/null) \
+           $(shell find openspec/changes -mindepth 2 -name '*.md' -not -path 'openspec/changes/archive/*' 2>/dev/null)
+
+verify: verify-openspec verify-shell verify-skills verify-plugin verify-textlint verify-design ## Run every check that applies to this repo
 	@echo "verify: ok"
 
 verify-openspec:
@@ -44,3 +49,14 @@ verify-plugin:
 	@if command -v claude >/dev/null && [ -d plugins/uskn-harness ]; then \
 	  echo "[plugin] claude plugin validate --strict"; claude plugin validate --strict plugins/uskn-harness || exit 1; \
 	else echo "[plugin] skipped (claude cli or plugin dir missing)"; fi
+
+verify-textlint:
+	@if command -v textlint >/dev/null; then echo "[textlint] $(words $(DOCS_JA)) ja documents"; \
+	  textlint --config skills/ja-writing/textlintrc.json $(DOCS_JA) || exit 1; \
+	else echo "[textlint] skipped (textlint not installed; run uskn-harness sync)"; fi
+
+verify-design:
+	@if command -v designmd >/dev/null; then echo "[design.md] lint templates/repo/DESIGN.md"; \
+	  if out=$$(designmd lint templates/repo/DESIGN.md); then echo "$$out" | jq -c '.summary' 2>/dev/null || true; \
+	  else echo "$$out"; exit 1; fi; \
+	else echo "[design.md] skipped (designmd not installed; run uskn-harness sync)"; fi

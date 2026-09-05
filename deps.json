@@ -1,5 +1,5 @@
 {
-  "_readme": "External things the harness depends on, pinned. `mode` is reference (installed from upstream, never edited), vendored (copied into skills/ with upstream license), or cli. `ref` is the upstream commit or tag verified on `checked`. Update refs deliberately and record why in an ADR or change.",
+  "_readme": "External things the harness depends on, pinned. `mode` is reference (installed from upstream, never edited), vendored (copied into skills/ with upstream license), or cli. `ref` is the upstream commit or tag verified on `checked`. `clis` entries with `global: true` are npm packages that `uskn-harness sync` installs globally through mise at `version` (plus `bundle`); `bin` is what ends up on PATH. Update refs deliberately and record why in an ADR or change.",
   "updated": "2026-09-05",
   "runtimes": {
     "mise": {
@@ -22,9 +22,10 @@
     "openspec": {
       "package": "@fission-ai/openspec",
       "version": "1.12.0",
+      "bin": "openspec",
+      "global": true,
       "repo": "Fission-AI/OpenSpec",
       "role": "spec-driven development; schema `uskn` forks `spec-driven`",
-      "install": "mise exec -- npm install -g @fission-ai/openspec@1.12.0",
       "checked": "2026-09-05"
     },
     "skills": {
@@ -37,26 +38,36 @@
     },
     "textlint": {
       "package": "textlint",
-      "version": "TBD (phase 3)",
-      "presets": [
-        "textlint-rule-preset-ja-technical-writing",
-        "textlint-rule-preset-ai-writing"
-      ],
-      "role": "computational sensor for Japanese prose",
-      "checked": "2026-09-05"
-    },
-    "impeccable": {
-      "package": "impeccable",
-      "version": "cli-v4.0.1",
-      "repo": "pbakaus/impeccable",
-      "role": "UI commands (audit, critique, polish, ...). `init` is not used; DESIGN.md follows the Google spec instead",
+      "version": "15.8.0",
+      "bin": "textlint",
+      "global": true,
+      "bundle": {
+        "textlint-rule-preset-ja-technical-writing": "12.0.2",
+        "@textlint-ja/textlint-rule-preset-ai-writing": "1.7.0"
+      },
+      "repo": "textlint/textlint",
+      "role": "computational sensor for Japanese prose; config skills/ja-writing/textlintrc.json, run by the textlint-check hook and by make verify",
       "checked": "2026-09-05"
     },
     "designmd": {
+      "package": "@google/design.md",
+      "version": "0.4.0",
+      "bin": "designmd",
+      "global": true,
       "repo": "google-labs-code/design.md",
       "ref": "9bf8eae67128",
       "status": "alpha",
-      "role": "DESIGN.md lint / diff / export",
+      "role": "DESIGN.md lint / diff / export / spec; used by ui-guidelines and by make verify on templates/repo/DESIGN.md",
+      "checked": "2026-09-05"
+    },
+    "agent-style": {
+      "package": "agent-style",
+      "version": "0.4.2",
+      "bin": "agent-style",
+      "global": true,
+      "repo": "yzhao062/agent-style",
+      "ref": "99722a59e5ab",
+      "role": "21 English writing rules (CC BY 4.0 + MIT): `agent-style rules`, `agent-style review --audit-only`; used by en-writing. `enable` is not used (the user layer CLAUDE.md is managed by the harness)",
       "checked": "2026-09-05"
     }
   },
@@ -104,15 +115,7 @@
       "role": "English prose de-AI pass; accepts voice samples",
       "checked": "2026-09-05",
       "install": "npx -y skills@latest add blader/humanizer -g -a claude-code -y",
-      "status": "installed globally now; wiring into en-writing is phase 3"
-    },
-    "agent-style": {
-      "mode": "reference",
-      "source": "yzhao062/agent-style",
-      "ref": "99722a59e5ab",
-      "role": "21 English writing rules, adapters per tool",
-      "checked": "2026-09-05",
-      "status": "phase 3; has its own installer"
+      "status": "installed globally; en-writing calls it as the final pass with assets/voice/en as the writing sample"
     },
     "expo-skills": {
       "mode": "reference",
@@ -126,9 +129,19 @@
       "mode": "reference",
       "source": "anthropics/claude-plugins-official",
       "path": "plugins/frontend-design",
-      "role": "fallback UI guidance",
-      "checked": "2026-09-05",
-      "status": "phase 3; Claude plugin from the official marketplace"
+      "role": "fallback UI guidance for a new web surface that has no DESIGN.md yet (ui-guidelines step 4)",
+      "install": "npx -y skills@latest add anthropics/claude-plugins-official --skill frontend-design -g -a claude-code -y",
+      "checked": "2026-09-05"
+    },
+    "impeccable": {
+      "mode": "reference",
+      "source": "pbakaus/impeccable",
+      "ref": "cli-v4.0.1",
+      "package": "impeccable",
+      "version": "4.0.1",
+      "role": "UI commands (audit, critique, polish, harden, adapt, ...). init / document / extract / doctor are not used: DESIGN.md follows the Google spec, PRODUCT.md comes from templates/repo",
+      "install": "npx -y impeccable@4.0.1 install -y --providers=claude --scope=global --no-hooks",
+      "checked": "2026-09-05"
     }
   },
   "forks": {
@@ -137,28 +150,49 @@
       "source": "obra/superpowers",
       "ref": "v6.3.0",
       "license": "MIT",
-      "status": "planned (phase 3)"
+      "path": "skills/test-driven-development",
+      "vendored": "2026-09-05",
+      "changes": [
+        "skill references renamed to harness skill names",
+        "verify convention named as the GREEN command",
+        "Harness notes section"
+      ]
     },
     "systematic-debugging": {
       "mode": "vendored",
       "source": "obra/superpowers",
       "ref": "v6.3.0",
       "license": "MIT",
-      "status": "planned (phase 3)"
+      "path": "skills/systematic-debugging",
+      "vendored": "2026-09-05",
+      "changes": [
+        "references use harness skill names",
+        "CREATION-LOG.md and test-*.md (skill tests) not vendored"
+      ]
     },
     "verification-before-completion": {
       "mode": "vendored",
       "source": "obra/superpowers",
       "ref": "v6.3.0",
       "license": "MIT",
-      "status": "planned (phase 3)"
+      "path": "skills/verification-before-completion",
+      "vendored": "2026-09-05",
+      "changes": [
+        "verify convention and the verify-gate Stop hook under Key Patterns",
+        "OpenSpec tasks.md in the requirements check"
+      ]
     },
     "using-git-worktrees": {
       "mode": "vendored",
       "source": "obra/superpowers",
       "ref": "v6.3.0",
       "license": "MIT",
-      "status": "planned (phase 3)"
+      "path": "skills/using-git-worktrees",
+      "vendored": "2026-09-05",
+      "changes": [
+        "worktrees stay inside the project root (write guard)",
+        "clean-baseline check uses the verify convention"
+      ]
     }
   },
   "repos": {
