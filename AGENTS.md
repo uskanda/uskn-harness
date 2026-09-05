@@ -14,7 +14,7 @@ installer that distributes them. This file is the entry point; it stays short an
 | `plugins/uskn-harness/` | Claude Code plugin wrapper: hooks only |
 | `deps.json` | Pinned sources of every external skill, CLI, and runtime |
 | `docs/adr/` | Architecture decisions. Start with ADR-0001 |
-| `docs/handoffs/` | Instructions for other sessions working in other repositories |
+| `docs/handoffs/` | Instructions for other sessions working in other repositories, mirrored in a draft PR |
 | `openspec/` | This repository's own specs and changes (dogfooding) |
 
 ## How work happens here
@@ -37,8 +37,9 @@ artifacts: Japanese.
   `~/dotfiles` and `~/repos/*` stay untouched until the owner says otherwise.
 - External skills are referenced, pinned in `deps.json`, and never copied, except the entries listed under
   `forks`, which carry their upstream license.
-- A product repository receives only `AGENTS.md`, `CLAUDE.md`, `openspec/`, `DESIGN.md`, `PRODUCT.md`, plus a
-  `verify` target. Everything else arrives through the installer.
+- A product repository carries at most `AGENTS.md`, `CLAUDE.md`, `openspec/`, `DESIGN.md`, `PRODUCT.md`, and a
+  `verify` target. That list is an upper bound, not a checklist: `DESIGN.md` and `PRODUCT.md` belong only to a
+  repository that has a user interface. Everything else arrives through the installer.
 - Every guide (skill, rule) that matters gets a sensor (hook, lint, test). Prefer computational sensors.
 
 ## References

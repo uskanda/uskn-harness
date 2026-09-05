@@ -16,7 +16,9 @@ AGENTS.md、Agent Skills（`SKILL.md`）、MCP。hook はイベント語彙が�
 ### 1. 原則
 1. 正本は中立形式（`SKILL.md`、`AGENTS.md`、MCP、Google DESIGN.md）。ツール固有物は薄いラッパか生成物
 2. 指針（guide）には検知（sensor）を対で付け、検知は可能な限り決定的な計算で行う
-3. プロダクト repo に置くのは `AGENTS.md` `CLAUDE.md` `openspec/` `DESIGN.md` `PRODUCT.md`。検証コマンドは `make verify` → `pnpm run verify` / `npm run verify` の規約で探し、無ければ警告のみ
+3. プロダクト repo に置けるのは `AGENTS.md` `CLAUDE.md` `openspec/` `DESIGN.md` `PRODUCT.md` と検証規約。
+   これは上限であって、全部置く義務ではない（`DESIGN.md` と `PRODUCT.md` は UI を持つプロダクトだけ。2026-09-05 に明確化）。
+   検証コマンドは `make verify` → `pnpm run verify` / `npm run verify` の規約で探し、無ければ警告のみ
 4. 役割ごとに採用と代替を ADR に残し、外部スキルと CLI は `deps.json` でピン止めする
 5. 常時ロードは目次と規則だけ。手順はスキル、詳細は `references/` へ。環境から分かることは書かない
 6. 作業ディレクトリ外のプロジェクトを直接編集しない。他 repo への変更は別クローンからの PR か `docs/handoffs/` の手順書で渡す

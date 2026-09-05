@@ -6,8 +6,8 @@
 
 ## 状態
 
-Phase 3（ライティング、UI、方法論スキルの fork）まで完了。
-次は Phase 4（`onboard-harness` と、monolith から uskn75-kb への導入）。
+Phase 4（`onboard-harness` とプロダクト repo への導入）まで完了。
+monolith と uskn75-kb には draft PR を出してある。マージは他作業の目処が立ってから。
 決定は [docs/adr/0001-harness-architecture.md](docs/adr/0001-harness-architecture.md) と [docs/adr/0002-plugin-distribution-via-skills-dir.md](docs/adr/0002-plugin-distribution-via-skills-dir.md) にある。
 進行中の change は `openspec/changes/` を見る。
 
@@ -21,6 +21,8 @@ Phase 3（ライティング、UI、方法論スキルの fork）まで完了。
 - `skills/en-writing/`: 人が読む英語の文章に agent-style の 21 ルールと humanizer を当てる。エージェント向け文書は `writing-for-agents` に任せる
 - `skills/ui-guidelines/` と `templates/repo/DESIGN.md`: UI の正本は Google DESIGN.md 形式と PRODUCT.md。Impeccable は評価と改善のコマンドだけ使う
 - `skills/test-driven-development/` ほか 3 件: obra/superpowers から fork した方法論スキル。TDD、系統的デバッグ、完了前検証、git worktree を扱う
+- `skills/onboard-harness/` と `uskn-harness onboard-check`: プロダクト repo に何を置くかを決めて draft PR で渡す。点検は読み取り専用
+- `docs/handoffs/`: 他 repo へ渡した手順書。draft PR の本文と同じ内容を残す
 
 ## 読む順番
 

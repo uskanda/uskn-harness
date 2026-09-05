@@ -11,7 +11,8 @@ TEST_DIRS   := plugins/uskn-harness/hooks/tests bin/tests
 
 # Japanese prose that is still alive: README, ADRs, main specs, active changes. docs/proposal-2026-09.md and
 # openspec/changes/archive/ are records and stay as written.
-DOCS_JA := README.md $(wildcard docs/adr/*.md) $(shell find openspec/specs -name '*.md' 2>/dev/null) \
+DOCS_JA := README.md $(wildcard docs/adr/*.md) $(wildcard docs/handoffs/*.md) \
+           $(shell find openspec/specs -name '*.md' 2>/dev/null) \
            $(shell find openspec/changes -mindepth 2 -name '*.md' -not -path 'openspec/changes/archive/*' 2>/dev/null)
 
 verify: verify-openspec verify-shell verify-skills verify-plugin verify-textlint verify-design ## Run every check that applies to this repo
