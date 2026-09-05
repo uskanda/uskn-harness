@@ -57,6 +57,19 @@ snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
   [[ "$output" == *"created"* ]]
 }
 
+@test "sync --tools installs the runtime, the pinned CLIs, and the schema link only; --tools --remove exits 2" {
+  run "$CLI" sync --tools
+  [ "$status" -eq 0 ]
+  grep -q "mise use -g node@24" "$USKN_HARNESS_STUB_LOG"
+  grep -q "openspec@1.12.0" "$USKN_HARNESS_STUB_LOG"
+  [ -L "$HOME/.local/share/openspec/schemas/uskn" ] && [ "$(readlink -f "$HOME/.local/share/openspec/schemas/uskn")" = "$REPO/schemas/uskn" ]
+  [ ! -e "$STABLE" ] && [ ! -e "$HOME/.local/bin/uskn-harness" ]
+  [ ! -e "$SKILLS/commit" ] && [ ! -e "$SKILLS/uskn-harness" ] && [ ! -e "$CLAUDE_CONFIG_DIR/CLAUDE.md" ] && [ ! -e "$HOME/.ai-sessions" ]
+  ! grep -q "git clone" "$USKN_HARNESS_STUB_LOG"; ! grep -q "skills@latest add" "$USKN_HARNESS_STUB_LOG"; ! grep -q "openspec-user-layer" "$USKN_HARNESS_STUB_LOG"
+  run "$CLI" sync --tools; [ "$status" -eq 0 ]; [[ "$output" == *"ok"*"openspec schema uskn"* ]]
+  run "$CLI" sync --tools --remove; [ "$status" -eq 2 ]
+}
+
 @test "second sync changes nothing and reports ok" {
   "$CLI" sync >/dev/null
   before="$(snapshot)"

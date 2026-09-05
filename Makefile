@@ -4,6 +4,11 @@ SHELL := /usr/bin/env bash
 SHIMS := $(HOME)/.local/share/mise/shims
 export PATH := $(SHIMS):$(HOME)/.local/bin:$(PATH)
 
+# VERIFY_STRICT=1 (CI): a check whose tool is missing fails instead of being skipped.
+VERIFY_STRICT ?= 0
+# $(call skip,<message>): report a check that cannot run here; under VERIFY_STRICT=1 that is a failure.
+skip = if [ "$(VERIFY_STRICT)" = 1 ]; then echo "$(1) -- VERIFY_STRICT=1: this check is required" >&2; exit 1; else echo "$(1)"; fi
+
 SCRIPT_DIRS := plugins/uskn-harness/hooks/scripts bin
 TEST_DIRS   := plugins/uskn-harness/hooks/tests bin/tests
 
@@ -22,17 +27,17 @@ verify-openspec:
 	@if command -v openspec >/dev/null && [ -d openspec ]; then \
 	  echo "[openspec] validate --all --strict"; openspec validate --all --strict --no-interactive || exit 1; \
 	  if openspec schema which uskn >/dev/null 2>&1; then echo "[openspec] schema validate uskn"; openspec schema validate uskn || exit 1; \
-	  else echo "[openspec] schema uskn not resolvable here (run uskn-harness sync); skipped"; fi; \
-	else echo "[openspec] skipped (cli or openspec/ missing)"; fi
+	  else $(call skip,[openspec] schema uskn not resolvable here (run uskn-harness sync); skipped); fi; \
+	else $(call skip,[openspec] skipped (cli or openspec/ missing)); fi
 
 verify-shell:
 	@files=$$(find $(SCRIPT_DIRS) -type f \( -name '*.sh' -o -perm -u+x \) 2>/dev/null | grep -v '/tests/' | grep -v '/lib/' || true); \
 	if [ -z "$$files" ]; then echo "[shell] skipped (no scripts yet)"; \
 	elif command -v shellcheck >/dev/null; then echo "[shell] shellcheck"; shellcheck -x -P SCRIPTDIR $$files; \
-	else echo "[shell] bash -n only (shellcheck not installed)"; for f in $$files; do bash -n "$$f" || exit 1; done; fi; \
+	else $(call skip,[shell] bash -n only (shellcheck not installed)); for f in $$files; do bash -n "$$f" || exit 1; done; fi; \
 	tests=$$(for d in $(TEST_DIRS); do [ -d "$$d" ] && echo "$$d"; done); \
 	if [ -n "$$tests" ] && command -v bats >/dev/null; then echo "[shell] bats $$tests"; bats $$tests || exit 1; \
-	elif [ -n "$$tests" ]; then echo "[shell] bats not installed; tests skipped"; fi
+	elif [ -n "$$tests" ]; then $(call skip,[shell] bats not installed; tests skipped); fi
 
 verify-skills:
 	@dirs=$$(find skills -mindepth 1 -maxdepth 3 -name SKILL.md -exec dirname {} \; 2>/dev/null); \
@@ -49,15 +54,15 @@ verify-skills:
 verify-plugin:
 	@if command -v claude >/dev/null && [ -d plugins/uskn-harness ]; then \
 	  echo "[plugin] claude plugin validate --strict"; claude plugin validate --strict plugins/uskn-harness || exit 1; \
-	else echo "[plugin] skipped (claude cli or plugin dir missing)"; fi
+	else $(call skip,[plugin] skipped (claude cli or plugin dir missing)); fi
 
 verify-textlint:
 	@if command -v textlint >/dev/null; then echo "[textlint] $(words $(DOCS_JA)) ja documents"; \
 	  textlint --config skills/ja-writing/textlintrc.json $(DOCS_JA) || exit 1; \
-	else echo "[textlint] skipped (textlint not installed; run uskn-harness sync)"; fi
+	else $(call skip,[textlint] skipped (textlint not installed; run uskn-harness sync)); fi
 
 verify-design:
 	@if command -v designmd >/dev/null; then echo "[design.md] lint templates/repo/DESIGN.md"; \
 	  if out=$$(designmd lint templates/repo/DESIGN.md); then echo "$$out" | jq -c '.summary' 2>/dev/null || true; \
 	  else echo "$$out"; exit 1; fi; \
-	else echo "[design.md] skipped (designmd not installed; run uskn-harness sync)"; fi
+	else $(call skip,[design.md] skipped (designmd not installed; run uskn-harness sync)); fi

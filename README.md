@@ -61,3 +61,6 @@ uskn-harness doctor                                    # 状態レポート。�
 mise install      # Node 24、bats、shellcheck（mise.toml）
 make verify       # openspec validate、shellcheck、bats、SKILL.md 検査、claude plugin validate、textlint、design.md lint
 ```
+
+CI（`.github/workflows/verify.yml`）は main への push、pull request、手動実行で `make verify VERIFY_STRICT=1` を走らせる。
+strict では道具が無いチェックは skip ではなく失敗になる。道具は `uskn-harness sync --tools` で、ローカルと同じピンから入れる。

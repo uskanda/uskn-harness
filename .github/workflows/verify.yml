@@ -1,0 +1,40 @@
+# Runs the repository's verify convention on every push to main, on pull requests, and by hand.
+# Tools come from the same pins as a developer machine: mise.toml (node, bats, shellcheck) via mise-action,
+# deps.json (openspec, textlint, designmd, agent-style) via `uskn-harness sync --tools`. VERIFY_STRICT=1 turns a
+# missing tool into a failure so the run cannot go green while checking nothing.
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mise and the tools pinned in mise.toml
+        uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+
+      - name: Install the pinned CLIs and the openspec schema link
+        run: bin/uskn-harness sync --tools
+
+      - name: Install the Claude Code CLI for `claude plugin validate`
+        run: |
+          mise exec -- npm install -g @anthropic-ai/claude-code
+          mise reshim
+          claude --version
+
+      - name: make verify (strict)
+        run: make verify VERIFY_STRICT=1
