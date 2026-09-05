@@ -53,6 +53,11 @@ realpath_m() { # resolve symlinks in the existing part of a path that may not ex
   else python3 -c 'import os,sys;print(os.path.realpath(sys.argv[1]))' "$1" 2>/dev/null || printf '%s' "$1"; fi
 }
 under() { case "$1" in "$2" | "$2"/*) return 0 ;; *) return 1 ;; esac; }
+# harness_dir: the harness checkout. USKN_HARNESS_DIR wins (tests); else five levels above this file, symlinks resolved
+harness_dir() {
+  if [ -n "${USKN_HARNESS_DIR:-}" ]; then printf '%s' "$USKN_HARNESS_DIR"
+  else realpath_m "$(dirname "$(realpath_m "${BASH_SOURCE[0]}")")/../../../../.."; fi
+}
 # project_root <cwd>: CLAUDE_PROJECT_DIR, else the git top level of cwd, else cwd (resolved)
 project_root() {
   local r="${CLAUDE_PROJECT_DIR:-}"
@@ -65,6 +70,7 @@ project_root() {
 path_allowed() {
   local p="$1" root="$2" sid="$3" a dirs
   under "$p" "$root" && return 0
+  case "$p" in /dev/*) return 0 ;; esac   # /dev/null and friends are not a repository
   dirs="${USKN_GUARD_ALLOW_DIRS-/tmp:${TMPDIR:-}}"
   for a in $(printf '%s' "$dirs" | tr ':' ' ') "$HOME/.ai-sessions" "$USKN_STATE" "${CLAUDE_PLUGIN_DATA:-}"; do
     [ -n "$a" ] || continue; [ -e "$a" ] && a="$(realpath_m "$a")"; under "$p" "$a" && return 0

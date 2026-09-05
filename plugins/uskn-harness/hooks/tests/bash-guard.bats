@@ -45,3 +45,8 @@ warned() { echo "$output" | jq -e '(.hookSpecificOutput.permissionDecision // "n
 @test "broken input: silent exit 0" {
   run bash -c "echo nope | '$SCRIPT'"; [ "$status" -eq 0 ]; [ -z "$output" ]
 }
+
+@test "redirects to /dev/null are not outside paths" {
+  run call "make verify > /dev/null 2>&1"; [ "$status" -eq 0 ]; [ -z "$output" ]
+  run call "cp a.txt /dev/null"; [ -z "$output" ]
+}
