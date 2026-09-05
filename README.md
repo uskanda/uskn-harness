@@ -12,6 +12,7 @@ Phase 1（installer と既存スキルの移管）完了。次は Phase 2（spec
 - `plugins/uskn-harness/`: SessionStart で `<repo-context>`（hosting とブランチモデル）を注入する hook、grilling 記録の無い change への成果物書き込みを止める hook
 - `skills/spec/`: `/spec <idea>` で grilling → `grilling.md` → OpenSpec 成果物。schema `uskn`（`schemas/uskn/`）が grilling を proposal の前提にする
 - `skills/journal/` / `skills/recall/` と hook 群: セッションごとの journal（事実は hook、判断はエージェント）を private repo `uskanda/ai-sessions`（`~/.ai-sessions`）に貯め、SessionEnd で commit / push。SessionStart で直近 3 件を注入。コミットには `Session: <sid8>` トレーラ
+- PreToolUse hook `write-guard` / `bash-guard` と `skills/allow-repo/`: プロジェクトルート外への書き込み、`chezmoi apply`、他 repo への git 操作を止める。ユーザーが明示したときだけ `/allow-repo <path>` でそのセッションに限り解除
 - `skills/verify/` と Stop hook `verify-gate`: セッションで作業ツリーが変わったとき `make verify`（無ければ `pnpm run verify` / `npm run verify`）を実行し、失敗中は終了させない。`USKN_SKIP_VERIFY=1` で回避
 
 ## 読む順番

@@ -47,3 +47,35 @@ to_local_stamp() {
   date -d "$1" +%Y-%m-%d-%H%M 2>/dev/null || date -j -u -f '%Y-%m-%dT%H:%M:%SZ' "$1" +%Y-%m-%d-%H%M 2>/dev/null || date +%Y-%m-%d-%H%M
 }
 # json_out <jq-program> [--arg k v ...]: emit JSON with jq when present (callers keep a printf fallback)
+# ---- paths and the project boundary
+realpath_m() { # resolve symlinks in the existing part of a path that may not exist yet
+  if realpath -m / >/dev/null 2>&1; then realpath -m "$1"
+  else python3 -c 'import os,sys;print(os.path.realpath(sys.argv[1]))' "$1" 2>/dev/null || printf '%s' "$1"; fi
+}
+under() { case "$1" in "$2" | "$2"/*) return 0 ;; *) return 1 ;; esac; }
+# project_root <cwd>: CLAUDE_PROJECT_DIR, else the git top level of cwd, else cwd (resolved)
+project_root() {
+  local r="${CLAUDE_PROJECT_DIR:-}"
+  [ -n "$r" ] || r="$(git -C "${1:-$PWD}" rev-parse --show-toplevel 2>/dev/null || true)"
+  [ -n "$r" ] || r="${1:-$PWD}"
+  realpath_m "$r"
+}
+# path_allowed <abs-path> <root> <session_id>: inside the root, the fixed allowlist, or the session's allow file
+# The scratch/tmp part of the allowlist is USKN_GUARD_ALLOW_DIRS (colon-separated; default /tmp and $TMPDIR).
+path_allowed() {
+  local p="$1" root="$2" sid="$3" a dirs
+  under "$p" "$root" && return 0
+  dirs="${USKN_GUARD_ALLOW_DIRS-/tmp:${TMPDIR:-}}"
+  for a in $(printf '%s' "$dirs" | tr ':' ' ') "$HOME/.ai-sessions" "$USKN_STATE" "${CLAUDE_PLUGIN_DATA:-}"; do
+    [ -n "$a" ] || continue; [ -e "$a" ] && a="$(realpath_m "$a")"; under "$p" "$a" && return 0
+  done
+  case "$p" in "$(realpath_m "$HOME")"/.claude/projects/*/memory | "$(realpath_m "$HOME")"/.claude/projects/*/memory/*) return 0 ;; esac
+  if [ -n "$sid" ] && [ -f "$USKN_STATE/sessions/$sid/allow" ]; then
+    while IFS= read -r a; do [ -n "$a" ] && under "$p" "$(realpath_m "$a")" && return 0; done < "$USKN_STATE/sessions/$sid/allow"
+  fi
+  return 1
+}
+deny_json() { # <reason>
+  if have jq; then jq -c -n --arg r "$1" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
+  else printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"%s"}}\n' "$(printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g')"; fi
+}

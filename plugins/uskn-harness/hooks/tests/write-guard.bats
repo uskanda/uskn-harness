@@ -4,6 +4,7 @@ SCRIPT="$BATS_TEST_DIRNAME/../scripts/write-guard.sh"
 setup() {
   export HOME="$BATS_TEST_TMPDIR/home"; export USKN_STATE_DIR="$BATS_TEST_TMPDIR/state"; export TMPDIR="$BATS_TEST_TMPDIR/tmpdir"
   export GIT_CONFIG_GLOBAL=/dev/null
+  export USKN_GUARD_ALLOW_DIRS="${TMPDIR:-/nonexistent}:/tmp/claude-1000"   # bats itself lives under /tmp, so narrow the default
   ROOT="$BATS_TEST_TMPDIR/repos/a"; OTHER="$BATS_TEST_TMPDIR/repos/b"; mkdir -p "$ROOT/src" "$OTHER" "$TMPDIR" "$HOME/.ai-sessions/x" "$HOME/.claude/projects/p/memory" "$USKN_STATE_DIR/sessions/sid12345678"
   ( cd "$ROOT" && git init -q -b main )
   export CLAUDE_PROJECT_DIR="$ROOT"

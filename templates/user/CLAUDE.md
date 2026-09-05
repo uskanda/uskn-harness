@@ -13,8 +13,7 @@
 
 ## Boundaries
 
-- Edit only the repository you were started in. A change another repository needs becomes a pull request made from a fresh clone in the scratchpad, or a handoff document; never touch another live working tree (for example `~/dotfiles`).
-- Do not run `chezmoi apply` or push to other repositories unless the user asks for it in this session.
+- Edit only the repository you were started in. A change another repository needs becomes a pull request made from a fresh clone in the scratchpad, or a handoff document; never touch another live working tree (for example `~/dotfiles`). Hooks deny writes outside the project root and `chezmoi apply`; when the user explicitly allows an exception for this session, run `/allow-repo <path>` first.
 
 ## Verification
 
