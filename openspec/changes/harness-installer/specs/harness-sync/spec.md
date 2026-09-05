@@ -12,15 +12,15 @@
 - **THEN** 新しい symlink やファイルは作られず、各項目が `ok` として報告される
 
 ### Requirement: 参照点の用意
-`sync` は `~/.local/share/uskn-harness` を用意しなければならない（MUST）。`USKN_HARNESS_DIR` が指す既存の checkout、または `~/repos/uskn-harness` が存在すればそこへの symlink を張り、どちらも無ければ GitHub からそこへ clone する。既に別の場所を指す symlink や実ディレクトリがある場合は上書きせず警告する。
+`sync` は `~/.local/share/uskn-harness` を用意しなければならない（MUST）。導入元は `USKN_HARNESS_DIR`、無ければ `sync` 自身が置かれている checkout。参照点がその checkout への symlink（または checkout 自身）でなければ symlink を張る。既に別の場所を指す symlink や実ディレクトリがある場合は上書きせず警告する。checkout が無いマシンでの clone は `machine-bootstrap` の責務。
 
 #### Scenario: 開発機
 - **WHEN** `~/repos/uskn-harness` が git checkout で、参照点が未作成
 - **THEN** `~/.local/share/uskn-harness` はその checkout への symlink になる
 
-#### Scenario: 新しいマシン
-- **WHEN** checkout が無く、参照点も無い
-- **THEN** `uskanda/uskn-harness` が `~/.local/share/uskn-harness` に clone される
+#### Scenario: managed clone から実行
+- **WHEN** `~/.local/share/uskn-harness` が実ディレクトリの clone で、その中の `bin/uskn-harness sync` を実行する
+- **THEN** 参照点は `ok`（managed clone）として報告され、symlink は作られない
 
 ### Requirement: ランタイムと CLI
 `sync` は mise が無ければ `~/.local/bin/mise` に導入し、グローバル既定として `node@24` と `jq` を設定し、`deps.json` の `clis.openspec.version` と一致する openspec を導入しなければならない（MUST）。既に一致していれば何もしない。
@@ -55,7 +55,7 @@
 - **THEN** `npx skills add mattpocock/skills --skill=grilling -g -a claude-code` 相当が実行され、導入後に `SKILL.md` が存在する
 
 ### Requirement: OpenSpec のユーザー層スキル
-`sync` は openspec が Claude Code 向けに生成するスキルとコマンドを、一時ディレクトリで生成してから `~/.claude/skills/openspec-*` と `~/.claude/commands/opsx/` にコピーしなければならない（MUST）。コピー先にハーネス管理の印（`generatedBy` を含む frontmatter）が無い同名ファイルがあれば上書きせず警告する。
+`sync` は openspec が Claude Code 向けに生成するスキルとコマンドを、一時ディレクトリで生成してから `~/.claude/skills/openspec-*` と `~/.claude/commands/opsx/` にコピーし、各ディレクトリにハーネス管理の印（`.uskn-harness-managed` ファイル）を置かなければならない（MUST）。コピー先に印の無い同名ディレクトリがあれば上書きせず警告する（`generatedBy` は chezmoi 管理の旧コピーにも含まれるため印には使わない）。
 
 #### Scenario: バージョン更新
 - **WHEN** openspec の version が上がった状態で `sync` を実行する

@@ -17,6 +17,20 @@ Phase 1（installer と既存スキルの移管）を実装中。決定事項は
 2. [docs/adr/0001-harness-architecture.md](docs/adr/0001-harness-architecture.md): 全体構成と決定
 3. [docs/proposal-2026-09.md](docs/proposal-2026-09.md): 2026年9月時点のトレンド調査と grilling の記録
 
+## 導入
+
+新しいマシン: dotfiles を適用すると run_once が mise を入れ、`~/.local/share/uskn-harness` を用意して `uskn-harness sync` を実行する。
+開発機（この checkout がある場合）:
+
+```bash
+~/repos/uskn-harness/bin/uskn-harness sync --dry-run   # 予定を確認
+~/repos/uskn-harness/bin/uskn-harness sync             # 参照点、mise、openspec、symlink、ユーザー層 CLAUDE.md
+uskn-harness doctor                                    # 状態レポート。問題があれば終了コード 1
+```
+
+`sync` は冪等で、既存の実ディレクトリ（chezmoi 管理のスキルなど）は `conflict` として触らない。
+`sync --remove` でハーネス由来の symlink と管理コピーだけを取り除ける。
+
 ## 開発
 
 ```bash

@@ -22,10 +22,10 @@
 
 1. **`bin/uskn-harness` は bash 単一ファイル、サブコマンドは関数**。`main "$@"` を末尾に置き、`USKN_HARNESS_SOURCED=1` のときは main を呼ばない（bats から関数を直接テストする）。代替: Node 製 CLI。bootstrap 時に Node が無いので不採用
 2. **書き込みはすべて `do_link` / `do_copy` / `do_run` の 3 関数を経由**し、`--dry-run` はこの 3 関数でだけ分岐する。報告行は `printf '%-8s %s\n' "$status" "$what"`
-3. **参照点の決定順**: `USKN_HARNESS_DIR` → `~/repos/uskn-harness`（`.git` があること）→ managed clone。自身の実行パス（`$0` の realpath）から逆算はしない（symlink 経由で呼ばれるため）
+3. **導入元の決定順**: `USKN_HARNESS_DIR` → `sync` 自身の実体の位置（`$0` を realpath で解決した checkout）。`~/.local/bin/uskn-harness` → 参照点 → checkout と symlink を辿っても実体は checkout 内なので、これが最も確実な手掛かりになる。checkout が無いマシンで clone するのは run_once（machine-bootstrap）の責務で、`sync` は clone しない
 4. **mise のグローバル既定は `mise use -g node@24 jq@1.7`**。`mise.toml` の pin と `deps.json` の runtimes を単一の真実にするため、`sync` は `deps.json` の `runtimes.node.version` を読んで渡す。jq は macOS 既定に無いので mise で入れる（OS の jq があればそれを優先し、無いときだけ）
 5. **openspec の導入は `mise exec -- npm install -g @fission-ai/openspec@<version>`**。version 判定は `openspec --version` の文字列比較
-6. **OpenSpec ユーザー層スキルの生成**: `mktemp -d` で `openspec init --tools claude --language ja --no-animation` を実行し、`.claude/skills/openspec-*` と `.claude/commands/opsx/*` を `~/.claude/skills` と `~/.claude/commands/opsx` に `cp -R` する。コピー先の既存ファイルは `generatedBy:` を含む場合のみ上書き。ハーネス repo 自身の `.claude/skills/openspec-*` は削除し、ユーザー層に一本化する（プロダクト repo と同じ形になる）
+6. **OpenSpec ユーザー層スキルの生成**: `mktemp -d` で `openspec init --tools claude --language ja --no-animation` を実行し、`.claude/skills/openspec-*` と `.claude/commands/opsx/*` を `~/.claude/skills` と `~/.claude/commands/opsx` に `cp -R` し、各ディレクトリに `.uskn-harness-managed` を置く。上書きはこの印があるときだけ（`generatedBy:` は chezmoi 管理の旧コピーにもあるので印にならない）。ハーネス repo 自身の `.claude/skills/openspec-*` は削除し、ユーザー層に一本化する（プロダクト repo と同じ形になる）
 7. **衝突の定義**: 目的の symlink 先が、(a) 実ディレクトリ・実ファイル、(b) ハーネス外を指す symlink、のいずれかなら `conflict`。上書きしない。`doctor` では (a) を `warn`（chezmoi 撤去待ち）、(b) を `fail` とする
 8. **ユーザー層 CLAUDE.md はコピー**（symlink ではない）。Cowork 系のセッションが symlink の `~/.claude/CLAUDE.md` を読まない制約があるため。先頭の管理印で「ハーネス管理か手書きか」を判定する
 9. **run_once は薄く保つ**（20 行以内）: 前提確認、mise 導入、参照点の用意、`bin/uskn-harness sync` の exec。ロジックはすべて `sync` 側。chezmoi テンプレートで `{{ if ne .chezmoi.os "windows" }}` に包む
