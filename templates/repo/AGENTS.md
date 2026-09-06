@@ -34,6 +34,13 @@ qa: none
 release_tag: calver
 ```
 
+## Names and terms
+
+- A name comes from the code, from `openspec/glossary.yml`, or from a document you consulted.
+- A new term goes into the glossary first: the spelling, one sentence saying what it is, the spellings to avoid.
+- One concept, one term. A backticked name must exist; a name for something not built yet is `<like this>`.
+- The glossary lives at `openspec/glossary.yml`. Add to it rather than inventing a word in passing.
+
 ## Rules that are not in the code
 
 - <"never do X" items, with the reason>

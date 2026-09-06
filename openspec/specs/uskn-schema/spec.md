@@ -1,12 +1,12 @@
 # uskn-schema Specification
 
 ## Purpose
-grillingの記録を最初のアーティファクトとして要求するOpenSpecワークフロー。リポジトリ側はschemaを選ぶだけで、実体はハーネスがユーザー層に置く。
+grillingの記録を最初の成果物として要求するOpenSpecワークフロー。リポジトリ側はschemaを選ぶだけで、実体はハーネスがユーザー層に置く。
 
 ## Requirements
 
 ### Requirement: grilling が proposal の前提
-schema `uskn` は `grilling`（`grilling.md`）を最初のアーティファクトとし、`proposal` はそれを要求しなければならない（MUST）。`grilling.md` が無いchangeでは `openspec status` がproposalをblockedと報告する。
+schema `uskn` は `grilling`（`grilling.md`）を最初の成果物とし、`proposal` はそれを要求しなければならない（MUST）。`grilling.md` が無いchangeでは `openspec status` がproposalをblockedと報告する。
 
 #### Scenario: 新しい change
 - **WHEN** `openspec new change x` の直後に `openspec status --change x` を実行する

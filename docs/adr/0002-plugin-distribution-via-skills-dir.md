@@ -19,7 +19,7 @@ ADR-0001ではClaude Code向けのhookをmarketplace経由のプラグインで�
 2. Claude向けhookは `~/.claude/skills/uskn-harness -> <harness>/plugins/uskn-harness` のsymlinkで配る。
    marketplace.jsonと `claude plugin install` は使わない。settings.jsonは触らない
 3. hookスクリプトの正本は `plugins/uskn-harness/hooks/scripts/`（`${CLAUDE_PLUGIN_ROOT}` 基準で自己完結）。
-   トップレベル `hooks/` は他ツール向けアダプタだけを置き、安定パス経由で同じスクリプトを参照する
+   トップレベル `hooks/` は他ツール向けアダプタだけを置き、参照点経由で同じスクリプトを参照する
 4. 自作スキルは `sync` が `skills/**/<name>` ごとに `~/.claude/skills/<name>` へsymlinkを張る。
    `npx skills add <owner/repo> --skill <name> -g -a claude-code` はサードパーティ専用
 5. installerは `mise use -g node@24` でグローバル既定を書く

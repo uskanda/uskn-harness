@@ -12,7 +12,7 @@ skip = if [ "$(VERIFY_STRICT)" = 1 ]; then echo "$(1) -- VERIFY_STRICT=1: this c
 SCRIPT_DIRS := plugins/uskn-harness/hooks/scripts bin
 TEST_DIRS   := plugins/uskn-harness/hooks/tests bin/tests
 
-.PHONY: verify verify-openspec verify-shell verify-skills verify-plugin verify-textlint verify-design
+.PHONY: verify verify-openspec verify-shell verify-skills verify-plugin verify-textlint verify-design verify-terms
 
 # Japanese prose that is still alive: README, ADRs, main specs, active changes. docs/proposal-2026-09.md and
 # openspec/changes/archive/ are records and stay as written.
@@ -20,7 +20,11 @@ DOCS_JA := README.md docs/setup-new-machine.md $(wildcard docs/adr/*.md) $(wildc
            $(shell find openspec/specs -name '*.md' 2>/dev/null) \
            $(shell find openspec/changes -mindepth 2 -name '*.md' -not -path 'openspec/changes/archive/*' 2>/dev/null)
 
-verify: verify-openspec verify-shell verify-skills verify-plugin verify-textlint verify-design ## Run every check that applies to this repo
+# Prose the terminology guard checks: the Japanese set plus the English documents agents read.
+DOCS_TERMS := $(DOCS_JA) AGENTS.md plugins/uskn-harness/README.md $(shell find skills -name 'SKILL.md' 2>/dev/null)
+TERMS_CHECK := plugins/uskn-harness/hooks/scripts/terms-check.sh
+
+verify: verify-openspec verify-shell verify-skills verify-plugin verify-textlint verify-design verify-terms ## Run every check that applies to this repo
 	@echo "verify: ok"
 
 verify-openspec:
@@ -66,3 +70,8 @@ verify-design:
 	  if out=$$(designmd lint templates/repo/DESIGN.md); then echo "$$out" | jq -c '.summary' 2>/dev/null || true; \
 	  else echo "$$out"; exit 1; fi; \
 	else $(call skip,[design.md] skipped (designmd not installed; run uskn-harness sync)); fi
+
+verify-terms:
+	@if [ -x "$(TERMS_CHECK)" ]; then echo "[terms] $(words $(DOCS_TERMS)) documents"; \
+	  "$(TERMS_CHECK)" $(DOCS_TERMS) || exit 1; \
+	else $(call skip,[terms] skipped (terms-check.sh missing)); fi

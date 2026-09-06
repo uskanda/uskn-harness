@@ -16,8 +16,9 @@ AGENTS.md、Agent Skills（`SKILL.md`）、MCP。hookはイベント語彙が揃
 ### 1. 原則
 1. 正本は中立形式（`SKILL.md`、`AGENTS.md`、MCP、Google DESIGN.md）。ツール固有物は薄いラッパか生成物
 2. 指針（guide）には検知（sensor）を対で付け、検知は可能な限り決定的な計算で行う
-3. プロダクトリポジトリに置けるのは `AGENTS.md` `CLAUDE.md` `openspec/` `DESIGN.md` `PRODUCT.md` と検証規約。
-   これは上限であって、全部置く義務ではない（`DESIGN.md` と `PRODUCT.md` はUIを持つプロダクトだけ。2026-09-05に明確化）。
+3. プロダクトリポジトリには、規約が求めるファイルだけを置く。現時点の内訳は `AGENTS.md` `CLAUDE.md`
+   `openspec/`（`glossary.yml` を含む）と検証規約。`DESIGN.md` と `PRODUCT.md` はUIを持つプロダクトだけ。
+   列挙は内訳であって、置ける数の上限ではない（2026-09-06に表現を修正）。
    検証コマンドは `make verify` → `pnpm run verify` / `npm run verify` の規約で探し、無ければ警告のみ
 4. 役割ごとに採用と代替をADRに残し、外部スキルとCLIは `deps.json` でピン止めする
 5. 常時ロードは目次と規則だけ。手順はスキル、詳細は `references/` へ。環境から分かることは書かない
@@ -56,7 +57,7 @@ GitHub private、`main` のみ、CalVerタグ。置くものは次のとおり�
 4. `/opsx:apply` をTDDで進め、Stop hookがverifyを実行する。
 5. `/opsx:archive` でmain specsに反映する。
 
-OpenSpecは `spec-driven` schemaを `uskn` にフォークし、`grilling` アーティファクトをproposalの前提に置く。
+OpenSpecは `spec-driven` schemaを `uskn` にフォークし、`grilling` 成果物をproposalの前提に置く。
 schemaはuser-levelの `~/.local/share/openspec/schemas/uskn/` に置く。
 リポジトリ側は `openspec/config.yaml` の `schema: uskn` だけ。profileはexpanded。
 
@@ -122,7 +123,7 @@ humanizer、agent-style、Impeccable、expo/skillsも同じ扱いにする。
 | UI | Impeccable の DESIGN.md 形式を正本 | Google 仕様と互換がなく Web 専用。トークンの機械可読性と lint を失う |
 | 配布 | rulesync 系で各ツール向けファイルを生成 | 正本を AGENTS.md と SKILL.md に置けば生成は不要。Claude Code は `@AGENTS.md` で足りる |
 | Node | nvm 継続 | 非対話シェル（hook）で解決できない。mise は shims で解決し Python も統合できる |
-| 検証コマンド | `harness.yaml` 新設 | リポジトリに置くものを増やさず、人にも読める規約（`make verify`）で足りる |
+| 検証コマンド | 専用の設定ファイルを新設 | リポジトリに置くものを増やさず、人にも読める規約（`make verify`）で足りる |
 | cross-repo | 指示のみ | ユーザー要件で制約として担保が必要。Write / Edit は確実に止められる |
 
 ## 結果

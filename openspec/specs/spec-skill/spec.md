@@ -21,7 +21,7 @@ frontierが空になり、ユーザーが共有理解を確認するまで `open
 - **THEN** `grilling.md` の表は7行で、出典に各ラウンドと番号がある
 
 ### Requirement: 成果物の生成モード
-既定では `grilling.md` の後にproposal / specs / design / tasksを依存順に一括生成する。引数に `--step` があるときは成果物を1つ書くごとにユーザーの確認を待たなければならない（MUST）。引数が既存のchange名なら、そのchangeの未完了アーティファクトから続ける。
+既定では `grilling.md` の後にproposal / specs / design / tasksを依存順に一括生成する。引数に `--step` があるときは成果物を1つ書くごとにユーザーの確認を待たなければならない（MUST）。引数が既存のchange名なら、そのchangeの未完了成果物から続ける。
 
 #### Scenario: 一括
 - **WHEN** `/spec add-x` を実行し確認を終える

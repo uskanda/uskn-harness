@@ -18,6 +18,19 @@ Swan; 9 observed in LLM output); the sensor is `agent-style review`; the final p
   below, and the agent's behaviour is the test.
 - Japanese text: `ja-writing`.
 
+## Names and terms
+
+Four rules, the same in every language the harness writes. The sensor is `terms-check.sh`, run by a PostToolUse
+hook and by `make verify`.
+
+1. A name has one of three sources: an identifier that exists in the code or the paths, a term in
+   `openspec/glossary.yml`, or a term from a document you actually consulted.
+2. A new term needs a glossary entry first: the spelling, one sentence saying what it is, and the spellings to
+   avoid. Define it where it first appears. Do not present it as if it were already established, and do not coin
+   an abbreviation.
+3. One concept, one term. Alternatives belong in the glossary as spellings to avoid, not in the prose.
+4. A backticked name must exist. A name that stands for something not yet built is written `<like this>`.
+
 ## Rules
 
 `agent-style rules` prints the full reference (directive, 5+ BAD → GOOD pairs, rationale per rule);

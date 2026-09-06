@@ -1,0 +1,88 @@
+# Project glossary. One entry per term the repository has decided to use.
+# Every repository keeps its own at this same path (openspec: terminology-guard).
+#   term:       the spelling to use
+#   definition: one sentence saying what it is, not what it does
+#   aliases:    spellings to avoid; terms-check reports them
+#   en:         the English spelling, when the term is written in Japanese
+version: 1
+terms:
+  - term: "ハーネス"
+    definition: "エージェントコーディングの作法をまとめ、各リポジトリへ配る土台。"
+    aliases: []
+    en: "harness"
+  - term: "参照点"
+    definition: "各マシンでハーネスを指す固定パス `~/.local/share/uskn-harness`。"
+    aliases: ["安定パス"]
+    en: "stable path"
+  - term: "managed clone"
+    definition: "開発用の作業ツリーを持たないマシンで、参照点そのものとして置くクローン。"
+    aliases: []
+    en: "managed clone"
+  - term: "verify gate"
+    definition: "作業ツリーが変わったセッションで検証規約を走らせ、失敗中は終了させるStop hook。"
+    aliases: ["検証ゲート"]
+    en: "verify gate"
+  - term: "検証規約"
+    definition: "そのリポジトリで検証を走らせる決まったコマンド。`make verify` を先に探す。"
+    aliases: []
+    en: "verify convention"
+  - term: "用語集"
+    definition: "リポジトリが使うと決めた語を集めたファイル `openspec/glossary.yml`。"
+    aliases: ["グロッサリ", "グロッサリー"]
+    en: "glossary"
+  - term: "一般語リスト"
+    definition: "用語集に載せるまでもない普通のカタカナ語を並べたファイル。"
+    aliases: []
+    en: "common word list"
+  - term: "成果物"
+    definition: "OpenSpecの1つの変更が持つ文書。grilling、proposal、specs、design、tasks。"
+    aliases: ["アーティファクト"]
+    en: "artifact"
+  - term: "変更"
+    definition: "`openspec/changes/<name>/` に置く、1つのまとまった仕事の単位。"
+    aliases: []
+    en: "change"
+  - term: "能力"
+    definition: "`openspec/specs/<name>/` が定める、振る舞いのまとまり。"
+    aliases: ["ケーパビリティ"]
+    en: "capability"
+  - term: "引き継ぎ文書"
+    definition: "別セッションが読んで作業を続けるための手順書。`docs/handoffs/` に置く。"
+    aliases: ["ハンドオフ"]
+    en: "handoff"
+  - term: "セッションジャーナル"
+    definition: "1セッションの事実と判断を記録する文書。`~/.ai-sessions/` に貯める。"
+    aliases: ["ジャーナル", "セッション記録"]
+    en: "session journal"
+  - term: "状態ディレクトリ"
+    definition: "hookがセッションごとの状態を置く場所 `~/.local/state/uskn-harness/sessions/`。"
+    aliases: []
+    en: "state directory"
+  - term: "指針"
+    definition: "人とエージェントが従う決まりを書いた文書。スキルやルール。"
+    aliases: ["ガイド"]
+    en: "guide"
+  - term: "センサー"
+    definition: "指針が守られているかを機械的に確かめる仕組み。hook、lint、テスト。"
+    aliases: ["検知器"]
+    en: "sensor"
+  - term: "導入"
+    definition: "プロダクトリポジトリをハーネスの作法に載せる作業。"
+    aliases: ["オンボーディング", "オンボード"]
+    en: "onboarding"
+  - term: "文体"
+    definition: "敬体と常体の別。成果物ごとにどちらを使うかが決まっている。"
+    aliases: []
+    en: "register"
+  - term: "表記"
+    definition: "語をどう書くかの決まり。スペース、句読点、かっこ、カタカナの形。"
+    aliases: []
+    en: "notation"
+  - term: "造語"
+    definition: "一般に通用しておらず、用語集にも無い語。"
+    aliases: []
+    en: "coined term"
+  - term: "プレースホルダー"
+    definition: "実物の代わりに置く仮の名前。山かっこで囲んで書く。"
+    aliases: ["プレースホルダ"]
+    en: "placeholder"

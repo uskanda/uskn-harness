@@ -1,0 +1,13 @@
+# Names that are real but live outside this repository (openspec: terminology-guard).
+# terms-check treats these as existing. Add a name here only after confirming it is real.
+# One name per line.
+app.json
+pyproject.toml
+skills-lock.json
+timeout.exe
+summary.errors
+gen-layout.py
+pcb-spec.md
+run_once_install-uskn-harness.sh
+2026-09-10-dotfiles-mise-migration.md
+hookSpecificOutput.additionalContext

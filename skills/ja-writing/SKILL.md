@@ -42,6 +42,19 @@ Mixing the two inside one document is the error the rule catches.
 - One spelling per term, enforced by `prh.yml`（リポジトリ、ハーネス、ユーザー、サーバー）. Identifiers keep their
   English spelling: `uskn-harness`, `cross-repo`, `~/repos` are excluded by the dictionary's patterns.
 
+## Names and terms
+
+Four rules, the same in every language the harness writes. The sensor is `terms-check.sh`, run by a PostToolUse
+hook and by `make verify`.
+
+1. A name has one of three sources: an identifier that exists in the code or the paths, a term in
+   `openspec/glossary.yml`, or a term from a document you actually consulted.
+2. A new term needs a glossary entry first: the spelling, one sentence saying what it is, and the spellings to
+   avoid. Define it where it first appears. Do not present it as if it were already established, and do not coin
+   an abbreviation.
+3. One concept, one term. Alternatives belong in the glossary as spellings to avoid, not in the prose.
+4. A backticked name must exist. A name that stands for something not yet built is written `<like this>`.
+
 ## Voice samples
 
 `~/.local/share/uskn-harness/assets/voice/ja/` may hold samples of the owner's writing. When it has files, read
