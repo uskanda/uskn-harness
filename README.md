@@ -22,7 +22,6 @@ monolithとuskn75-kbにはdraft PRを出してある。マージは他作業の�
 - `skills/ui-guidelines/` と `templates/repo/DESIGN.md`: UIの正本はGoogle DESIGN.md形式とPRODUCT.md。Impeccableは評価と改善のコマンドだけ使う
 - `skills/test-driven-development/` ほか3件：obra/superpowersからforkした方法論スキル。TDD、系統的デバッグ、完了前検証、git worktreeを扱う
 - `skills/onboard-harness/` と `uskn-harness onboard-check`: プロダクトリポジトリに何を置くかを決めてdraft PRで渡す。点検は読み取り専用
-- `docs/handoffs/`: 別セッション向けの手順書。他リポジトリの導入手順（draft PRの本文と同じ内容）と、このリポジトリでの引き継ぎ
 
 ## hook の発火を確かめる
 

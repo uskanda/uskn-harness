@@ -49,11 +49,6 @@ session before writing. The rules that most often fire on agent output:
 
 RULE-G (Title Case headings) yields to the target repository's own heading convention.
 
-## Voice samples
-
-`~/.local/share/uskn-harness/assets/voice/en/` may hold samples of the owner's English. When it has files, read them
-before writing and hand them to humanizer as the writing sample. When it is empty, write from the rules.
-
 ## Check
 
 ```bash
@@ -66,6 +61,6 @@ when the audit reports no mechanical violations, or each remaining one has a rea
 
 ## Final pass
 
-Run the Skill tool with `humanizer` on the finished text, passing the voice sample when one exists. It removes AI
+Run the Skill tool with `humanizer` on the finished text. It removes AI
 patterns without changing claims. Read its output against the audit once more; humanizer may reintroduce a dash
 or a bullet.

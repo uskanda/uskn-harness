@@ -117,7 +117,7 @@
       "role": "English prose de-AI pass; accepts voice samples",
       "checked": "2026-09-05",
       "install": "npx -y skills@latest add blader/humanizer -g -a claude-code -y",
-      "status": "installed globally; en-writing calls it as the final pass with assets/voice/en as the writing sample"
+      "status": "installed globally; en-writing calls it as the final pass"
     },
     "expo-skills": {
       "mode": "reference",

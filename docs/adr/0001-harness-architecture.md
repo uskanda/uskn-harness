@@ -22,21 +22,20 @@ AGENTS.md、Agent Skills（`SKILL.md`）、MCP。hookはイベント語彙が揃
    検証コマンドは `make verify` → `pnpm run verify` / `npm run verify` の規約で探し、無ければ警告のみ
 4. 役割ごとに採用と代替をADRに残し、外部スキルとCLIは `deps.json` でピン止めする
 5. 常時ロードは目次と規則だけ。手順はスキル、詳細は `references/` へ。環境から分かることは書かない
-6. 作業ディレクトリ外のプロジェクトを直接編集しない。他リポジトリへの変更は別クローンからのPRか `docs/handoffs/` の手順書で渡す
+6. 作業ディレクトリ外のプロジェクトを直接編集しない。他リポジトリへの変更は別クローンからのPRで渡し、手順はPR本文に書く
 
 ### 2. 対象ツール
 動作保証はClaude Codeのみ。Codex CLI、Gemini CLI、OpenCode向けにはアダプタの置き場を用意するが検証しない。
 
 ### 3. リポジトリ構成
-GitHub private、`main` のみ、CalVerタグ。置くものは次のとおり。
+GitHub public（2026-09-06にprivateから変更）、`main` のみ、CalVerタグ。置くものは次のとおり。
 
 - `skills/`: スキルの正本（英語）
 - `templates/{repo,user,chezmoi}/`: プロダクトリポジトリ向け、ユーザー層向け、dotfilesのbootstrap向けの配布ファイル
 - `schemas/uskn/`: OpenSpecのschema
 - `plugins/uskn-harness/hooks/`: hook本体（scripts、tests、hooks.json）。他ツール向けアダプタは `hooks/adapters/<tool>/` に置く。必要が出た時点で作る（ADR-0002）
 - `deps.json`: 外部スキルとCLIのピン
-- `assets/voice/`: 文体サンプル
-- `docs/{adr,handoffs}` と `docs/proposal-2026-09.md`: 決定、別セッション向けの手順書、調査とgrillingの記録
+- `docs/adr/` と `docs/proposal-2026-09.md`: 決定と、調査とgrillingの記録
 - `openspec/`: 本リポジトリ自身の運用
 - `bin/uskn-harness`: installer（init / doctor / sync）
 
@@ -104,7 +103,7 @@ humanizer、agent-style、Impeccable、expo/skillsも同じ扱いにする。
 - UI: Google DESIGN.md形式（YAMLトークン + 根拠）を正本。Impeccableはコマンド（audit / critique / polishなど）のみ使い `init` は使わない。
   RN / ExpoはExpo公式skillsとDESIGN.mdのproseで補う。Anthropic frontend-designはフォールバック
 - 日本語：textlint（preset-ja-technical-writing + preset-ai-writing）+ `ja-writing` スキル。英語：agent-styleの21ルール + humanizer。
-  文体サンプルは `assets/voice/`。適用範囲はコミット、PR、仕様、ドキュメント、UI文言。文体基準はスキル作成時に短いgrillingで決める
+  適用範囲はコミット、PR、仕様、ドキュメント、UI文言。文体基準はスキル作成時に短いgrillingで決める
 
 ### 12. 実装フェーズ
 0. 骨格（本ADR、`openspec init`、GitHubリポジトリ）

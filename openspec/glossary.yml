@@ -47,7 +47,7 @@ terms:
     aliases: ["ケーパビリティ"]
     en: "capability"
   - term: "引き継ぎ文書"
-    definition: "別セッションが読んで作業を続けるための手順書。`docs/handoffs/` に置く。"
+    definition: "別セッションが読んで作業を続けるための手順書。導入用のdraft PRの本文に書く。"
     aliases: ["ハンドオフ"]
     en: "handoff"
   - term: "セッションジャーナル"

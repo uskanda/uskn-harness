@@ -13,7 +13,6 @@ installer that distributes them. This file is the entry point; it stays short an
 | `plugins/uskn-harness/` | Claude Code plugin: the hook bodies (bash + jq), `hooks.json`, and their bats tests. No skills |
 | `deps.json` | Pinned sources of every external skill, CLI, and runtime |
 | `docs/adr/` | Architecture decisions. Start with ADR-0001 |
-| `docs/handoffs/` | Instructions for another session: onboarding another repository (mirrored in its draft PR), or picking up work here |
 | `openspec/` | This repository's own specs and changes (dogfooding) |
 
 ## How work happens here
@@ -32,9 +31,9 @@ artifacts: Japanese.
 
 ## Hard constraints
 
-- Never edit a project outside this repository. A change another repository needs becomes either a pull request
-  made from a fresh clone in the scratchpad, or a handoff document in `docs/handoffs/`. Live working trees such as
-  `~/dotfiles` and `~/repos/*` stay untouched until the owner says otherwise.
+- Never edit a project outside this repository. A change another repository needs becomes a pull request made from
+  a fresh clone in the scratchpad, and its body carries the whole handoff. Live working trees such as `~/dotfiles`
+  and `~/repos/*` stay untouched until the owner says otherwise.
 - External skills are referenced, pinned in `deps.json`, and never copied, except the entries listed under
   `forks`, which carry their upstream license.
 - A product repository carries only what the conventions call for: `AGENTS.md`, `CLAUDE.md`, `openspec/`

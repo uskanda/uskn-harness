@@ -301,7 +301,7 @@ grilling で確定する。太字は第 1 ラウンドの frontier。
 | Q19 | 履歴の置き場 | 専用 private repo（`~/.ai-sessions`、`<project>/<日付>-<slug>.md`）に要約を commit + push。全文は同配下で gitignore。コミットに `Session:` トレーラ、SessionStart で直近要約を注入 |
 | Q20 | hook 言語 | bash + jq。テストは bats |
 | Q21 | DESIGN.md | Google 形式を正本。Impeccable は `init` を使わずコマンドのみ利用。RN/Expo は Expo 公式 skills と prose で補う |
-| Q22 | 公開範囲 | private で開始 |
+| Q22 | 公開範囲 | private で開始（2026-09-06 に public へ変更。ADR-0001 §3 が現行） |
 
 第2ラウンドで提示した「明示しておく前提」はすべて承認。
 

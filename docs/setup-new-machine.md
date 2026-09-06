@@ -16,7 +16,7 @@ run_onceはWindowsでは何もしない（spec `machine-bootstrap`）。Windows�
 ## 事前に要るもの（全 OS 共通）
 
 - git
-- GitHubの認証。`uskanda/uskn-harness` と `uskanda/ai-sessions` はprivate。cloneの前に `gh auth login` と `gh auth setup-git` を済ませる。認証が無いとrun_onceは「clone failed」で止まる。その場合は認証後に `~/.local/share/uskn-harness/bin/uskn-harness sync` を手で実行する
+- GitHubの認証。`uskanda/uskn-harness` はpublicだが、journalを貯める `uskanda/ai-sessions` はprivate。cloneの前に `gh auth login` と `gh auth setup-git` を済ませる。認証が無いとrun_onceは「clone failed」で止まる。その場合は認証後に `~/.local/share/uskn-harness/bin/uskn-harness sync` を手で実行する
 - ネットワーク。mise、Node、npm globalのCLI、サードパーティスキルをダウンロードする
 - Claude Code本体（デスクトップアプリかCLI）。ハーネスはClaude Codeを入れない。導入とloginは公式手順に従う
 

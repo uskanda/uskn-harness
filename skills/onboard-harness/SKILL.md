@@ -87,8 +87,8 @@ git push -q -u origin harness/onboard
 gh pr create --draft --base <default-branch> --title "..." --body-file <body.md>
 ```
 
-The body carries the whole handoff: what the commit places, what still needs deciding, and how to verify. Keep a
-copy in the harness under `docs/handoffs/<date>-<repo>.md`, so the decision survives the pull request.
+The body carries the whole handoff: what the commit places, what still needs deciding, and how to verify. Write it
+so it still reads on its own months later, because the pull request is the only copy.
 
 ### 6. Report
 

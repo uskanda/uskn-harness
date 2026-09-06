@@ -55,12 +55,6 @@ hook and by `make verify`.
 3. One concept, one term. Alternatives belong in the glossary as spellings to avoid, not in the prose.
 4. A backticked name must exist. A name that stands for something not yet built is written `<like this>`.
 
-## Voice samples
-
-`~/.local/share/uskn-harness/assets/voice/ja/` may hold samples of the owner's writing. When it has files, read
-them first and match their sentence length and vocabulary. When it is empty, write from this guide and carry on;
-do not stop to ask for samples.
-
 ## Check
 
 ```bash

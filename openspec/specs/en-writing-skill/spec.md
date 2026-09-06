@@ -26,11 +26,10 @@
 
 ### Requirement: humanizer との併用
 スキルは、AIらしい文体を除く最終パスとして `humanizer` スキルを呼ぶ手順を含まなければならない（MUST）。
-`assets/voice/en/` にサンプルがあれば、humanizerの文体サンプルとして渡す。
 
-#### Scenario: サンプルあり
-- **WHEN** `assets/voice/en/` にサンプルがある
-- **THEN** humanizerにサンプルを渡し、その文体に合わせる
+#### Scenario: 最終パス
+- **WHEN** 監査の指摘を直し終えた
+- **THEN** `humanizer` を呼び、その出力をもう一度監査と突き合わせる
 
 ### Requirement: 名前と用語の規約
 スキルは日本語と同じ名前の出所の規約を含まなければならない（MUST）。

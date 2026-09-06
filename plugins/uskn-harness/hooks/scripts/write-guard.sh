@@ -12,5 +12,5 @@ ROOT="$(project_root "${CWD:-$PWD}")"
 case "$FILE" in /*) ABS="$FILE" ;; *) ABS="${CWD:-$PWD}/$FILE" ;; esac
 ABS="$(realpath_m "$ABS")"
 path_allowed "$ABS" "$ROOT" "$SID" && exit 0
-deny_json "uskn-harness: writing outside the project root is not allowed. Target: $ABS. Root: $ROOT. Changes another repository needs go through a pull request made from a fresh clone in the scratchpad, or a handoff document in docs/handoffs/. If the user explicitly allowed editing that location in this session, run the allow-repo skill (/allow-repo <path>) first."
+deny_json "uskn-harness: writing outside the project root is not allowed. Target: $ABS. Root: $ROOT. Changes another repository needs go through a pull request made from a fresh clone in the scratchpad, whose body carries the handoff. If the user explicitly allowed editing that location in this session, run the allow-repo skill (/allow-repo <path>) first."
 exit 0
