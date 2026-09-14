@@ -298,7 +298,7 @@ grilling で確定する。太字は第 1 ラウンドの frontier。
 | Q16 | OpenSpec schema | `spec-driven` を `uskn` としてフォークし `grilling` アーティファクトを proposal の前提に追加。schema は user-level `~/.local/share/openspec/schemas/uskn/` に配置、repo は `config.yaml` の `schema: uskn` のみ |
 | Q17 | 検証コマンド | 規約ベース。`make verify` → `pnpm run verify` / `npm run verify` → 無ければ警告のみ |
 | Q18 | 要約の生成 | ハイブリッド。bash + jq の決定的スケルトン + 変更があったセッションだけエージェントが「決定 / 未解決 / 次の一手」を追記 |
-| Q19 | 履歴の置き場 | 専用 private repo（`~/.ai-sessions`、`<project>/<日付>-<slug>.md`）に要約を commit + push。全文は同配下で gitignore。コミットに `Session:` トレーラ、SessionStart で直近要約を注入 |
+| Q19 | 履歴の置き場 | 専用 private repo（`~/.ai-sessions`、`<project>/<日付>-<slug>.md`）に要約を commit + push。全文は同配下で gitignore。コミットに `Session:` トレーラ、SessionStart で直近要約を注入。注：2026-09-14にpushをやめ、各端末のローカルgitだけで扱う形に変えた（change `journal-local-only`） |
 | Q20 | hook 言語 | bash + jq。テストは bats |
 | Q21 | DESIGN.md | Google 形式を正本。Impeccable は `init` を使わずコマンドのみ利用。RN/Expo は Expo 公式 skills と prose で補う |
 | Q22 | 公開範囲 | private で開始（2026-09-06 に public へ変更。ADR-0001 §3 が現行） |
@@ -444,7 +444,7 @@ Codex 等の実機検証、episodic-memory、OpenSpec stores、intake tier（tin
 
 | # | 論点 | 決定 |
 |---|---|---|
-| Q39 | sessions repo | GitHub private `uskanda/ai-sessions` を作成し `~/.ai-sessions` に clone。commit と push は SessionEnd で自動（push 失敗は無視して次回再試行） |
+| Q39 | sessions repo | GitHub private `uskanda/ai-sessions` を作成し `~/.ai-sessions` に clone。commit と push は SessionEnd で自動（push 失敗は無視して次回再試行）。注：2026-09-14にpushをやめ、`sync` は `git init` で作る形に変えた。GitHubのリポジトリは削除する（change `journal-local-only`） |
 | Q40 | journal の命名 | `~/.ai-sessions/<owner>__<repo>/<YYYY-MM-DD>-<HHMM>-<slug>.md`。slug はエージェントが付け、無ければ session id 先頭 8 桁 |
 | Q41 | スケルトン | メタ、ユーザープロンプト各先頭 200 字、変更ファイル、期間中のコミット、使ったスキル。ツール出力とアシスタント本文は含めない |
 | Q42 | 生成タイミング | Stop ごとに増分更新、SessionEnd は commit / push のみ（timeout 60 秒）。決定欄はセッション中 1 回だけ Stop を block して書かせる |

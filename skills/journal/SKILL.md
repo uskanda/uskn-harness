@@ -22,7 +22,7 @@ commits, skills used) are written by a hook. Three sections are yours.
    Do not touch the sections above the marker; the hook regenerates them.
 3. Give the file a name that says what the session was about:
    `journal-update.sh --session <sid8> --slug <kebab-case>` (ASCII; the file is renamed, `session:` stays).
-4. Say in one line where the journal is. The SessionEnd hook commits and pushes it.
+4. Say in one line where the journal is. The SessionEnd hook commits it to the local git repository; journals are never pushed.
 
 ## Rules
 

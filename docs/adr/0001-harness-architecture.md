@@ -94,7 +94,8 @@ mattpocock/skillsのgrilling、grill-me、handoff、writing-for-agentsは参照�
 humanizer、agent-style、Impeccable、expo/skillsも同じ扱いにする。
 
 ### 10. 履歴
-要約はsessionsリポジトリ（GitHub private `uskanda/ai-sessions`、`~/.ai-sessions`）にcommitとpushする。
+要約はsessionsリポジトリ（`~/.ai-sessions`）にcommitする。sessionsリポジトリは各端末のローカルgitだけで扱い、pushしない。
+journalは端末ごとに閉じた記録で、他の端末のjournalは `recall` に出ない（change `journal-local-only`、2026-09-14）。
 ファイル名は `<project>/<日付>-<slug>.md`。
 要約はbash + jqの決定的スケルトンに、変更があったセッションだけエージェントが「決定 / 未解決 / 次の一手」を追記する。
 全文トランスクリプトは同配下でgitignore（ローカルのみ）。プロダクトのコミットに `Session:` トレーラ。検索はripgrep + `recall`。
