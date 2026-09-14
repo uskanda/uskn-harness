@@ -18,7 +18,8 @@ installer that distributes them. This file is the entry point; it stays short an
 ## How work happens here
 
 1. A change starts with `/spec <idea>`: the grilling interview, its record (`grilling.md`), then the OpenSpec
-   artifacts. Writing proposal / design / tasks / specs without `grilling.md` is denied by a hook.
+   artifacts. Writing proposal / design / tasks / specs without `grilling.md` is denied by a hook. On the user's
+   instruction, a simple change uses `/no-grilling` instead: it records the skip in `grilling.md`.
 2. Implement through `/opsx:apply`. Scripts get bats tests first (TDD); skills get a worked example in their body.
 3. `make verify` must pass before a change is called done. Hooks call the same target; CI runs it with
    `VERIFY_STRICT=1`, where a missing tool fails instead of skipping.
