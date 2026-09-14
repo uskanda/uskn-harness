@@ -98,13 +98,6 @@
 - **WHEN** 未導入の環境で `sync` を実行する
 - **THEN** symlinkが作られ、`openspec schema which uskn` がuserレベルを返す
 
-### Requirement: sessions リポジトリの clone
-`sync` は `~/.ai-sessions` が無いとき `deps.json` に書いたURLからcloneしなければならない（MUST）。既にあれば触らない。
-
-#### Scenario: 既存
-- **WHEN** `~/.ai-sessions` がgitリポジトリとして存在する
-- **THEN** `ok` として報告される
-
 ### Requirement: npm global CLI のピン
 `sync` は `deps.json` の `clis` のうち `global` が真の項目を、miseのNodeでglobalに入れなければならない（MUST）。
 対象はopenspec、textlintとそのプリセット、agent-style、design.md。版はピンに従う。
@@ -181,3 +174,16 @@ mergeとrebaseは行わない（MUST NOT）。fast-forwardできないときは�
 #### Scenario: 更新が無かった
 - **WHEN** checkoutが既にupstreamと同じ
 - **THEN** 実行し直さず、そのまま導入を続ける
+
+### Requirement: sessions リポジトリの初期化
+`sync` は `~/.ai-sessions` が無いとき、`git init` で空のgitリポジトリを作らなければならない（MUST）。
+cloneは行わない。既にgitリポジトリがあれば触らず、remoteの有無も問わない。
+gitリポジトリでないものがあれば、触らずに `conflict` と報告する。
+
+#### Scenario: 新しいマシン
+- **WHEN** `~/.ai-sessions` が無い状態で `sync` を実行する
+- **THEN** `~/.ai-sessions` がgitリポジトリとして作られ、`created` と報告される。`git clone` は実行されない
+
+#### Scenario: 既存
+- **WHEN** `~/.ai-sessions` がgitリポジトリとして存在する
+- **THEN** `ok` として報告され、中身とremoteは変わらない

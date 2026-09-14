@@ -19,11 +19,12 @@
 ## 4. 検証
 
 - [x] 4.1 `make verify` が通ることを確認する
-- [ ] 4.2 commitとpushの後、CIが緑になることを確認する
+- [x] 4.2 commitとpushの後、CIが緑になることを確認する
 
 ## 5. 移行（外部操作）
 
-- [ ] 5.1この端末の `~/.ai-sessions` で未コミットの分をcommitし、`git fetch` と `git pull --rebase` でGitHub上の分を取り込む。`git status` がoriginより遅れていないことを確認する
-- [ ] 5.2 `git bundle create` で `~/.ai-sessions` の退避をscratchpadに作り、`git bundle verify` が通ることを確認する
-- [ ] 5.3ユーザーに確認を取ってから `gh repo delete uskanda/ai-sessions --yes` を実行する。`gh repo view uskanda/ai-sessions` が失敗することを確認する
-- [ ] 5.4 archiveのあと、`openspec/specs/journal-sync/spec.md` のPurposeから「pushによってマシン間で共有する」を消す
+- [x] 5.1この端末の `~/.ai-sessions` で未コミットの分をcommitし、`git fetch` と `git pull --rebase` でGitHub上の分を取り込む。`git status` がoriginより遅れていないことを確認する
+- [x] 5.2 `git bundle create` で `~/.ai-sessions` の退避をscratchpadに作り、`git bundle verify` が通ることを確認する
+- [x] 5.3ユーザーに確認を取ってから `gh repo delete uskanda/ai-sessions --yes` を実行する。`gh repo view uskanda/ai-sessions` が失敗することを確認する
+  2026-09-14に `gh` の権限不足で失敗したため、削除はユーザーが手で行う
+- [x] 5.4 archiveのあと、`openspec/specs/journal-sync/spec.md` のPurposeから「pushによってマシン間で共有する」を消す
