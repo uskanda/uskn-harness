@@ -11,11 +11,12 @@ setup() {
 # call <tool_name> <file_path> [cwd]
 call() { printf '{"session_id":"s","cwd":"%s","hook_event_name":"PreToolUse","tool_name":"%s","tool_input":{"file_path":"%s","content":"x"}}' "${3:-$R}" "$1" "$2" | "$SCRIPT"; }
 
-@test "proposal without grilling.md is denied with a reason naming grilling.md" {
+@test "proposal without grilling.md is denied with a reason naming grilling.md and no-grilling" {
   run call Write "$R/openspec/changes/add-x/proposal.md"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null
   echo "$output" | jq -r '.hookSpecificOutput.permissionDecisionReason' | grep -q "grilling.md"
+  echo "$output" | jq -r '.hookSpecificOutput.permissionDecisionReason' | grep -q "no-grilling"
 }
 
 @test "design, tasks, and specs are denied too, for Edit and NotebookEdit" {

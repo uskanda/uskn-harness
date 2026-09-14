@@ -35,7 +35,7 @@ esac
 [ -f "$CHANGE_DIR/grilling.md" ] && exit 0
 
 NAME="$(basename "$CHANGE_DIR")"
-REASON="uskn-harness: OpenSpec change '$NAME' has no grilling.md. Spec decisions go through the grilling interview first: run the spec skill (or the grilling skill), get the user's confirmation that the frontier is empty, write $CHANGE_DIR/grilling.md, and only then write $REL."
+REASON="uskn-harness: OpenSpec change '$NAME' has no grilling.md. Spec decisions go through the grilling interview first: run the spec skill (or the grilling skill), get the user's confirmation that the frontier is empty, write $CHANGE_DIR/grilling.md, and only then write $REL. If the user explicitly wants to skip the interview for a simple change, run the no-grilling skill instead; it records the skip in grilling.md."
 if have jq; then
   jq -c -n --arg r "$REASON" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
 else
