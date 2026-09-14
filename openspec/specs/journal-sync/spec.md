@@ -15,7 +15,7 @@ pushの失敗は無視し、次回のSessionEndで再試行する。変更が無
 - **THEN** commitは残り、終了コードは0
 
 ### Requirement: sessions リポジトリの配置
-`sync` は `~/.ai-sessions` が無ければ `deps.json` の `repos.sessions.url` からcloneしなければならない（MUST）。
+`sync` は `~/.ai-sessions` が無ければ `deps.json` に書いたURLからcloneしなければならない（MUST）。
 `doctor` はその存在と、gitリポジトリであることを検査する。
 
 #### Scenario: 新しいマシン

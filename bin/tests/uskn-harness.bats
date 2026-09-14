@@ -53,8 +53,10 @@ snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
   grep -q "mise use -g node@24" "$USKN_HARNESS_STUB_LOG"
   grep -q "openspec@1.12.0" "$USKN_HARNESS_STUB_LOG"
   grep -q "skills@latest add mattpocock/skills --skill grilling" "$USKN_HARNESS_STUB_LOG"
-  grep -q "git clone --quiet https://github.com/uskanda/ai-sessions.git $HOME/.ai-sessions" "$USKN_HARNESS_STUB_LOG"
+  [ -d "$HOME/.ai-sessions/.git" ]
+  [ -z "$(git -C "$HOME/.ai-sessions" remote)" ]
   [[ "$output" == *"created"* ]]
+  run grep -q "git clone" "$USKN_HARNESS_STUB_LOG"; [ "$status" -ne 0 ]
 }
 
 @test "sync --tools installs the runtime, the pinned CLIs, and the schema link only; --tools --remove exits 2" {

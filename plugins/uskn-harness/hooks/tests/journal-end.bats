@@ -13,19 +13,14 @@ setup() {
 }
 end() { printf '{"session_id":"%s","cwd":"%s","transcript_path":"%s","hook_event_name":"SessionEnd","reason":"prompt_input_exit"}' "$SID" "$R" "$TR" | "$SCRIPT"; }
 
-@test "commits the journal and pushes it" {
+@test "commits the journal locally and leaves origin untouched" {
+  before=$(git -C "$BATS_TEST_TMPDIR/origin.git" rev-parse main)
   run end; [ "$status" -eq 0 ]
   ( cd "$HOME/.ai-sessions" && git log --oneline -1 | grep -q "o__r" && [ -z "$(git status --porcelain)" ] )
-  git -C "$BATS_TEST_TMPDIR/origin.git" log --oneline -1 | grep -q "o__r"
+  [ "$(git -C "$BATS_TEST_TMPDIR/origin.git" rev-parse main)" = "$before" ]
 }
 
 @test "nothing new: no extra commit" {
   end >/dev/null; n1=$(git -C "$HOME/.ai-sessions" rev-list --count HEAD)
   end >/dev/null; n2=$(git -C "$HOME/.ai-sessions" rev-list --count HEAD); [ "$n1" -eq "$n2" ]
-}
-
-@test "push failure is tolerated: commit stays, exit 0" {
-  ( cd "$HOME/.ai-sessions" && git remote set-url origin /nonexistent/origin.git )
-  run end; [ "$status" -eq 0 ]
-  git -C "$HOME/.ai-sessions" log --oneline -1 | grep -q "o__r"
 }

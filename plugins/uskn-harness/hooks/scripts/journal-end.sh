@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # journal-end.sh: SessionEnd hook (timeout 60). Refresh this session's journal once more, then commit it in
-# ~/.ai-sessions and try to push. Push failures are ignored (retried at the next session end).
+# ~/.ai-sessions. Journals stay on this machine: never push, pull, or fetch, even when a remote is configured.
 # Contract (openspec: journal-sync): silent; exit 0 always.
 set -u
 # shellcheck source=lib/common.sh
@@ -19,6 +19,4 @@ if [ -n "$SID" ] && [ -s "$USKN_STATE/sessions/$SID/journal" ]; then
   MSG="$(sed -n 's/^project: //p' "$J" 2>/dev/null | head -n 1): $(sed -n 's/^title: //p' "$J" 2>/dev/null | head -n 1)"
 fi
 git -c user.name="${GIT_AUTHOR_NAME:-uskn-harness}" -c user.email="${GIT_AUTHOR_EMAIL:-uskn-harness@local}" commit -q -m "$MSG" >/dev/null 2>&1 || exit 0
-t() { if have timeout; then timeout 20 "$@"; else "$@"; fi; }
-t git push -q origin HEAD >/dev/null 2>&1 || { t git pull -q --rebase >/dev/null 2>&1 && t git push -q origin HEAD >/dev/null 2>&1; } || true
 exit 0

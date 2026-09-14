@@ -99,7 +99,7 @@
 - **THEN** symlinkが作られ、`openspec schema which uskn` がuserレベルを返す
 
 ### Requirement: sessions リポジトリの clone
-`sync` は `~/.ai-sessions` が無いとき `deps.json` の `repos.sessions.url` からcloneしなければならない（MUST）。既にあれば触らない。
+`sync` は `~/.ai-sessions` が無いとき `deps.json` に書いたURLからcloneしなければならない（MUST）。既にあれば触らない。
 
 #### Scenario: 既存
 - **WHEN** `~/.ai-sessions` がgitリポジトリとして存在する
