@@ -19,7 +19,7 @@
 | 領域 | 実装 | センサー |
 |---|---|---|
 | 配布と導入 | `bin/uskn-harness`（sync / doctor / onboard-check）、`templates/`、`deps.json` のピン、`plugins/uskn-harness` | `uskn-harness doctor`、bats |
-| 仕様づくり | `skills/spec/` がgrillingを回し、schema `uskn` がgrillingをproposalの前提にする。簡単な改修はユーザーの指示で `skills/no-grilling/` が省略を記録する。提案は `skills/ok/` で承諾し、違う点だけを書き添える | PreToolUse hook `grilling-guard` |
+| 仕様づくり | `skills/spec/` がgrillingを回し、schema `uskn` がgrillingをproposalの前提にする。簡単な改修はユーザーの指示で `skills/no-grilling/` が省略を記録する。提案は `skills/ok/` で承諾し、違う点だけを書き添える。終えた変更は `skills/archive-push/` がarchiveからpushまで1回で進める | PreToolUse hook `grilling-guard` |
 | 実装と検証 | `skills/verify/`、obra/superpowersからforkした方法論スキル4件（TDD、系統的デバッグ、完了前検証、worktree） | Stop hook `verify-gate`、`make verify`、CI |
 | git運用 | ワークフローのスキル11個（commit、push、pr、rebase、releaseほか）。旧名は1行のエイリアスで残す | SessionStart hookが `<repo-context>` を注入する |
 | 記録 | セッションjournalを各端末のローカルgit（`~/.ai-sessions`）に貯め、pushしない。`skills/journal/` と `skills/recall/` | Stop hookが事実を書き、決定欄が空なら1度だけ促す |

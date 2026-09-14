@@ -11,6 +11,7 @@
 - Planning a change starts with `/spec <idea>`: it runs the grilling interview, records it as `openspec/changes/<name>/grilling.md`, then generates proposal, specs, design, and tasks. Implementation starts with `/opsx:apply`.
 - Never write proposal / design / tasks / specs for a change that has no `grilling.md`; a hook denies it. If the interview has not happened, run `/spec` or the grilling skill first.
 - A simple change may skip the interview only on the user's instruction: `/no-grilling <idea>` records the skip in `grilling.md` and generates the rest. Suggest it when a change looks simple, and wait for the user's answer.
+- A finished change goes out with `/archive-push <change>`: it settles open tasks, verifies, archives with spec sync, commits, and pushes. Only the user starts it.
 - The user may answer a proposal with `/ok`, adding overrides such as `/ok q2はB`: it approves the rest as recommended and runs the next input the reply named.
 
 ## Boundaries
