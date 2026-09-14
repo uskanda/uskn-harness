@@ -1,20 +1,4 @@
-# branch-model Specification
-
-## Purpose
-リポジトリごとに異なる長寿命ブランチ（既定、統合、QA）とリリースタグ形式を、固定名に頼らず一貫した規則で解決するための契約。hookとスキルの両方がこの規則に従う。
-
-## Requirements
-
-### Requirement: 自動検出の規則
-明示的な設定が無いとき、システムは次の規則で解決しなければならない（MUST）。defaultは `origin/HEAD` が指すブランチ（取得できなければ `main`、それも無ければ `master`）。integrationは `origin/develop` が存在すれば `develop`、無ければdefault。qaは `origin/qa` が存在すれば `qa`、無ければ無し。release_tagは `calver`（`vYY.MM.X`）。
-
-#### Scenario: origin/HEAD が master
-- **WHEN** リポジトリの `origin/HEAD` が `master` を指し、`develop` が無い
-- **THEN** defaultとintegrationはともに `master`
-
-#### Scenario: origin/HEAD が未設定
-- **WHEN** `origin/HEAD` が無く、`origin/main` が存在する
-- **THEN** defaultは `main`
+## MODIFIED Requirements
 
 ### Requirement: AGENTS.md による上書き
 リポジトリ直下の `AGENTS.md` に見出し `## Branch model` があるとする。
@@ -29,6 +13,8 @@
 #### Scenario: 見出しが無い
 - **WHEN** AGENTS.mdに `## Branch model` が無い
 - **THEN** すべて自動検出の値で、保護ブランチは宣言無し
+
+## ADDED Requirements
 
 ### Requirement: 保護ブランチの宣言
 `## Branch model` のyamlに `protected` キーがあるとき、hookはその値を保護ブランチの宣言として解決しなければならない（MUST）。
@@ -50,10 +36,3 @@ hookはホストのAPIやブランチ名から保護ブランチを推定して�
 #### Scenario: キーが無い
 - **WHEN** `## Branch model` に `integration: develop` だけが書かれている
 - **THEN** 保護ブランチは宣言無し
-
-### Requirement: 根拠の明示
-解決結果を人に見せるときは、各値について「AGENTS.md」か「自動検出（origin/HEAD、ブランチの存在、既定値）」のどちらで決まったかを示さなければならない（MUST）。
-
-#### Scenario: 混在
-- **WHEN** integrationがAGENTS.md、defaultが自動検出で決まった
-- **THEN** 出力に `integration: develop (AGENTS.md)` と `default: main (origin/HEAD)` のように根拠が並ぶ

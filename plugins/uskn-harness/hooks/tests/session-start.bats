@@ -144,6 +144,41 @@ MD
   [ "${lines[1]}" = "integration=develop" ]
 }
 
+@test "AGENTS.md protected: none is declared in context and --json; --plain branches stays 4 lines" {
+  make_repo "$BATS_TEST_TMPDIR/r" git@github.com:o/r.git
+  printf '## Branch model\n\n```yaml\nprotected: none\n```\n' > "$BATS_TEST_TMPDIR/r/AGENTS.md"
+  run "$SCRIPT" "$BATS_TEST_TMPDIR/r"
+  [[ "$output" == *"protected: none (AGENTS.md)"* ]]
+  run "$SCRIPT" --json "$BATS_TEST_TMPDIR/r"
+  echo "$output" | jq -e '.protected == "none" and .sources.protected == "AGENTS.md"' >/dev/null
+  run "$SCRIPT" --plain branches "$BATS_TEST_TMPDIR/r"
+  [ "${#lines[@]}" -eq 4 ]
+}
+
+@test "AGENTS.md protected patterns are trimmed and joined with ', '" {
+  make_repo "$BATS_TEST_TMPDIR/r" git@github.com:o/r.git
+  cat > "$BATS_TEST_TMPDIR/r/AGENTS.md" <<'MD'
+## Branch model
+
+```yaml
+protected:  main ,release/*   # comment
+```
+MD
+  run "$SCRIPT" "$BATS_TEST_TMPDIR/r"
+  [[ "$output" == *"protected: main, release/* (AGENTS.md)"* ]]
+  run "$SCRIPT" --json "$BATS_TEST_TMPDIR/r"
+  echo "$output" | jq -e '.protected == "main, release/*"' >/dev/null
+}
+
+@test "no protected key: context says not declared, --json protected is empty" {
+  make_repo "$BATS_TEST_TMPDIR/r" git@github.com:o/r.git
+  printf '## Branch model\n\n```yaml\nintegration: main\nprotected:\n```\n' > "$BATS_TEST_TMPDIR/r/AGENTS.md"
+  run "$SCRIPT" "$BATS_TEST_TMPDIR/r"
+  [[ "$output" == *"protected: (not declared)"* ]]
+  run "$SCRIPT" --json "$BATS_TEST_TMPDIR/r"
+  echo "$output" | jq -e '.protected == "" and .sources.protected == "not declared"' >/dev/null
+}
+
 @test "--json is one valid object with the same values" {
   make_repo "$BATS_TEST_TMPDIR/r" git@github.com:o/r.git develop
   run "$SCRIPT" --json "$BATS_TEST_TMPDIR/r"
@@ -179,4 +214,8 @@ MD
   run env PATH="$fakebin" "$SCRIPT" --json "$BATS_TEST_TMPDIR/r"
   [ "$status" -eq 0 ]
   [[ "$output" == *'"platform":"github"'* ]]
+  printf '## Branch model\n\n```yaml\nprotected: main, release/*\n```\n' > "$BATS_TEST_TMPDIR/r/AGENTS.md"
+  run env PATH="$fakebin" "$SCRIPT" --json "$BATS_TEST_TMPDIR/r"
+  [[ "$output" == *'"protected":"main, release/*"'* ]]
+  echo "$output" | jq -e '.sources.protected == "AGENTS.md"' >/dev/null
 }

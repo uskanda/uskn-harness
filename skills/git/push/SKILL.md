@@ -33,6 +33,11 @@ and use its values. Do not re-detect by hand when either is available.
 
 Decide in this order and remember which source decided, because the report must name it.
 
+**Priority 0: the declaration in the context.** The branch model in `<repo-context>` (or `protected` in the `--json` output) carries the repository's declaration. When it is anything other than `(not declared)` or empty, decide from it alone: run no command, read no file, and skip priorities 1–3.
+
+- `none`: no branch is protected.
+- Otherwise it lists glob patterns separated by `,`. The branch is protected when it matches one of them the way a shell `case` pattern matches (`release/*` matches `release/1.2`).
+
 **Priority 1: an explicit statement in the repository instructions.** If `AGENTS.md` or `CLAUDE.md` (or the equivalent project instruction file) states whether the branch is protected, follow it and skip the API and the heuristic. Examples: "`master` has no branch protection; push directly" is not-protected; "`main` is protected; never push to it directly" is protected. No confirmation is needed when the statement exists.
 
 **Priority 2: the host API.**
@@ -78,7 +83,7 @@ echo "$PROTECTED"
 
 ### 6. Report
 
-`git status -sb` to confirm the branch is in sync, then report: the branch pushed (and whether it was newly created), the protection decision and its source (instructions / API / name heuristic), and the commits created (`git log --oneline -3`).
+`git status -sb` to confirm the branch is in sync, then report: the branch pushed (and whether it was newly created), the protection decision and its source (declaration / instructions / API / name heuristic), and the commits created (`git log --oneline -3`). When the remote rejects a push that the declaration allowed, say that the `protected` value under `## Branch model` in `AGENTS.md` may be out of date.
 
 ## Notes
 

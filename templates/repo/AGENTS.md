@@ -25,13 +25,16 @@
 
 <!-- Optional. The harness detects default (origin/HEAD), integration (`develop` if it exists, else default)
      and qa (`qa` if it exists) on its own. Add this block only to override. `qa: none` disables the QA
-     branch. release_tag: calver means vYY.MM.X. -->
+     branch. release_tag: calver means vYY.MM.X. protected is never detected: declare it so the push skill
+     skips checking the host every time. `none` means no protected branch; otherwise list glob patterns
+     separated by ",". Keep it in line with the branch protection on the host. -->
 
 ```yaml
 default: main
 integration: develop
 qa: none
 release_tag: calver
+protected: main, develop
 ```
 
 ## Names and terms

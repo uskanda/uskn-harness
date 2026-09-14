@@ -12,7 +12,7 @@
 #   - never fails the session: exit 0 whatever happens, print what could be detected
 #   - outside a git repository the hook mode prints nothing
 #   - branch detection reads local remote-tracking refs only; it never touches the network
-#   - AGENTS.md "## Branch model" fenced yaml overrides detected values (qa: none disables qa)
+#   - AGENTS.md "## Branch model" fenced yaml overrides detected values (qa: none disables qa); protected is never detected
 #   - depends on bash, git, awk, sed; uses jq when present, falls back to sed otherwise
 set -u
 
@@ -132,6 +132,8 @@ if ref_exists refs/remotes/origin/qa; then QA=qa; QA_SRC="origin/qa exists"
 else QA=""; QA_SRC="no origin/qa"
 fi
 TAG=calver; TAG_SRC="default"
+# Protected branches are declared only, never detected: "none" or glob patterns separated by ",".
+PROT=""; PROT_SRC="not declared"
 
 # Overrides: the first fenced block under "## Branch model" in AGENTS.md, key: value per line.
 read_overrides() {
@@ -144,7 +146,7 @@ read_overrides() {
     st == 2 && /^```/ { exit }
     st == 2 {
       line = $0; sub(/#.*/, "", line)
-      if (match(line, /^[[:space:]]*(default|integration|qa|release_tag)[[:space:]]*:[[:space:]]*/)) {
+      if (match(line, /^[[:space:]]*(default|integration|qa|release_tag|protected)[[:space:]]*:[[:space:]]*/)) {
         key = line; sub(/[[:space:]]*:.*/, "", key); gsub(/[[:space:]]/, "", key)
         val = substr(line, RLENGTH + 1); gsub(/^[[:space:]]+|[[:space:]]+$/, "", val)
         gsub(/^["'\'']|["'\'']$/, "", val)
@@ -161,6 +163,11 @@ while IFS='=' read -r k v; do
     integration) [ -n "$v" ] && { INT="$v"; INT_SRC="AGENTS.md"; } ;;
     qa)          if [ -z "$v" ] || [ "$v" = none ]; then QA=""; QA_SRC="AGENTS.md (none)"; else QA="$v"; QA_SRC="AGENTS.md"; fi ;;
     release_tag) [ -n "$v" ] && { TAG="$v"; TAG_SRC="AGENTS.md"; } ;;
+    protected)
+      PROT="$(printf '%s' "$v" | awk -F, '{
+        for (i = 1; i <= NF; i++) { x = $i; gsub(/^[[:space:]]+|[[:space:]]+$/, "", x); if (x != "") o = o (o == "" ? "" : ", ") x }
+        print o }')"
+      if [ -n "$PROT" ]; then PROT_SRC="AGENTS.md"; else PROT_SRC="not declared"; fi ;;
   esac
 done < <(read_overrides)
 
@@ -186,16 +193,17 @@ case "$MODE" in
       jq -c -n --arg top "$TOP" --arg remote "$URL" --arg host "$HOST" --arg platform "$PLATFORM" \
         --arg reason "$REASON" --arg cli "$CLI" --arg def "$DEF" --arg def_src "$DEF_SRC" \
         --arg int "$INT" --arg int_src "$INT_SRC" --arg qa "$QA" --arg qa_src "$QA_SRC" \
-        --arg tag "$TAG" --arg tag_src "$TAG_SRC" --argjson ov "$OVERRIDDEN" \
+        --arg tag "$TAG" --arg tag_src "$TAG_SRC" --arg prot "$PROT" --arg prot_src "$PROT_SRC" \
+        --argjson ov "$OVERRIDDEN" \
         '{top:$top, remote:$remote, host:$host, platform:$platform, hosting_reason:$reason, cli:$cli,
-          default:$def, integration:$int, qa:$qa, release_tag:$tag,
-          sources:{default:$def_src, integration:$int_src, qa:$qa_src, release_tag:$tag_src},
+          default:$def, integration:$int, qa:$qa, release_tag:$tag, protected:$prot,
+          sources:{default:$def_src, integration:$int_src, qa:$qa_src, release_tag:$tag_src, protected:$prot_src},
           agents_md_override:($ov==1)}'
     else
-      printf '{"top":"%s","remote":"%s","host":"%s","platform":"%s","hosting_reason":"%s","cli":"%s","default":"%s","integration":"%s","qa":"%s","release_tag":"%s","sources":{"default":"%s","integration":"%s","qa":"%s","release_tag":"%s"},"agents_md_override":%s}\n' \
+      printf '{"top":"%s","remote":"%s","host":"%s","platform":"%s","hosting_reason":"%s","cli":"%s","default":"%s","integration":"%s","qa":"%s","release_tag":"%s","protected":"%s","sources":{"default":"%s","integration":"%s","qa":"%s","release_tag":"%s","protected":"%s"},"agents_md_override":%s}\n' \
         "$(json_escape "$TOP")" "$(json_escape "$URL")" "$(json_escape "$HOST")" "$PLATFORM" "$(json_escape "$REASON")" "$CLI" \
-        "$(json_escape "$DEF")" "$(json_escape "$INT")" "$(json_escape "$QA")" "$(json_escape "$TAG")" \
-        "$(json_escape "$DEF_SRC")" "$(json_escape "$INT_SRC")" "$(json_escape "$QA_SRC")" "$(json_escape "$TAG_SRC")" \
+        "$(json_escape "$DEF")" "$(json_escape "$INT")" "$(json_escape "$QA")" "$(json_escape "$TAG")" "$(json_escape "$PROT")" \
+        "$(json_escape "$DEF_SRC")" "$(json_escape "$INT_SRC")" "$(json_escape "$QA_SRC")" "$(json_escape "$TAG_SRC")" "$(json_escape "$PROT_SRC")" \
         "$([ "$OVERRIDDEN" = 1 ] && echo true || echo false)"
     fi
     ;;
@@ -218,7 +226,12 @@ case "$MODE" in
       echo "  - integration: $INT ($INT_SRC)"
       echo "  - qa: ${QA:-(none)} ($QA_SRC)"
       echo "  - release_tag: $TAG ($TAG_SRC)"
-      echo "  Override per repository with a \`## Branch model\` heading in AGENTS.md followed by a yaml block (default / integration / qa / release_tag; \`qa: none\` disables qa)."
+      if [ -n "$PROT" ]; then
+        echo "  - protected: $PROT ($PROT_SRC)"
+      else
+        echo "  - protected: (not declared); the push skill decides with its own steps"
+      fi
+      echo "  Override per repository with a \`## Branch model\` heading in AGENTS.md followed by a yaml block (default / integration / qa / release_tag / protected; \`qa: none\` disables qa; \`protected: none\` or \`protected: main, release/*\` declares protected branches)."
       if [ -n "$SID" ]; then
         echo "- session: ${SID:0:8}"
         echo "  Commits made in this session carry the trailer \`Session: ${SID:0:8}\` (the commit skill adds it); \`recall ${SID:0:8}\` finds this session's journal later."

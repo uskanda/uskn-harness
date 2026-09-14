@@ -25,6 +25,14 @@ installer that distributes them. This file is the entry point; it stays short an
    `VERIFY_STRICT=1`, where a missing tool fails instead of skipping.
 4. Archive with `/opsx:archive`. The archive is the decision history; do not delete it.
 
+## Branch model
+
+`main` has no branch protection on GitHub. The other keys are detected.
+
+```yaml
+protected: none
+```
+
 ## Language
 
 Skills, hook code, templates, and this file: English. Chat replies, commits, pull requests, ADRs, and OpenSpec

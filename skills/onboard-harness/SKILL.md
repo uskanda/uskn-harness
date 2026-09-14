@@ -60,6 +60,9 @@ From `~/.local/share/uskn-harness/templates/repo/`, in the scratchpad clone:
 - `Makefile` with the `verify` target, filled with the repository's real lint, type check, and test commands
 - `AGENTS.md`: when the repository has none, start from the template. When it has one, add only the
   `## Branch model` block if the detected model needs an override
+- `protected` in that block: read the branch protection from the host (`gh api` or `glab api`, as the `push`
+  skill does) and declare it, `none` when nothing is protected. A prose statement about protection in the
+  existing instructions moves into this key
 - `DESIGN.md` and `PRODUCT.md` for a UI product, with tokens read from the code that exists today
 
 ### 4. Leave the judgement calls to the pull request body

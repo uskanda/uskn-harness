@@ -34,6 +34,10 @@ terms:
     definition: "用語集に載せるまでもない普通のカタカナ語を並べたファイル。"
     aliases: []
     en: "common word list"
+  - term: "保護ブランチ"
+    definition: "ホストの設定で直接のpushや削除が制限されたブランチ。"
+    aliases: []
+    en: "protected branch"
   - term: "成果物"
     definition: "OpenSpecの1つの変更が持つ文書。grilling、proposal、specs、design、tasks。"
     aliases: ["アーティファクト"]
