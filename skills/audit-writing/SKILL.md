@@ -34,7 +34,7 @@ print("---- quoted ----")
 for w,n in q.most_common(30): print(f"{n:4}  {w}")
 PY
 # b. names that do not exist, and terms already known
-"$H/plugins/uskn-harness/hooks/scripts/terms-check.sh" "${DOCS[@]}"
+uskn-terms-check "${DOCS[@]}"
 # c. the prose checks, if the repository has them
 textlint --config "$H/skills/ja-writing/textlintrc.json" --format compact "${DOCS[@]}" | tail -40
 ```

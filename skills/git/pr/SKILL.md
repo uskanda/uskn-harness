@@ -9,7 +9,7 @@ allowed-tools: Bash, Read, Grep, Glob
 ## Context
 
 Use the `<repo-context>` block injected at session start: platform (github / gitlab), CLI, and the default / integration / qa branches. If it is absent, run
-`"${USKN_HARNESS_DIR:-$HOME/.local/share/uskn-harness}/plugins/uskn-harness/hooks/scripts/session-start.sh" --json`
+`uskn-repo-context --json`
 and use its values. Run only the section for the detected platform; do not re-detect. Language of title and body: follow the user or repository instructions; default to Japanese.
 
 ## Choose the mode from `$ARGUMENTS`

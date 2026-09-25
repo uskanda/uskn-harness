@@ -15,7 +15,7 @@ allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 ## Context
 
 Use the platform from the `<repo-context>` block injected at session start. If the block is absent, run
-`"${USKN_HARNESS_DIR:-$HOME/.local/share/uskn-harness}/plugins/uskn-harness/hooks/scripts/session-start.sh" --plain hosting`.
+`uskn-repo-context --plain hosting`.
 If the argument is a URL on a different host than the repository, the URL's host wins.
 
 ## GitLab

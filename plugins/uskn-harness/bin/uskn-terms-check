@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# uskn-terms-check: the terminology check on the given documents, for skills (openspec: claude-plugin-packaging,
+# terminology-guard). Claude Code puts the plugin's bin/ on the Bash tool's PATH.
+#   uskn-terms-check <file.md>...   findings on stderr; exit 1 with findings, 2 when the check itself fails
+# Reads the glossary and the tracked files of the git repository it runs in. Same arguments, output, and exit code
+# as hooks/scripts/terms-check.sh, which it runs.
+exec "$(dirname "$0")/../hooks/scripts/terms-check.sh" "$@"

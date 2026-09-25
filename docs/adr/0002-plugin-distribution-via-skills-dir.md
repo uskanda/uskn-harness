@@ -29,3 +29,5 @@ ADR-0001ではClaude Code向けのhookをmarketplace経由のプラグインで�
 - 良い点：導入がsymlinkだけになり、編集が即反映される。settings.json（chezmoi管理）との競合が無い
 - 引き受けるコスト：skills-dirプラグインは `bin/` 非対応（installerは `~/.local/bin/uskn-harness` のsymlinkでPATHに載せる）。
   マシン間の更新は `git pull`（`sync` が行う）に依存する
+- 訂正（2026-09-25）：`bin/` 非対応は誤りだった。skills-dirプラグインの `bin/` も、Bashツールの `PATH` に載る。
+  スキル向けのコマンドをそこに置く決定はADR-0005にある。installerの `~/.local/bin/uskn-harness` は、hook、CI、普通のシェル用に残す
