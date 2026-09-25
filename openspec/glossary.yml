@@ -46,6 +46,10 @@ terms:
     definition: "`openspec/changes/<name>/` に置く、1つのまとまった仕事の単位。"
     aliases: []
     en: "change"
+  - term: "アーカイブ"
+    definition: "完了して `openspec/changes/archive/` に移した変更。決定の記録として残す。"
+    aliases: []
+    en: "archive"
   - term: "能力"
     definition: "`openspec/specs/<name>/` が定める、振る舞いのまとまり。"
     aliases: ["ケーパビリティ"]
@@ -54,10 +58,6 @@ terms:
     definition: "別セッションが読んで作業を続けるための手順書。導入用のdraft PRの本文に書く。"
     aliases: ["ハンドオフ"]
     en: "handoff"
-  - term: "セッションジャーナル"
-    definition: "1セッションの事実と判断を記録する文書。`~/.ai-sessions/` に貯める。"
-    aliases: ["ジャーナル", "セッション記録"]
-    en: "session journal"
   - term: "状態ディレクトリ"
     definition: "hookがセッションごとの状態を置く場所 `~/.local/state/uskn-harness/sessions/`。"
     aliases: []
