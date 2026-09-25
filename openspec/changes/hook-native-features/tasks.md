@@ -50,4 +50,4 @@
 
 ## 統合（2026-09-25）
 
-- [x] 統合のときに、write-guardの「ルート外の拒否」へretire-session-journalの変更（許可リストから `~/.ai-sessions` を外し、拒否のシナリオを足す）を取り込む。archiveはfix-hook-bugs、retire-session-journal、この変更の順に行う
+- [x] 統合のときに、write-guardの「ルート外の拒否」へretire-session-journalの変更（許可リストから `~/.ai-sessions` を外し、拒否する場合の例を足す）を取り込む。archiveはfix-hook-bugs、retire-session-journal、この変更の順に行う
