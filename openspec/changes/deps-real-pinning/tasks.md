@@ -36,12 +36,13 @@
 
 ## 6. スキルとCI
 
-- [ ] 6.1 `skills/en-writing/SKILL.md` の最終パスに、humanizerに最終の文章だけを返させる1行を足す。`make verify-skills` が通ることを確認する
-- [ ] 6.2 `skills/ui-guidelines/SKILL.md` に、Impeccableが書いた `DESIGN.md` とサイドカーを戻す手順と、鮮度警告の止め方を書く。`make verify-skills` と `make verify-terms` が通ることを確認する
-- [ ] 6.3 `.github/workflows/verify.yml` のClaude Codeの導入に、版を固定しない理由のコメントを足す。2.1のworkflowのテストが通ることを確認する
+- [x] 6.1 `skills/en-writing/SKILL.md` の最終パスに、humanizerに最終の文章だけを返させる1行を足す。`make verify-skills` が通ることを確認する
+- [x] 6.2 `skills/ui-guidelines/SKILL.md` に、Impeccableが書いた `DESIGN.md` とサイドカーを戻す手順と、鮮度警告の止め方を書く。`make verify-skills` と `make verify-terms` が通ることを確認する
+- [x] 6.3 `.github/workflows/verify.yml` のClaude Codeの導入に、版を固定しない理由のコメントを足す。2.1のworkflowのテストが通ることを確認する
 - [x] 6.4 `bin/uskn-harness` の冒頭のコメント（手順6）を、ピンのrefとlockの照合に合わせて直す
 
 ## 7. 検証
 
-- [ ] 7.1 `make verify` が通ることを確認する
-- [ ] 7.2 `openspec validate deps-real-pinning --strict` が通ることを確認する
+- [x] 7.1 `make verify` が通ることを確認する。
+  2026-09-25の計測で1分18秒。batsは190件がすべて通った
+- [x] 7.2 `openspec validate deps-real-pinning --strict` が通ることを確認する

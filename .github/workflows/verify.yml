@@ -31,6 +31,8 @@ jobs:
       - name: Install the pinned CLIs and the openspec schema link
         run: bin/uskn-harness sync --tools
 
+      # Unpinned on purpose: CI checks against the latest Claude Code, the one in use (openspec: ci-verify).
+      # bin/tests/third-party.bats fails when a version is added here.
       - name: Install the Claude Code CLI for `claude plugin validate`
         run: |
           mise exec -- npm install -g @anthropic-ai/claude-code
