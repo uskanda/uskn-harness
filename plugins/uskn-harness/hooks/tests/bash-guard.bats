@@ -13,6 +13,8 @@ call() { jq -c -n --arg c "$1" --arg cwd "$ROOT" '{session_id:"sid12345678", cwd
 denied() { echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null; }
 warned() { echo "$output" | jq -e '(.hookSpecificOutput.permissionDecision // "none") == "none" and (.hookSpecificOutput.additionalContext | length) > 0' >/dev/null; }
 reason() { echo "$output" | jq -r '.hookSpecificOutput.permissionDecisionReason'; }
+# refute <command...>: fails when the command succeeds (a bare `! cmd` mid-test never fails a bats test).
+refute() { ! "$@"; }
 # path_without <cmd>: PATH minus every directory that holds <cmd>
 path_without() {
   local d out="" IFS=:
@@ -137,10 +139,37 @@ path_without() {
   run call "cat $USKN_STATE_DIR/sessions/sid12345678/verify.log"; [ -z "$output" ]
 }
 
+@test "the verify gate's state: naming, writing, or removing it is denied; the log and ordinary copies are not" {
+  S="$USKN_STATE_DIR/sessions/sid12345678"
+  run call "echo x > $S/verified"; denied
+  reason | grep -q "USKN_SKIP_VERIFY"
+  run call "cat ~/.local/state/uskn-harness/sessions/abc123/baseline"; denied
+  run call "python3 -c \"open('$S/verify-blocks','w').write('3')\""; denied
+  run call "rm -rf $S"; denied
+  run call "cp $SCRATCH/baseline $S/"; denied
+  run call "mv $S $SCRATCH/old"; denied
+  run call "rm -rf $USKN_STATE_DIR"; denied
+  run call "rm -rf $USKN_STATE_DIR/sessions"; denied
+  run call "cd $S && rm verified"; denied
+  echo "$USKN_STATE_DIR" > "$S/allow"
+  run call "touch $S/baseline"; denied
+  run call "tail -n 40 $S/verify.log"; [ -z "$output" ]
+  run call "cat ~/.local/state/uskn-harness/sessions/abc123/baseline-head"; [ -z "$output" ]
+  run call "cp x.md $BATS_TEST_TMPDIR/"; refute denied   # a copy into a directory above the state dir only warns
+}
+
 @test "session allow file makes that repo writable" {
   echo "$OTHER" > "$USKN_STATE_DIR/sessions/sid12345678/allow"
   run call "git -C $OTHER commit -am x"; [ -z "$output" ]
   run call "cp x $OTHER/"; [ -z "$output" ]
+}
+
+@test "two roots: git writes in a cwd worktree outside CLAUDE_PROJECT_DIR and copies to the start root are silent" {
+  WT="$BATS_TEST_TMPDIR/repos/a-wt"; mkdir -p "$WT"; git -C "$WT" init -q -b main
+  wt() { jq -c -n --arg c "$1" --arg cwd "$WT" '{session_id:"sid12345678", cwd:$cwd, tool_name:"Bash", tool_input:{command:$c}}' | "$SCRIPT"; }
+  run wt "git commit -m x"; [ "$status" -eq 0 ]; [ -z "$output" ]
+  run wt "cp x.md $ROOT/"; [ -z "$output" ]
+  run wt "git -C $OTHER push"; denied
 }
 
 @test "broken input: silent exit 0" {

@@ -1,16 +1,16 @@
 ## 1. ルートを2つにする
 
-- [ ] 1.1 `common.bats` に `project_roots` と `work_root` のテストを足し、失敗を確認する。場合は4つ。`CLAUDE_PROJECT_DIR` と `cwd` のgitルートの両方、同じときの1行、どちらも無いときの `cwd`、複数のルートでの `path_allowed`
-- [ ] 1.2 write-guardとbash-guardのテストに、ルートの外のworktreeの場合を足す。書き込みとcommitは黙り、3つ目のリポジトリは拒否される。失敗を確認する
-- [ ] 1.3 textlint-checkとterms-checkのテストに、worktreeにだけある `.textlintrc.json` と用語集の語が使われる場合を足す。失敗を確認する
-- [ ] 1.4 `lib/common.sh` に `project_roots` と `work_root` を足し、`path_allowed` をルートの一覧で判定させる。ガードは `project_roots`、検査は `work_root` を使う。1.1〜1.3と既存のテストが通ることを確認する
+- [x] 1.1 `common.bats` に `project_roots` と `work_root` のテストを足し、失敗を確認する。場合は4つ。`CLAUDE_PROJECT_DIR` と `cwd` のgitルートの両方、同じときの1行、どちらも無いときの `cwd`、複数のルートでの `path_allowed`
+- [x] 1.2 write-guardとbash-guardのテストに、ルートの外のworktreeの場合を足す。書き込みとcommitは黙り、3つ目のリポジトリは拒否される。失敗を確認する
+- [x] 1.3 textlint-checkとterms-checkのテストに、worktreeにだけある `.textlintrc.json` と用語集の語が使われる場合を足す。失敗を確認する
+- [x] 1.4 `lib/common.sh` に `project_roots` と `work_root` を足し、`path_allowed` をルートの一覧で判定させる。ガードは `project_roots`、検査は `work_root` を使う。1.1〜1.3と既存のテストが通ることを確認する
 
 ## 2. verify gateの状態ファイルを守る
 
-- [ ] 2.1 write-guardのテストを足し、失敗を確認する。`baseline`、`verified`、`verify-blocks` へのWriteとEditは拒否する。状態ディレクトリを許可したあとも拒否し、`verify.log` は黙る
-- [ ] 2.2 `lib/common.sh` に状態ファイルの判定を足し、write-guardで解除できない拒否にする。2.1が通ることを確認する
-- [ ] 2.3 bash-guardのテストを足し、失敗を確認する。拒否するのは、`verified` へのリダイレクト、セッションのディレクトリの `rm -rf` と `cp`、状態ディレクトリの上位の `rm -rf`、`cat` での名指し。`verify.log` の `tail` と `cp x ~/` は黙る
-- [ ] 2.4 bash-guardに状態ファイルの文字列の照合、書き込み先の判定、消す操作の判定を足す。2.3と既存のテスト、shellcheckが通ることを確認する
+- [x] 2.1 write-guardのテストを足し、失敗を確認する。`baseline`、`verified`、`verify-blocks` へのWriteとEditは拒否する。状態ディレクトリを許可したあとも拒否し、`verify.log` は黙る
+- [x] 2.2 `lib/common.sh` に状態ファイルの判定を足し、write-guardで解除できない拒否にする。2.1が通ることを確認する
+- [x] 2.3 bash-guardのテストを足し、失敗を確認する。拒否するのは、`verified` へのリダイレクト、セッションのディレクトリの `rm -rf` と `cp`、状態ディレクトリの上位の `rm -rf`、`cat` での名指し。`verify.log` の `tail` と `cp x ~/` は黙る
+- [x] 2.4 bash-guardに状態ファイルの文字列の照合、書き込み先の判定、消す操作の判定を足す。2.3と既存のテスト、shellcheckが通ることを確認する
 
 ## 3. verify gateの再検証と上限
 

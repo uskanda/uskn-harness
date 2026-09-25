@@ -111,6 +111,18 @@ $F3"
   grep -q "cwd=$R" "$LOG"
 }
 
+@test "the config is looked up at the git root of cwd, not at CLAUDE_PROJECT_DIR (a worktree)" {
+  export FAKE_FINDINGS="$F1"
+  WT="$BATS_TEST_TMPDIR/wt"; mkdir -p "$WT/docs"; ( cd "$WT" && git init -q -b main )
+  echo '{"rules":{}}' > "$WT/.textlintrc.json"
+  printf '# 見出し\n\nこれは日本語の文章です。\n' > "$WT/docs/ja.md"
+  run bash -c "jq -c -n --arg f '$WT/docs/ja.md' --arg cwd '$WT' '{session_id:\"s\", cwd:\$cwd, tool_name:\"Write\", tool_input:{file_path:\$f}}' | '$SCRIPT'"
+  [ "$status" -eq 0 ]
+  ctx | grep -q "1 problem"
+  refute grep -q -- "--config" "$LOG"
+  grep -q "cwd=$WT" "$LOG"
+}
+
 @test "findings are capped at 20 lines and the cap is stated" {
   many=""; for i in $(seq 1 30); do many="$many$R/docs/ja.md: line $i, col 1, Error - x (ja-technical-writing/sentence-length)
 "; done

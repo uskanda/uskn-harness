@@ -44,3 +44,41 @@ gone() { # <pid>: the process has exited (a zombie counts as gone once reaped; w
   [ "$status" -eq 0 ]
   grep -q "gtimeout 7 true" "$BATS_TEST_TMPDIR/g.log"
 }
+
+# ---- roots (spec: write-guard, bash-guard: the two roots; textlint-hook, terminology-guard: the cwd git root)
+repo() { mkdir -p "$1"; git -C "$1" init -q -b main; }
+
+@test "project_roots: CLAUDE_PROJECT_DIR and the git root of cwd, one per line" {
+  repo "$BATS_TEST_TMPDIR/a"; repo "$BATS_TEST_TMPDIR/a-wt"; mkdir -p "$BATS_TEST_TMPDIR/a-wt/src"
+  CLAUDE_PROJECT_DIR="$BATS_TEST_TMPDIR/a" run bash -c ". '$LIB'; project_roots '$BATS_TEST_TMPDIR/a-wt/src'"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$(realpath "$BATS_TEST_TMPDIR/a")" ]
+  [ "${lines[1]}" = "$(realpath "$BATS_TEST_TMPDIR/a-wt")" ]
+  [ "${#lines[@]}" -eq 2 ]
+}
+
+@test "project_roots: the same root once; no git and no CLAUDE_PROJECT_DIR gives cwd" {
+  repo "$BATS_TEST_TMPDIR/a"; mkdir -p "$BATS_TEST_TMPDIR/a/src" "$BATS_TEST_TMPDIR/plain"
+  CLAUDE_PROJECT_DIR="$BATS_TEST_TMPDIR/a" run bash -c ". '$LIB'; project_roots '$BATS_TEST_TMPDIR/a/src'"
+  [ "$output" = "$(realpath "$BATS_TEST_TMPDIR/a")" ]
+  run env -u CLAUDE_PROJECT_DIR bash -c ". '$LIB'; project_roots '$BATS_TEST_TMPDIR/plain'"
+  [ "$output" = "$(realpath "$BATS_TEST_TMPDIR/plain")" ]
+}
+
+@test "work_root: the git root of cwd, whatever CLAUDE_PROJECT_DIR says; else cwd" {
+  repo "$BATS_TEST_TMPDIR/a"; repo "$BATS_TEST_TMPDIR/a-wt"; mkdir -p "$BATS_TEST_TMPDIR/a-wt/src" "$BATS_TEST_TMPDIR/plain"
+  CLAUDE_PROJECT_DIR="$BATS_TEST_TMPDIR/a" run bash -c ". '$LIB'; work_root '$BATS_TEST_TMPDIR/a-wt/src'"
+  [ "$output" = "$(realpath "$BATS_TEST_TMPDIR/a-wt")" ]
+  run bash -c ". '$LIB'; work_root '$BATS_TEST_TMPDIR/plain'"
+  [ "$output" = "$(realpath "$BATS_TEST_TMPDIR/plain")" ]
+}
+
+@test "path_allowed: inside any of the roots given one per line" {
+  mkdir -p "$BATS_TEST_TMPDIR/a" "$BATS_TEST_TMPDIR/b" "$BATS_TEST_TMPDIR/c"
+  roots="$BATS_TEST_TMPDIR/a
+$BATS_TEST_TMPDIR/b"
+  export USKN_GUARD_ALLOW_DIRS="" USKN_STATE_DIR="$BATS_TEST_TMPDIR/state"
+  run bash -c ". '$LIB'; path_allowed '$BATS_TEST_TMPDIR/a/x' \"\$0\" sid" "$roots"; [ "$status" -eq 0 ]
+  run bash -c ". '$LIB'; path_allowed '$BATS_TEST_TMPDIR/b/y' \"\$0\" sid" "$roots"; [ "$status" -eq 0 ]
+  run bash -c ". '$LIB'; path_allowed '$BATS_TEST_TMPDIR/c/z' \"\$0\" sid" "$roots"; [ "$status" -eq 1 ]
+}

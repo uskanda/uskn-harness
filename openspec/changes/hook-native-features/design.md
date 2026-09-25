@@ -115,7 +115,8 @@ batsの対応は、名前の規則（`hooks/scripts/<name>.sh` と `hooks/tests/
 textlint-checkとterms-checkは `work_root`（`cwd` のgitルート、無ければ `cwd`）を使う。
 worktreeで用語集を変えたとき、開始時のルートの用語集を読むと誤った指摘になるからである。
 Q20の「verifyとbaselineは `cwd` のtop-level」を、verifyの一部である書き込み後の検査にも当てはめた。
-`project_root` は、別の変更が書き換え中のjournal系のスクリプトが使うので残す。
+terms-checkはCLIでも、実行したディレクトリのgitルートを読む。worktreeで `make verify` を走らせたとき、開始時のルートの用語集を読まないためである。
+これまでの `project_root` は呼ぶ場所が無くなるので消す。
 
 ### 状態ファイルは許可ファイルと同じ形で守る
 

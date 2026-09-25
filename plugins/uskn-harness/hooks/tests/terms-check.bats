@@ -24,7 +24,7 @@ YAML
   ( cd "$R" && git init -q -b main && git add -A && git commit -qm init )
 }
 
-cli() { "$SCRIPT" "$@"; }
+cli() { ( cd "$R" && "$SCRIPT" "$@" ); }   # CLI mode reads the repository it runs in, as make verify does
 hook() { jq -c -n --arg f "$1" --arg cwd "$R" '{session_id:"s", cwd:$cwd, hook_event_name:"PostToolUse", tool_name:"Write", tool_input:{file_path:$f}, tool_response:{}}' | "$SCRIPT"; }
 ctx() { echo "$output" | jq -r '.hookSpecificOutput.additionalContext'; }
 # path_without_python: a directory of links to everything on PATH except python3, for a machine without it
@@ -105,6 +105,21 @@ path_without_python() {
   printf 'const x = 1; // このフレームワークは `harness.yaml` を読む。日本語のコメントである。\n' > "$R/docs/code.ts"
   run hook "$R/docs/code.ts"; [ "$status" -eq 0 ]; [ -z "$output" ]
   run hook "$R/docs/gone.md"; [ "$status" -eq 0 ]; [ -z "$output" ]
+}
+
+@test "hook mode reads the glossary at the git root of cwd, not at CLAUDE_PROJECT_DIR (a worktree)" {
+  WT="$BATS_TEST_TMPDIR/wt"; mkdir -p "$WT/docs" "$WT/openspec"
+  cp "$R/openspec/glossary.yml" "$WT/openspec/glossary.yml"
+  printf '  - term: "ワークツリー"\n    definition: "作業場所。"\n    aliases: []\n    en: "worktree"\n' >> "$WT/openspec/glossary.yml"
+  ( cd "$WT" && git init -q -b main && git add -A && git commit -qm init )
+  printf '# t\n\nこの文書はワークツリーで書く。日本語の文章である。\n' > "$WT/docs/a.md"
+  run bash -c "jq -c -n --arg f '$WT/docs/a.md' --arg cwd '$WT' '{session_id:\"s\", cwd:\$cwd, tool_name:\"Write\", tool_input:{file_path:\$f}}' | '$SCRIPT'"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  # CLI mode (make verify in the worktree) reads the same glossary, whatever CLAUDE_PROJECT_DIR says
+  run bash -c "cd '$WT' && '$SCRIPT' docs/a.md"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
 }
 
 @test "hook mode checks .markdown as well as .md" {

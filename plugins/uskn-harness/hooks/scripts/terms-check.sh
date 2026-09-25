@@ -30,7 +30,7 @@ else
   FILES=("$(realpath_m "$F")")
 fi
 
-ROOT="$(project_root "${CWD:-$PWD}")"
+ROOT="$(work_root "${CWD:-$PWD}")"   # the git top level of cwd: a worktree reads its own files
 GLOSSARY="$ROOT/openspec/glossary.yml"
 ALLOW="$ROOT/openspec/known-names.txt"
 COMMON="${USKN_COMMON_WORDS:-$(harness_dir)/skills/ja-writing/common-words.txt}"

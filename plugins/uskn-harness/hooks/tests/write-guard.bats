@@ -44,6 +44,20 @@ denied() { echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "de
   run call "$USKN_STATE_DIR/sessions/sid12345678/allow"; denied
 }
 
+@test "the verify gate's state files are denied, even with the state dir allowed; the log is not" {
+  S="$USKN_STATE_DIR/sessions/sid12345678"
+  for f in baseline verified verify-blocks; do
+    run call "$S/$f"; [ "$status" -eq 0 ]; denied
+    run call "$S/$f" Edit; denied
+  done
+  echo "$output" | jq -r '.hookSpecificOutput.permissionDecisionReason' | grep -q "USKN_SKIP_VERIFY"
+  run call "$USKN_STATE_DIR/sessions/another-session/verified"; denied
+  echo "$USKN_STATE_DIR" > "$S/allow"
+  run call "$S/baseline" Edit; denied
+  run call "$S/verify.log"; [ -z "$output" ]
+  run call "$S/baseline-head"; [ -z "$output" ]
+}
+
 @test "default allowlist without USKN_GUARD_ALLOW_DIRS: /tmp and TMPDIR are silent" {
   unset USKN_GUARD_ALLOW_DIRS
   run call "/tmp/claude-1000/x/scratchpad/f"; [ -z "$output" ]
@@ -64,6 +78,15 @@ denied() { echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "de
   unset CLAUDE_PROJECT_DIR
   run bash -c "printf '{\"session_id\":\"sid12345678\",\"cwd\":\"$ROOT/src\",\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$ROOT/other.ts\"}}' | '$SCRIPT'"; [ -z "$output" ]
   run bash -c "printf '{\"session_id\":\"sid12345678\",\"cwd\":\"$ROOT/src\",\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$OTHER/z.ts\"}}' | '$SCRIPT'"; denied
+}
+
+@test "two roots: a worktree outside CLAUDE_PROJECT_DIR is inside when it is cwd; the start root stays inside" {
+  WT="$BATS_TEST_TMPDIR/repos/a-wt"; mkdir -p "$WT/src"; git -C "$WT" init -q -b main
+  wt() { printf '{"session_id":"sid12345678","cwd":"%s","tool_name":"Write","tool_input":{"file_path":"%s"}}' "$WT/src" "$1" | "$SCRIPT"; }
+  run wt "$WT/x.md"; [ "$status" -eq 0 ]; [ -z "$output" ]
+  run wt "$ROOT/y.md"; [ -z "$output" ]
+  run wt "$OTHER/z.md"; denied
+  echo "$output" | jq -r '.hookSpecificOutput.permissionDecisionReason' | grep -qF "$(realpath "$WT")"
 }
 
 @test "broken input: silent exit 0" {
