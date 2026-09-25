@@ -90,3 +90,11 @@ terms:
     definition: "実物の代わりに置く仮の名前。山かっこで囲んで書く。"
     aliases: ["プレースホルダ"]
     en: "placeholder"
+  - term: "fork"
+    definition: "スキルを、呼び出した会話の文脈を持たないsubagentで実行する形。frontmatterの `context: fork` で指定する。"
+    aliases: []
+    en: "fork"
+  - term: "インライン"
+    definition: "スキルを、呼び出した会話の中でそのまま実行する形。frontmatterに `context` が無いときの既定。"
+    aliases: []
+    en: "inline"

@@ -71,14 +71,29 @@ paths (the moved change directory, the synced main specs).
 
 ### 7. Commit
 
-Run the Skill tool with `commit`, and tell it:
+`commit` runs as a fork and sees only its arguments, so pass the instructions as the argument of the Skill tool call.
+The argument is one Japanese text that says:
 
-- Uncommitted implementation paths first, in their own commits split by the `commit` rules.
-- Then the archive paths as exactly one commit.
-- With scope "everything", the unrelated paths last, in their own commits.
-- The summary line: `<name>をarchiveし、main specsに反映` when specs were synced, `<name>をarchive` when the change had
-  no delta specs.
-- The body lists the synced capabilities, and the tasks settled in step 3 if any.
+- Uncommitted implementation paths (list them) first, in their own commits split by purpose.
+- Then the archive paths (list them: the archived change directory and the synced `openspec/specs/<capability>/`)
+  as exactly one commit.
+- With scope "everything", the unrelated paths (list them) last, in their own commits.
+- With scope "archive only", the unrelated paths (list them) stay uncommitted: do not stage or commit them.
+- The summary line of the archive commit: `<name>をarchiveし、main specsに反映` when specs were synced,
+  `<name>をarchive` when the change had no delta specs.
+- The body of the archive commit lists the synced capabilities, and the tasks settled in step 3 if any.
+
+Example argument, for `add-x` with synced `x` and no implementation paths left:
+
+```
+openspec/changes/archive/2026-09-16-add-x/ と openspec/specs/x/ を1つのコミットにする。要約行は「add-xをarchiveし、main specsに反映」。本文にはmain specsに反映した能力 x を書く。
+```
+
+The same run with scope "archive only" and an unrelated `README.md` edit appends:
+
+```
+README.md はコミットせず、未コミットのまま残す。
+```
 
 ### 8. Push and report
 
