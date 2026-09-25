@@ -156,3 +156,10 @@ path_without_python() {
   [ "$status" -ne 0 ]
   [[ "$output" == *"harness.yaml"* ]]; [[ "$output" != *"ハーネス基盤"* ]]
 }
+
+@test "USKN_SKIP_TERMS=1 in hook mode still reads the whole hook input, so the writer never gets a broken pipe" {
+  printf '%*s' 1000000 '' > "$BATS_TEST_TMPDIR/big"
+  run bash -c 'set -o pipefail; cat "$1" | USKN_SKIP_TERMS=1 "$2"' _ "$BATS_TEST_TMPDIR/big" "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}

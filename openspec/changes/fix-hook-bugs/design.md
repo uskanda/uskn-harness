@@ -133,6 +133,13 @@ verify gateは `USKN_VERIFY_TIMEOUT`（既定570秒）、textlint-checkは `USKN
 - 用語集の「verify gate」の定義を「失敗している間は終了させない」に直す
 - `.gitignore` から使われていない `.harness-session/` を外し、`.claude/worktrees/` を足す
 
+### hookは入力を読んでから終わる
+
+スキップの環境変数を見る前に、hookは標準入力を最後まで読む。
+先に終わると、入力を書く側が閉じたパイプに書き込み、エラーを出す。
+Claude Codeが入力を書く場合も同じで、テストでは負荷が高いときにだけ失敗が出ていた。
+対象はtextlint-checkとterms-checkのhookである。terms-checkのCLIでは標準入力を読まない。
+
 ## Risks / Trade-offs
 
 - bash-guardの字句解析は次のものを読まない → specは取りこぼしを許すので、既知の取りこぼしとしてここに残す

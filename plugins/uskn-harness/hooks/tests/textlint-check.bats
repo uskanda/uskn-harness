@@ -136,3 +136,10 @@ $F3"
   run bash -c "echo 'not json' | '$SCRIPT'"; [ "$status" -eq 0 ]; [ -z "$output" ]
   run bash -c "printf '{\"tool_name\":\"Write\",\"tool_input\":{}}' | '$SCRIPT'"; [ "$status" -eq 0 ]; [ -z "$output" ]
 }
+
+@test "USKN_SKIP_TEXTLINT=1 still reads the whole hook input, so the writer never gets a broken pipe" {
+  printf '%*s' 1000000 '' > "$BATS_TEST_TMPDIR/big"
+  run bash -c 'set -o pipefail; cat "$1" | USKN_SKIP_TEXTLINT=1 "$2"' _ "$BATS_TEST_TMPDIR/big" "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}

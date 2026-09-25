@@ -14,13 +14,16 @@ set -u
 # shellcheck source=lib/common.sh
 . "$(dirname "$0")/lib/common.sh"
 
+# Hook mode (no arguments) reads the whole input before any early exit, so the writer never meets a closed pipe.
+INPUT=""
+[ $# -gt 0 ] || INPUT="$(cat 2>/dev/null || true)"
 [ "${USKN_SKIP_TERMS:-0}" = 1 ] && exit 0
 
 MODE=cli
 FILES=()
 if [ $# -gt 0 ]; then FILES=("$@")
 else
-  INPUT="$(cat 2>/dev/null || true)"; [ -n "$INPUT" ] || exit 0
+  [ -n "$INPUT" ] || exit 0
   [ -z "$(json_field "$INPUT" '.agent_type' agent_type)" ] || exit 0
   MODE=hook
   F="$(json_field "$INPUT" '.tool_input.file_path' file_path)"; [ -n "$F" ] || exit 0

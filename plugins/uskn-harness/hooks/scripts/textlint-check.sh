@@ -10,8 +10,10 @@ set -u
 export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
 # shellcheck source=lib/common.sh
 . "$(dirname "$0")/lib/common.sh"
+# Read the whole input before any early exit, so the writer never meets a closed pipe.
+INPUT="$(cat 2>/dev/null || true)"
 [ "${USKN_SKIP_TEXTLINT:-0}" = 1 ] && exit 0
-INPUT="$(cat 2>/dev/null || true)"; [ -n "$INPUT" ] || exit 0
+[ -n "$INPUT" ] || exit 0
 FILE="$(json_field "$INPUT" '.tool_input.file_path' file_path)"; [ -n "$FILE" ] || exit 0
 case "$FILE" in *.md | *.markdown) ;; *) exit 0 ;; esac
 CWD="$(json_field "$INPUT" '.cwd' cwd)"
