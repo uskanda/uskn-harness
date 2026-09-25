@@ -27,8 +27,8 @@
 
 ## 5. syncの終了コード
 
-- [ ] 5.1 `uskn-harness.bats` にテストを足す。npm globalの導入の失敗と `--tools` での失敗で終了コード1。予約名のスキルで、何も書かずに終了コード2。失敗を確認する
-- [ ] 5.2 `bin/uskn-harness` の `cmd_sync` が失敗の数で終了コードを決め、標準エラーに要約を出すようにする。checkoutの更新の失敗は `warn` にする。`check_duplicates` を主のシェルで判定する。5.1と既存のテストが通ることを確認する
+- [x] 5.1 `uskn-harness.bats` にテストを足す。npm globalの導入の失敗と `--tools` での失敗で終了コード1。予約名のスキルで、何も書かずに終了コード2。失敗を確認する
+- [x] 5.2 `bin/uskn-harness` の `cmd_sync` が失敗の数で終了コードを決め、標準エラーに要約を出すようにする。checkoutの更新の失敗は `warn` にする。`check_duplicates` を主のシェルで判定する。5.1と既存のテストが通ることを確認する
 
 ## 6. スキルのfrontmatter
 

@@ -137,6 +137,42 @@ refute() { ! "$@"; }
   [ "$(snapshot)" = "$before" ]
 }
 
+@test "the reserved skill name uskn-harness aborts with exit 2 before any write" {
+  fx="$BATS_TEST_TMPDIR/fx"; mkdir -p "$fx/skills/a/uskn-harness" "$fx/skills/b/fine" "$fx/plugins/uskn-harness" "$fx/templates/user" "$fx/bin"
+  printf -- '---\nname: uskn-harness\ndescription: x\n---\n' > "$fx/skills/a/uskn-harness/SKILL.md"
+  printf -- '---\nname: fine\ndescription: x\n---\n' > "$fx/skills/b/fine/SKILL.md"
+  cp "$REPO/deps.json" "$fx/deps.json"; cp "$CLI" "$fx/bin/uskn-harness"; echo '<!-- managed by uskn-harness -->' > "$fx/templates/user/CLAUDE.md"
+  before="$(snapshot)"
+  USKN_HARNESS_DIR="$fx" run "$CLI" sync
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"reserved"* ]]
+  [ "$(snapshot)" = "$before" ]
+}
+
+@test "a failed step: sync finishes the other steps, reports on stderr, and exits 1" {
+  USKN_HARNESS_STUB_FAIL='npm global textlint' run "$CLI" sync
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"fail"*"npm global textlint"* ]]
+  [[ "$output" == *"run 'uskn-harness sync' again"* ]]
+  [ -L "$SKILLS/commit" ]
+  [ -f "$CLAUDE_CONFIG_DIR/CLAUDE.md" ]
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+}
+
+@test "sync --tools exits 1 when a pinned CLI fails to install" {
+  USKN_HARNESS_STUB_FAIL='npm global *' run "$CLI" sync --tools
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"fail"*"npm global"* ]]
+}
+
+@test "a failed checkout update is a warning: sync still exits 0" {
+  make_checkout; advance_origin one
+  USKN_HARNESS_DIR="$WORK" USKN_HARNESS_STUB_FAIL='harness pull*' run "$CLI" sync
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"warn"*"harness pull"* ]]
+}
+
 @test "a hand-written ~/.claude/CLAUDE.md is preserved and reported as conflict" {
   echo "# mine" > "$CLAUDE_CONFIG_DIR/CLAUDE.md"
   run "$CLI" sync
