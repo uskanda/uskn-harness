@@ -84,7 +84,11 @@ batsの対応は、名前の規則（`hooks/scripts/<name>.sh` と `hooks/tests/
 選んだ結果を表示するだけの `verify-fast-plan` ターゲットも置く。テストと、Stopで何が走るかを確かめるのに使う。
 
 手元の計測で、`make verify` は約57秒かかる。内訳はbatsが約43秒、textlintの全文書が約9秒、shellcheckの全スクリプトが約4秒。
-文書を数本変えたときはtextlintとtermsだけで数秒、hookを1本変えたときはshellcheck1本と対応するbats1本で数秒に収まる。
+文書を数本変えたときはtextlintとtermsだけ、hookを1本変えたときはshellcheck1本と対応するbats1本だけが走る。
+`verify-fast` の計測値は次のとおり。変更なしは0.1秒、文書2本は4.6秒、スキル1本は0.3秒。
+hook1本は、いちばん重い `verify-gate.bats` を持つ `verify-gate.sh` で9.1秒だった。
+
+テストの中の `make` は、外の `make` が `MAKEFLAGS` で渡す変数（`CHANGED` や `VERIFY_STRICT`）を受け継がないよう、`makefile.bats` の `setup` で消す。
 
 ### block の回数は状態ディレクトリで数える
 

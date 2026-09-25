@@ -21,10 +21,10 @@
 
 ## 4. verify-fast
 
-- [ ] 4.1 `makefile.bats` に `verify-fast-plan` のテストを足す。`CHANGED` を与え、文書、用語集、hook、共通部品、`hooks.json`、`bin/`、`Makefile`、スキルの各場合の選択を確かめる。失敗を確認する
-- [ ] 4.2 `makefile.bats` に、一時のgitリポジトリへ `Makefile` を写すテストを足す。commit済みの変更と追跡外のファイルが一覧に入ることを確かめる。失敗を確認する
-- [ ] 4.3 `Makefile` に `VERIFY_BASE`、`CHANGED`、選び方の変数、`verify-fast`、`verify-fast-plan` を足す。`SCRIPT_DIRS` に `plugins/uskn-harness/bin` を足す。4.1と4.2が通ることを確認する
-- [ ] 4.4 `make verify-fast` の所要時間を、変更なし、文書1本、hook1本の場合で測る。数秒に収まることを確認する
+- [x] 4.1 `makefile.bats` に `verify-fast-plan` のテストを足す。`CHANGED` を与え、文書、用語集、hook、共通部品、`hooks.json`、`bin/`、`Makefile`、スキルの各場合の選択を確かめる。失敗を確認する
+- [x] 4.2 `makefile.bats` に、一時のgitリポジトリへ `Makefile` を写すテストを足す。commit済みの変更と追跡外のファイルが一覧に入ることを確かめる。失敗を確認する
+- [x] 4.3 `Makefile` に `VERIFY_BASE`、`CHANGED`、選び方の変数、`verify-fast`、`verify-fast-plan` を足す。`SCRIPT_DIRS` に `plugins/uskn-harness/bin` を足す。4.1と4.2が通ることを確認する
+- [x] 4.4 `make verify-fast` の所要時間を、変更なし、文書1本、hook1本の場合で測る。数秒に収まることを確認する
 
 ## 5. hooks.jsonのif
 

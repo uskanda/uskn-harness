@@ -9,7 +9,7 @@ VERIFY_STRICT ?= 0
 # $(call skip,<message>): report a check that cannot run here; under VERIFY_STRICT=1 that is a failure.
 skip = if [ "$(VERIFY_STRICT)" = 1 ]; then echo "$(1) -- VERIFY_STRICT=1: this check is required" >&2; exit 1; else echo "$(1)"; fi
 
-SCRIPT_DIRS := plugins/uskn-harness/hooks/scripts bin
+SCRIPT_DIRS := plugins/uskn-harness/hooks/scripts plugins/uskn-harness/bin bin
 TEST_DIRS   := plugins/uskn-harness/hooks/tests bin/tests
 SKILLS_DIR  ?= skills
 
@@ -51,7 +51,8 @@ sys.exit(1 if bad else 0)
 endef
 export SKILL_FRONTMATTER_PY
 
-.PHONY: verify verify-openspec verify-shell verify-skills verify-plugin verify-textlint verify-design verify-terms
+.PHONY: verify verify-openspec verify-shell verify-skills verify-plugin verify-textlint verify-design verify-terms \
+        verify-fast verify-fast-plan
 
 # Japanese prose that is still alive: README, ADRs, main specs, active changes. docs/proposal-2026-09.md and
 # openspec/changes/archive/ are records and stay as written.
@@ -117,3 +118,57 @@ verify-terms:
 	@if [ -x "$(TERMS_CHECK)" ]; then echo "[terms] $(words $(DOCS_TERMS)) documents"; \
 	  VERIFY_STRICT=$(VERIFY_STRICT) "$(TERMS_CHECK)" $(DOCS_TERMS) || exit 1; \
 	else $(call skip,[terms] skipped (terms-check.sh missing)); fi
+
+# ---- verify-fast: what the verify gate runs at Stop (openspec: verify-fast). The checks of `verify`, narrowed to the
+# files that changed since VERIFY_BASE plus untracked files; the full `verify` runs in CI and in archive-push.
+# VERIFY_BASE: where HEAD left the remote (the upstream, origin/HEAD, origin/main, origin/master), else HEAD.
+VERIFY_BASE ?= $(shell for r in '@{upstream}' origin/HEAD origin/main origin/master; do git merge-base HEAD "$$r" 2>/dev/null && exit 0; done; echo HEAD)
+# CHANGED is computed once, on first use (the $(eval) memo), so no other target runs git for it. Given on the make
+# command line, it replaces the git answer: `make verify-fast-plan CHANGED="a.md b.sh"` (the tests do this).
+CHANGED = $(eval CHANGED := $$(sort $$(shell git diff --name-only --diff-filter=d $$(VERIFY_BASE) -- 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null)))$(CHANGED)
+SCRIPTS = $(shell find $(SCRIPT_DIRS) -type f \( -name '*.sh' -o -perm -u+x \) 2>/dev/null | grep -v '/tests/' | grep -v '/lib/')
+HOOK_SCRIPTS := plugins/uskn-harness/hooks/scripts
+HOOK_TESTS   := plugins/uskn-harness/hooks/tests
+# What to check. A shared input (the glossary, the textlint config, the hooks' lib) widens its check to everything.
+FAST_TEXTLINT = $(if $(filter skills/ja-writing/textlintrc.json skills/ja-writing/prh.yml,$(CHANGED)),$(DOCS_JA),$(filter $(CHANGED),$(DOCS_JA)))
+FAST_TERMS    = $(if $(filter openspec/glossary.yml openspec/known-names.txt skills/ja-writing/common-words.txt,$(CHANGED)),$(DOCS_TERMS),$(filter $(CHANGED),$(DOCS_TERMS)))
+FAST_SHELL    = $(if $(filter $(HOOK_SCRIPTS)/lib/%,$(CHANGED)),$(SCRIPTS),$(filter $(CHANGED),$(SCRIPTS)))
+# The bats files a change touches: a changed test itself; hooks/scripts/<name>.sh -> hooks/tests/<name>.bats; the
+# lib and the fixtures -> every hook test; the rest by name. bin/tests/skill-*.bats look at every skill.
+FAST_BATS     = $(sort $(wildcard $(filter %.bats,$(CHANGED)) \
+  $(patsubst $(HOOK_SCRIPTS)/%.sh,$(HOOK_TESTS)/%.bats,$(filter $(HOOK_SCRIPTS)/%.sh,$(CHANGED))) \
+  $(if $(filter $(HOOK_SCRIPTS)/lib/% $(HOOK_TESTS)/fixtures/%,$(CHANGED)),$(HOOK_TESTS)/*.bats) \
+  $(if $(filter plugins/uskn-harness/hooks/hooks.json,$(CHANGED)),$(HOOK_TESTS)/hooks-json.bats) \
+  $(if $(filter plugins/uskn-harness/bin/%,$(CHANGED)),$(HOOK_TESTS)/plugin-bin.bats) \
+  $(if $(filter bin/uskn-harness,$(CHANGED)),bin/tests/uskn-harness.bats) \
+  $(if $(filter Makefile,$(CHANGED)),bin/tests/makefile.bats) \
+  $(if $(filter skills/%,$(CHANGED)),bin/tests/skill-*.bats) \
+  $(patsubst skills/%/SKILL.md,bin/tests/%-skill.bats,$(filter skills/%/SKILL.md,$(CHANGED)))))
+
+verify-fast: ## Check only what changed since VERIFY_BASE (the verify gate runs this at Stop)
+	@echo "[fast] $(words $(CHANGED)) file(s) changed since $(VERIFY_BASE)"
+	@if [ -z "$(strip $(FAST_TEXTLINT)$(FAST_TERMS)$(FAST_SHELL)$(FAST_BATS))" ]; then echo "[fast] nothing to check"; fi
+	@files="$(FAST_TEXTLINT)"; if [ -z "$$files" ]; then :; \
+	elif command -v textlint >/dev/null; then echo "[textlint] $(words $(FAST_TEXTLINT)) ja document(s)"; \
+	  textlint --config skills/ja-writing/textlintrc.json $$files || exit 1; \
+	else $(call skip,[textlint] skipped (textlint not installed; run uskn-harness sync)); fi
+	@files="$(FAST_TERMS)"; if [ -z "$$files" ]; then :; \
+	elif [ -x "$(TERMS_CHECK)" ]; then echo "[terms] $(words $(FAST_TERMS)) document(s)"; \
+	  VERIFY_STRICT=$(VERIFY_STRICT) "$(TERMS_CHECK)" $$files || exit 1; \
+	else $(call skip,[terms] skipped (terms-check.sh missing)); fi
+	@files="$(FAST_SHELL)"; if [ -z "$$files" ]; then :; \
+	elif command -v shellcheck >/dev/null; then echo "[shell] shellcheck $(words $(FAST_SHELL)) script(s)"; \
+	  shellcheck -x -P SCRIPTDIR $$files || exit 1; \
+	else $(call skip,[shell] bash -n only (shellcheck not installed)); for f in $$files; do bash -n "$$f" || exit 1; done; fi
+	@files="$(FAST_BATS)"; if [ -z "$$files" ]; then :; \
+	elif command -v bats >/dev/null; then echo "[shell] bats $(words $(FAST_BATS)) file(s)"; bats $$files || exit 1; \
+	else $(call skip,[shell] bats not installed; tests skipped); fi
+	@echo "verify-fast: ok"
+
+verify-fast-plan: ## Print what verify-fast would check, one "<check>: <files>" line each
+	@echo "base: $(VERIFY_BASE)"
+	@echo "changed: $(CHANGED)"
+	@echo "textlint: $(FAST_TEXTLINT)"
+	@echo "terms: $(FAST_TERMS)"
+	@echo "shellcheck: $(FAST_SHELL)"
+	@echo "bats: $(FAST_BATS)"
