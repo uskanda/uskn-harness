@@ -29,6 +29,15 @@ call() { jq -c -n --arg f "$1" --arg cwd "$R" '{session_id:"s", cwd:$cwd, hook_e
 ctx() { echo "$output" | jq -r '.hookSpecificOutput.additionalContext'; }
 # refute <command...>: fails when the command succeeds (a bare `! cmd` mid-test never fails a bats test).
 refute() { ! "$@"; }
+# path_without <cmd>...: a directory of links to everything on PATH except the named commands (first match wins)
+path_without() {
+  local farm="$BATS_TEST_TMPDIR/farm" d x
+  mkdir -p "$farm"
+  local IFS=:
+  for d in $PATH; do [ -d "$d" ] && ln -s "$d"/* "$farm"/ 2>/dev/null; done
+  for x in "$@"; do rm -f "$farm/$x"; done
+  printf '%s' "$farm"
+}
 
 @test "japanese markdown with findings returns them as PostToolUse additionalContext" {
   export FAKE_FINDINGS="$F1
@@ -110,6 +119,17 @@ $F3"
   ctx | grep -q "30 problem"
   [ "$(ctx | grep -c ': line [0-9]*, col')" -le 20 ]
   ctx | grep -q "20"
+}
+
+@test "without timeout and gtimeout, a textlint that hangs is cut off and the hook still exits 0" {
+  mkdir -p "$BATS_TEST_TMPDIR/slow"
+  printf '#!/usr/bin/env bash\nsleep 30\n' > "$BATS_TEST_TMPDIR/slow/textlint"; chmod +x "$BATS_TEST_TMPDIR/slow/textlint"
+  P="$(path_without timeout gtimeout)"
+  start="$(date +%s)"
+  USKN_TEXTLINT_TIMEOUT=1 PATH="$BATS_TEST_TMPDIR/slow:$P" run call "$R/docs/ja.md"
+  [ "$status" -eq 0 ]
+  [ $(( $(date +%s) - start )) -lt 10 ]
+  ctx | grep -q "timed out after 1s"
 }
 
 @test "broken stdin or missing file_path exits 0 silently" {
