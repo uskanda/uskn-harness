@@ -105,3 +105,5 @@ uskn-harness sync --remove              # ハーネス由来の symlink と管�
 | `stale symlink` / `missing` | symlink が古いか無い | `uskn-harness sync` |
 | `<cli> (have 'none', want '<ver>')` | npm global の CLI が未導入か版が違う | `uskn-harness sync`。ネットワークを確認 |
 | `openspec schema uskn: missing` | schema の symlink が無い | `uskn-harness sync` |
+| `openspec commands opsx: missing ...` | `~/.claude/commands/opsx/` が無いか、コマンドが欠けている | `uskn-harness sync`。ネットワークを確認 |
+| `stale skill link <name>` | ハーネスから消したスキルの symlink が残っている | `uskn-harness sync` が消す |

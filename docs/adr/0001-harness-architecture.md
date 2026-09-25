@@ -60,6 +60,12 @@ OpenSpecは `spec-driven` schemaを `uskn` にフォークし、`grilling` 成�
 schemaはuser-levelの `~/.local/share/openspec/schemas/uskn/` に置く。
 リポジトリ側は `openspec/config.yaml` の `schema: uskn` だけ。profileはexpanded。
 
+2026-09-25にopenspecを1.13.2へ上げ、ユーザー層に配るのはコマンド（`/opsx:*`）だけにした（change `retire-obsolete-skills`）。
+スキル（`openspec-*`）とコマンドの二重の配布をやめるためである。
+ユーザー層を生成するときのprofileは `core`、deliveryは `commands` とする。
+この2つはユーザー全体の設定にしか置けず、変えるとプロダクトリポジトリの `openspec update` の結果も変わる。
+そのため `sync` は生成の間だけopenspecに一時的な設定を読ませ、ユーザー全体の設定は変えない。
+
 ### 7. hook（v1）
 | イベント | 役割 |
 |---|---|

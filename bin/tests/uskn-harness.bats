@@ -62,7 +62,7 @@ refute() { ! "$@"; }
   [ -f "$CLAUDE_CONFIG_DIR/CLAUDE.md" ]
   head -1 "$CLAUDE_CONFIG_DIR/CLAUDE.md" | grep -q "managed by uskn-harness"
   grep -q "mise use -g node@24" "$USKN_HARNESS_STUB_LOG"
-  grep -q "openspec@1.12.0" "$USKN_HARNESS_STUB_LOG"
+  grep -q "openspec@1.13.2" "$USKN_HARNESS_STUB_LOG"
   grep -q "skills@latest add mattpocock/skills --skill grilling" "$USKN_HARNESS_STUB_LOG"
   [ -d "$HOME/.ai-sessions/.git" ]
   [ -z "$(git -C "$HOME/.ai-sessions" remote)" ]
@@ -74,7 +74,7 @@ refute() { ! "$@"; }
   run "$CLI" sync --tools
   [ "$status" -eq 0 ]
   grep -q "mise use -g node@24" "$USKN_HARNESS_STUB_LOG"
-  grep -q "openspec@1.12.0" "$USKN_HARNESS_STUB_LOG"
+  grep -q "openspec@1.13.2" "$USKN_HARNESS_STUB_LOG"
   [ -L "$HOME/.local/share/openspec/schemas/uskn" ]
   [ "$(readlink -f "$HOME/.local/share/openspec/schemas/uskn")" = "$REPO/schemas/uskn" ]
   [ ! -e "$STABLE" ]
@@ -439,4 +439,146 @@ update() { run env USKN_HARNESS_STUB_NET=0 bash -c "USKN_HARNESS_SOURCED=1 . '$C
   USKN_HARNESS_DIR="$WORK" run "$CLI" sync --dry-run
   [ "$status" -eq 0 ]; [[ "$output" == *"plan"* ]]; [[ "$output" == *"pull --ff-only"* ]]
   refute grep -q "pull --ff-only" "$USKN_HARNESS_STUB_LOG"
+}
+
+# ---------------------------------------------------------------- OpenSpec user layer (spec: harness-sync, harness-doctor)
+# A mise that runs its command and an openspec that records the config it saw, then writes what delivery asks for.
+fake_openspec() {
+  FAKE="$BATS_TEST_TMPDIR/fakebin"; mkdir -p "$FAKE"
+  export OPENSPEC_LOG="$BATS_TEST_TMPDIR/openspec" XDG_CONFIG_HOME="$HOME/.config"
+  cat > "$FAKE/mise" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "${XDG_CONFIG_HOME:-}" > "$OPENSPEC_LOG.mise-xdg"
+[ "${1:-}" = exec ] && shift; [ "${1:-}" = -- ] && shift
+exec "$@"
+SH
+  cat > "$FAKE/openspec" <<'SH'
+#!/usr/bin/env bash
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}/openspec/config.json"
+printf '%s\n' "${XDG_CONFIG_HOME:-}" > "$OPENSPEC_LOG.xdg"
+cat "$cfg" > "$OPENSPEC_LOG.cfg" 2>/dev/null
+delivery=both
+grep -q '"delivery"[[:space:]]*:[[:space:]]*"commands"' "$cfg" 2>/dev/null && delivery=commands
+mkdir -p .claude/commands/opsx
+for w in apply archive explore propose sync update; do echo "$w" > ".claude/commands/opsx/$w.md"; done
+if [ "$delivery" = both ]; then mkdir -p .claude/skills/openspec-propose && echo x > .claude/skills/openspec-propose/SKILL.md; fi
+SH
+  chmod +x "$FAKE/mise" "$FAKE/openspec"
+  export PATH="$FAKE:$PATH"
+  mkdir -p "$XDG_CONFIG_HOME/openspec"
+  printf '{"telemetry":{"noticeSeen":true}}\n' > "$XDG_CONFIG_HOME/openspec/config.json"
+  cp "$XDG_CONFIG_HOME/openspec/config.json" "$BATS_TEST_TMPDIR/user-config.orig"
+}
+# ensure_openspec_user_layer with the script sourced and the stub off: it runs the fake mise and openspec.
+user_layer() { run env USKN_HARNESS_STUB_NET=0 bash -c "USKN_HARNESS_SOURCED=1 . '$CLI'; HARNESS='$REPO'; ensure_openspec_user_layer"; }
+opsx_commands() { # <dir>: the six core workflow commands with the marker
+  mkdir -p "$1"; : > "$1/.uskn-harness-managed"
+  for w in apply archive explore propose sync update; do echo x > "$1/$w.md"; done
+}
+
+@test "openspec user layer: generated with a temporary config (core, commands); the user's config is untouched" {
+  fake_openspec
+  user_layer
+  [ "$status" -eq 0 ]
+  seen="$(cat "$OPENSPEC_LOG.xdg")"
+  [ -n "$seen" ]
+  [ "$seen" != "$XDG_CONFIG_HOME" ]
+  [ ! -e "$seen" ]
+  grep -q '"delivery":"commands"' "$OPENSPEC_LOG.cfg"
+  grep -q '"profile":"core"' "$OPENSPEC_LOG.cfg"
+  [ "$(cat "$OPENSPEC_LOG.mise-xdg")" = "$XDG_CONFIG_HOME" ]
+  cmp -s "$XDG_CONFIG_HOME/openspec/config.json" "$BATS_TEST_TMPDIR/user-config.orig"
+}
+
+@test "openspec user layer: only commands/opsx is installed, with the marker; no openspec-* skill" {
+  fake_openspec
+  user_layer
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"created"*"openspec commands opsx"* ]]
+  [ -f "$CLAUDE_CONFIG_DIR/commands/opsx/.uskn-harness-managed" ]
+  [ "$(ls "$CLAUDE_CONFIG_DIR/commands/opsx"/*.md | wc -l)" -eq 6 ]
+  refute compgen -G "$SKILLS/openspec-*"
+}
+
+@test "sync removes the openspec-* skills an earlier sync installed, keeps unmarked ones, and only plans under --dry-run" {
+  mkdir -p "$SKILLS/openspec-propose" "$SKILLS/openspec-explore"
+  : > "$SKILLS/openspec-propose/.uskn-harness-managed"; echo x > "$SKILLS/openspec-propose/SKILL.md"
+  echo mine > "$SKILLS/openspec-explore/SKILL.md"
+  run "$CLI" sync --dry-run
+  [ "$status" -eq 0 ]
+  [ -d "$SKILLS/openspec-propose" ]
+  [[ "$output" == *"plan"*"remove $SKILLS/openspec-propose"* ]]
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+  [ ! -e "$SKILLS/openspec-propose" ]
+  [[ "$output" == *"removed"*"openspec-propose"* ]]
+  [ "$(cat "$SKILLS/openspec-explore/SKILL.md")" = mine ]
+}
+
+@test "doctor: the six openspec commands are ok; openspec-* skills are no longer checked" {
+  "$CLI" sync >/dev/null
+  opsx_commands "$CLAUDE_CONFIG_DIR/commands/opsx"
+  run "$CLI" doctor
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"ok"*"openspec commands opsx"* ]]
+  [[ "$output" != *"openspec skill"* ]]
+}
+
+@test "doctor: a missing openspec command, a missing marker, or no commands at all is warn with the name" {
+  "$CLI" sync >/dev/null
+  O="$CLAUDE_CONFIG_DIR/commands/opsx"
+  run "$CLI" doctor
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"warn"*"openspec commands opsx"*"missing"*"sync"* ]]
+  opsx_commands "$O"; rm "$O/archive.md"
+  run "$CLI" doctor
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"warn"*"openspec commands opsx"*"archive"*"sync"* ]]
+  echo x > "$O/archive.md"; rm "$O/.uskn-harness-managed"
+  run "$CLI" doctor
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"warn"*"openspec commands opsx"*"not harness-managed"* ]]
+}
+
+# ---------------------------------------------------------------- stale skill links (spec: harness-sync, harness-doctor)
+
+@test "sync removes symlinks into the harness skills/ whose target is gone, and nothing else" {
+  "$CLI" sync >/dev/null
+  mkdir -p "$SKILLS/real"
+  ln -s "$REPO/skills/git/retired-skill" "$SKILLS/retired-skill"
+  ln -s "$STABLE/skills/retired-too" "$SKILLS/retired-too"
+  ln -s "$BATS_TEST_TMPDIR/elsewhere/gone" "$SKILLS/mine"
+  rm "$SKILLS/pr"; ln -s "$REPO/skills/old-location/pr" "$SKILLS/pr"
+  run "$CLI" sync --dry-run
+  [ "$status" -eq 0 ]
+  [ -L "$SKILLS/retired-skill" ]
+  [[ "$output" == *"plan"*"remove $SKILLS/retired-skill"* ]]
+  [[ "$output" != *"remove $SKILLS/pr"* ]]
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+  [ ! -L "$SKILLS/retired-skill" ]
+  [ ! -L "$SKILLS/retired-too" ]
+  [[ "$output" == *"removed"*"retired-skill"* ]]
+  [ -L "$SKILLS/mine" ]
+  [ -d "$SKILLS/real" ]
+  [[ "$output" == *"updated"*"pr"* ]]
+  [ "$(readlink -f "$SKILLS/pr")" = "$REPO/skills/git/pr" ]
+}
+
+@test "sync --remove also removes a dangling symlink into the harness skills/" {
+  "$CLI" sync >/dev/null
+  ln -s "$REPO/skills/git/retired-skill" "$SKILLS/retired-skill"
+  ln -s "$BATS_TEST_TMPDIR/elsewhere/gone" "$SKILLS/mine"
+  run "$CLI" sync --remove
+  [ "$status" -eq 0 ]
+  [ ! -L "$SKILLS/retired-skill" ]
+  [ -L "$SKILLS/mine" ]
+}
+
+@test "doctor warns about a dangling symlink into the harness skills/ by name" {
+  "$CLI" sync >/dev/null
+  ln -s "$REPO/skills/git/retired-skill" "$SKILLS/retired-skill"
+  run "$CLI" doctor
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"warn"*"retired-skill"*"sync"* ]]
 }

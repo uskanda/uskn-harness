@@ -31,6 +31,8 @@ OpenSpecにはプロジェクト単位のprofileとdeliveryの設定が無い。
 そこに `openspec/config.json` として `{"profile":"core","delivery":"commands"}` を置く。
 openspec 1.13.2で、この設定なら `.claude/commands/opsx/` の6ファイルだけが生成されることを確かめた。
 一時ディレクトリは生成のあとで消す。openspecがそこへtelemetryの欄を書き足すが、一緒に消える。
+差し替えるのはopenspecのプロセスだけで、`mise exec -- env XDG_CONFIG_HOME=<tmp> openspec init` の形にする。
+miseはグローバルのnodeを `XDG_CONFIG_HOME` の下の設定から読むので、mise自身に一時ディレクトリを見せると、openspecを見つけられない。
 
 代わりの案は2つあった。
 
