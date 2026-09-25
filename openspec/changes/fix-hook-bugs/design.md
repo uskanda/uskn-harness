@@ -35,6 +35,8 @@ bash-guardは2つの方法で拒否する。
 
 文字列の照合は読むだけの `cat` も拒否する。読むには `allow-repo.sh --list` があるので、理由の文でそれを案内する。
 `python3 -c` の中の文字列のように、書き込み先として解析できない書き方も文字列の照合で拾える。
+照合はheredocの本文も含むコマンド全体に対して行うので、heredocで渡したpythonのコードも拾う。
+`<id>` の部分は英数字と `-`、`_` の並びに限る。仮名の `<session_id>` や `*` を書いた文書やコミットメッセージは拒否しない。
 
 `/allow-repo` スキル自身は `allow-repo.sh --session <sid8> <path>` を実行するだけで、許可ファイルのパスを書かない。そのため拒否されない。
 
@@ -94,6 +96,7 @@ hookでの対象の絞り込みは `hooks.json` のmatcherではなくスクリ�
 `note fail` の数が1以上なら、`done` の行のあとで標準エラーに要約を出し、終了コード1で終わる。`--tools` も同じ。
 checkoutの更新の失敗は、既存のspec（fast-forwardできないときは終了コード0）に合わせて `warn` として数える。
 `check_duplicates` の予約名の判定は、`|` の右側の `while` で `exit 2` していたため、subshellだけが終わっていた。重複の判定と同じく、主のシェルで結果を受け取ってから止める。
+テストのため、stubの下で指定した手順を失敗させる `USKN_HARNESS_STUB_FAIL`（手順の名前へのglob）を足す。
 
 ### スキルの frontmatter は YAML として解析する
 
@@ -110,7 +113,8 @@ CIのworkflowは `import yaml` に失敗したときだけ、`apt-get install py
 `lib/common.sh` に `with_timeout <秒> <コマンド...>` を置く。`timeout`、`gtimeout`、perlの順に使い、どれも無ければ上限なしで実行する。
 perlの実装はforkした子を新しいprocess groupに入れ、`alarm` で時間が来たらgroup全体にTERM、1秒後にKILLを送って124で終わる。
 GNUの `timeout` もprocess groupごと止めるので、`make` が起こしたbatsも残らない。perlはmacOSに標準で入っている。
-verify gateは、テストで打ち切りを試せるよう、上限を `USKN_VERIFY_TIMEOUT`（既定570秒）で変えられるようにする。
+テストで打ち切りを試せるよう、上限は環境変数で変えられるようにする。
+verify gateは `USKN_VERIFY_TIMEOUT`（既定570秒）、textlint-checkは `USKN_TEXTLINT_TIMEOUT`（既定25秒）。
 
 ### テストの判定
 
@@ -126,7 +130,7 @@ verify gateは、テストで打ち切りを試せるよう、上限を `USKN_VE
 
 - `MultiEdit` はClaude Codeのツール一覧に無いので、matcher、スクリプト冒頭のコメント、textlint-hookのspecから外す
 - verify gateのStopの出力は `{decision, reason}` だけにする。journal-updateの出力は別の変更が扱う
-- 用語集の「verify gate」の定義を「失敗中は終了させない」に直す
+- 用語集の「verify gate」の定義を「失敗している間は終了させない」に直す
 - `.gitignore` から使われていない `.harness-session/` を外し、`.claude/worktrees/` を足す
 
 ## Risks / Trade-offs
@@ -136,10 +140,13 @@ verify gateは、テストで打ち切りを試せるよう、上限を `USKN_VE
   - 変数に入れたパス（`cd "$D"`）
   - `xargs` と `find -exec`
   - python3やperlのような別の言語から書くもの
+  - `sudo` のような前置きのコマンドの、値を取るオプション（`sudo -u user git push` の `user` をコマンド名とみなす）
 - heredocの本文は行単位で取り除くため、引用符の中に `<<EOF` と書いたコマンドでは、後ろの行を読まずに通すことがある → 取りこぼしの側に倒れるだけで、誤検知は増えない
 - chezmoiの下位コマンドのうち、次は拒否の対象外のまま → specの一覧を広げる判断はこの変更ではしない
   - `init --apply`、`destroy`、`forget`、`remove`、`merge-all`、`chattr`、`import`、`git`
 - `popd` と `cd -` は作業ディレクトリを追わない → 移動先が分からないので、それ以降は移動前のディレクトリで判定する
+- `|` の左側や `if` の中の `cd` も、コマンドの残りに持ち越す → 実際のシェルとは違うが、外への移動のあとのgitの書き込みを見逃さない側に倒れる
+- perlも無い環境では、`with_timeout` は上限なしで実行する → 変更前と同じ振る舞いで、macOSとLinuxの標準の環境には当たらない
 - エージェントがBashで `allow-repo.sh` を直接実行すると、許可を足せる → `/allow-repo` スキルも同じコマンドをBashで実行するので、hookからは両者を区別できない。スキルの `disable-model-invocation` と、ユーザーの依頼が要るという規則で抑える
 - 状態ディレクトリの `verified` や `baseline` は、今もエージェントが書ける → verify gateを迂回できるが、この変更の範囲（許可ファイル）の外。block後の再検証を扱う変更で合わせて考える
 - 許可ファイルのパスを含むだけの読み取りも拒否する → `allow-repo.sh --list` を理由の文で案内する

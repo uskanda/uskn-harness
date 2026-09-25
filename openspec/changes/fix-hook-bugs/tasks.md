@@ -53,5 +53,6 @@
 
 ## 9. 検証
 
-- [ ] 9.1 `make verify` が通ることを確認し、所要時間を記録する。ガードのテストをscratchpadの下の `TMPDIR` でも走らせる
-- [ ] 9.2 `openspec validate fix-hook-bugs --strict` が通ることを確認する
+- [x] 9.1 `make verify` が通ることを確認し、所要時間を記録する。ガードのテストをscratchpadの下の `TMPDIR` でも走らせる。
+  2026-09-25の計測で57秒（変更前は38秒）。batsの162件は、scratchpadの下の `TMPDIR` でもすべて通った
+- [x] 9.2 `openspec validate fix-hook-bugs --strict` が通ることを確認する
