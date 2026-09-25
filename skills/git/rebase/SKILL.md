@@ -1,6 +1,6 @@
 ---
 name: rebase
-description: Reorganize the commits on the current branch since it diverged from its base into 1–5 meaningful commits, without interactive git. Use when the user asks to clean up, squash, or tidy commits before a pull request. Optional argument: the base branch (defaults to the integration branch).
+description: Reorganize the commits on the current branch since it diverged from its base into 1–5 meaningful commits, without interactive git. Use when the user asks to clean up, squash, or tidy commits before a pull request. Optional argument - the base branch (defaults to the integration branch).
 allowed-tools: Bash, AskUserQuestion, Skill
 ---
 

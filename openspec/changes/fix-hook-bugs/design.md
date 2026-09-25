@@ -98,6 +98,8 @@ checkoutの更新の失敗は、既存のspec（fast-forwardできないとき�
 ### スキルの frontmatter は YAML として解析する
 
 6つのgitスキルの `description` は `Optional argument: …` を引用符なしで含み、YAMLとしては不正だった。他のスキルと同じく ` - ` に直す。
+解析を足すと `skills/git/commit/SKILL.md` も同じ理由で失敗した。このファイルは別の変更 `fork-skills-model-effort` が書き換え中で、その版の `description` は既に正しい。
+この変更ではその版と同じ1行に揃え、ほかの行には触れない。統合で衝突したときは、あちらの版を採る。
 `verify-skills` は、python3とPyYAMLで全 `SKILL.md` のfrontmatterを解析する。Pythonのコードは `Makefile` の `define` に置き、環境変数としてpython3に渡す。
 `bin/` に実行ファイルとして置くとshellcheckの対象になるので避けた。
 python3かPyYAMLが無ければskipし、`VERIFY_STRICT=1` では失敗にする。

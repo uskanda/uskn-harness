@@ -1,6 +1,6 @@
 ---
 name: sync-base
-description: Bring the latest remote integration branch into the current branch. Tries a fast-forward first and falls back to a --no-ff merge without asking; never rebases. Use when the user wants the current branch updated with the base branch. Optional argument: a different base branch.
+description: Bring the latest remote integration branch into the current branch. Tries a fast-forward first and falls back to a --no-ff merge without asking; never rebases. Use when the user wants the current branch updated with the base branch. Optional argument - a different base branch.
 allowed-tools: Bash
 ---
 

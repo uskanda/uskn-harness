@@ -1,6 +1,6 @@
 ---
 name: push
-description: Push the current branch to origin. If there are uncommitted changes, commits them first via the commit skill; if the target branch is protected, asks before creating a new branch. Optional argument: the new branch name to use when one is needed.
+description: Push the current branch to origin. If there are uncommitted changes, commits them first via the commit skill; if the target branch is protected, asks before creating a new branch. Optional argument - the new branch name to use when one is needed.
 allowed-tools: Bash, Read, Grep, Glob, AskUserQuestion, Skill
 ---
 

@@ -32,10 +32,11 @@
 
 ## 6. スキルのfrontmatter
 
-- [ ] 6.1 `bin/tests/makefile.bats` にテストを足し、失敗を確認する。コロンと空白を引用符なしで含むfrontmatterで `verify-skills` が失敗する。PyYAMLが無いときはstrictで失敗する
-- [ ] 6.2 `Makefile` の `verify-skills` にPyYAMLによる解析を足す。6.1が通り、直す前の6つのスキルで `make verify-skills` が失敗することを確認する
-- [ ] 6.3 `skills/git/` の `cleanup-merged`、`fix-ci`、`push`、`rebase`、`switch-base`、`sync-base` の `description` を直す。`make verify-skills` が通ることを確認する
-- [ ] 6.4 `.github/workflows/verify.yml` に、PyYAMLが無いときだけOSのパッケージで入れる手順を足す
+- [x] 6.1 `bin/tests/makefile.bats` にテストを足し、失敗を確認する。コロンと空白を引用符なしで含むfrontmatterで `verify-skills` が失敗する。PyYAMLが無いときはstrictで失敗する
+- [x] 6.2 `Makefile` の `verify-skills` にPyYAMLによる解析を足す。6.1が通り、直す前の6つのスキルで `make verify-skills` が失敗することを確認する
+- [x] 6.3 `skills/git/` の `cleanup-merged`、`fix-ci`、`push`、`rebase`、`switch-base`、`sync-base` の `description` を直す。
+  同じ形で不正だった `commit` は、別の変更 `fork-skills-model-effort` が書く行と同じ内容に直す。`make verify-skills` が通ることを確認する
+- [x] 6.4 `.github/workflows/verify.yml` に、PyYAMLが無いときだけOSのパッケージで入れる手順を足す
 
 ## 7. timeoutが無い環境の上限
 

@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Commit the current changes in meaningful units with well-formed messages. Use when the user asks to commit, or when another skill needs uncommitted work committed first. Optional argument: an issue id (`123` or `#123`) to prefix every message with.
+description: Commit the current changes in meaningful units with well-formed messages. Use when the user asks to commit, or when another skill needs uncommitted work committed first. Arguments - an optional issue id (`123` or `#123`) to prefix every message with, then optional instructions on how to split and word the commits.
 allowed-tools: Bash, Read, Grep, Glob
 ---
 

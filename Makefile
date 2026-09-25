@@ -11,6 +11,45 @@ skip = if [ "$(VERIFY_STRICT)" = 1 ]; then echo "$(1) -- VERIFY_STRICT=1: this c
 
 SCRIPT_DIRS := plugins/uskn-harness/hooks/scripts bin
 TEST_DIRS   := plugins/uskn-harness/hooks/tests bin/tests
+SKILLS_DIR  ?= skills
+
+# Every SKILL.md frontmatter must be real YAML: a `key: value` inside a plain scalar ("Argument: x") parses in
+# Claude Code but not in other agents or skills-ref. Arguments: the skill directories. Run by verify-skills.
+define SKILL_FRONTMATTER_PY
+import os, sys, yaml
+bad = 0
+def fail(path, why):
+    global bad
+    bad += 1
+    print(f"{path}: {why}")
+for d in sys.argv[1:]:
+    path = os.path.join(d, "SKILL.md")
+    with open(path, encoding="utf-8") as fh:
+        lines = fh.read().split("\n")
+    if lines[0].strip() != "---":
+        fail(path, "no frontmatter (the first line is not ---)")
+        continue
+    try:
+        end = [ln.strip() for ln in lines].index("---", 1)
+    except ValueError:
+        fail(path, "the frontmatter is not closed by a --- line")
+        continue
+    try:
+        meta = yaml.safe_load("\n".join(lines[1:end]))
+    except yaml.YAMLError as err:
+        fail(path, "the frontmatter is not valid YAML: " + " ".join(str(err).split()))
+        continue
+    if not isinstance(meta, dict):
+        fail(path, "the frontmatter is not a mapping")
+        continue
+    if meta.get("name") != os.path.basename(os.path.normpath(d)):
+        fail(path, f"name {meta.get('name')!r} differs from the directory name")
+    desc = meta.get("description")
+    if not isinstance(desc, str) or not desc.strip():
+        fail(path, "description is missing or empty")
+sys.exit(1 if bad else 0)
+endef
+export SKILL_FRONTMATTER_PY
 
 .PHONY: verify verify-openspec verify-shell verify-skills verify-plugin verify-textlint verify-design verify-terms
 
@@ -44,9 +83,12 @@ verify-shell:
 	elif [ -n "$$tests" ]; then $(call skip,[shell] bats not installed; tests skipped); fi
 
 verify-skills:
-	@dirs=$$(find skills -mindepth 1 -maxdepth 3 -name SKILL.md -exec dirname {} \; 2>/dev/null); \
-	if [ -z "$$dirs" ]; then echo "[skills] skipped (no skills yet)"; \
-	elif command -v skills-ref >/dev/null; then for d in $$dirs; do skills-ref validate "$$d" || exit 1; done; \
+	@dirs=$$(find $(SKILLS_DIR) -mindepth 1 -maxdepth 3 -name SKILL.md -exec dirname {} \; 2>/dev/null); \
+	if [ -z "$$dirs" ]; then echo "[skills] skipped (no skills yet)"; exit 0; fi; \
+	if python3 -c 'import yaml' >/dev/null 2>&1; then echo "[skills] frontmatter parsed as YAML"; \
+	  python3 -c "$$SKILL_FRONTMATTER_PY" $$dirs || exit 1; \
+	else $(call skip,[skills] YAML parse skipped (python3 with PyYAML not available)); fi; \
+	if command -v skills-ref >/dev/null; then for d in $$dirs; do skills-ref validate "$$d" || exit 1; done; \
 	else echo "[skills] frontmatter check (skills-ref not installed)"; \
 	  for d in $$dirs; do head -1 "$$d/SKILL.md" | grep -q '^---$$' || { echo "missing frontmatter: $$d"; exit 1; }; \
 	  n=$$(sed -n 's/^name: *//p' "$$d/SKILL.md" | head -1); [ "$$n" = "$$(basename "$$d")" ] || { echo "name/dir mismatch: $$d ($$n)"; exit 1; }; \
