@@ -122,10 +122,13 @@ path_without_python() {
   [ -z "$output" ]
 }
 
-@test "hook mode checks .markdown as well as .md" {
+@test "hook mode checks .md only, as hooks.json's if does: .markdown is silent" {
   printf '# t\n\n設定は `harness.yaml` に置く。\n' > "$R/docs/ng.markdown"
   run hook "$R/docs/ng.markdown"
   [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  cp "$R/docs/ng.markdown" "$R/docs/ng.md"
+  run hook "$R/docs/ng.md"
   ctx | grep -q "harness.yaml"
 }
 

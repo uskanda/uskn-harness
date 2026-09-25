@@ -28,9 +28,9 @@
 
 ## 5. hooks.jsonのif
 
-- [ ] 5.1 `hooks-json.bats` を足し、失敗を確認する。確かめるのは、textlint-check、terms-check、grilling-guardのmatcherと `if` の組み合わせと、`if` を持たないhook
-- [ ] 5.2 `hooks.json` をツールごとのmatcherに分けて `if` を付ける。5.1と `claude plugin validate --strict plugins/uskn-harness` が通ることを確認する
-- [ ] 5.3 textlint-checkとterms-checkのテストに、`.markdown` のファイルでは黙る場合を足して失敗を確認する。スクリプトを `.md` だけに絞り、通ることを確認する
+- [x] 5.1 `hooks-json.bats` を足し、失敗を確認する。確かめるのは、textlint-check、terms-check、grilling-guardのmatcherと `if` の組み合わせと、`if` を持たないhook
+- [x] 5.2 `hooks.json` をツールごとのmatcherに分けて `if` を付ける。5.1と `claude plugin validate --strict plugins/uskn-harness` が通ることを確認する
+- [x] 5.3 textlint-checkとterms-checkのテストに、`.markdown` のファイルでは黙る場合を足して失敗を確認する。スクリプトを `.md` だけに絞り、通ることを確認する
 
 ## 6. プラグインのbin/
 

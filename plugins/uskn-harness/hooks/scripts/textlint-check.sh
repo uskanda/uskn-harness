@@ -13,7 +13,7 @@ export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
 [ "${USKN_SKIP_TEXTLINT:-0}" = 1 ] && exit 0
 INPUT="$(cat 2>/dev/null || true)"; [ -n "$INPUT" ] || exit 0
 FILE="$(json_field "$INPUT" '.tool_input.file_path' file_path)"; [ -n "$FILE" ] || exit 0
-case "$FILE" in *.md | *.markdown) ;; *) exit 0 ;; esac
+case "$FILE" in *.md) ;; *) exit 0 ;; esac   # the same filter as the if in hooks.json, for versions without it
 CWD="$(json_field "$INPUT" '.cwd' cwd)"
 case "$FILE" in /*) ABS="$FILE" ;; *) ABS="${CWD:-$PWD}/$FILE" ;; esac
 ABS="$(realpath_m "$ABS")"

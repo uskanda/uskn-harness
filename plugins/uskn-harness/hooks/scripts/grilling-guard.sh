@@ -3,6 +3,8 @@
 #
 # Denies a write to an OpenSpec change's proposal.md, design.md, tasks.md, or specs/** when that change
 # has no grilling.md yet. Prints nothing otherwise, so the normal permission flow applies.
+# hooks.json starts it for Write and Edit only under **/openspec/changes/** (its if); the script checks the path
+# itself as well, for versions of Claude Code without if and for NotebookEdit.
 # Contract (openspec: grilling-guard): never fails the session; exit 0 always.
 set -u
 have() { command -v "$1" >/dev/null 2>&1; }

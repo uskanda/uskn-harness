@@ -67,6 +67,8 @@ $F3"
   export FAKE_FINDINGS="$F1"
   run call "$R/docs/en.md"; [ -z "$output" ]
   run call "$R/docs/code.ts"; [ -z "$output" ]
+  cp "$R/docs/ja.md" "$R/docs/ja.markdown"   # .md only, as hooks.json's if does
+  run call "$R/docs/ja.markdown"; [ -z "$output" ]
   [ ! -e "$LOG" ]
 }
 

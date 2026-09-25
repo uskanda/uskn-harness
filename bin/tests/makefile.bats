@@ -131,6 +131,11 @@ count() { line "$1" | wc -w; }
   [ "$(line bats)" = "bin/tests/makefile.bats bin/tests/uskn-harness.bats plugins/uskn-harness/hooks/tests/common.bats" ]
 }
 
+@test "verify-fast-plan: hooks.json maps to its own test" {
+  run plan CHANGED="plugins/uskn-harness/hooks/hooks.json"
+  [ "$(line bats)" = "plugins/uskn-harness/hooks/tests/hooks-json.bats" ]
+}
+
 @test "verify-fast: nothing changed passes without running a check" {
   run mk verify-fast CHANGED=
   [ "$status" -eq 0 ]

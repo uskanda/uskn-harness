@@ -24,11 +24,36 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/grilling-guard.sh"
-          },
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/write-guard.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/write-guard.sh"
+            "if": "Write(**/openspec/changes/**)",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/grilling-guard.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Edit(**/openspec/changes/**)",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/grilling-guard.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/grilling-guard.sh"
           }
         ]
       },
@@ -44,15 +69,34 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write",
         "hooks": [
           {
             "type": "command",
+            "if": "Write(**/*.md)",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/textlint-check.sh",
             "timeout": 30
           },
           {
             "type": "command",
+            "if": "Write(**/*.md)",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/terms-check.sh",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Edit(**/*.md)",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/textlint-check.sh",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "if": "Edit(**/*.md)",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/scripts/terms-check.sh",
             "timeout": 30
           }
