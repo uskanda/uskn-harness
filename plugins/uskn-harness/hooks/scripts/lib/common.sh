@@ -63,13 +63,42 @@ harness_dir() {
   if [ -n "${USKN_HARNESS_DIR:-}" ]; then printf '%s' "$USKN_HARNESS_DIR"
   else realpath_m "$(dirname "$(realpath_m "${BASH_SOURCE[0]}")")/../../../../.."; fi
 }
-# project_root <cwd>: CLAUDE_PROJECT_DIR, else the git top level of cwd, else cwd (resolved)
-project_root() {
-  local r="${CLAUDE_PROJECT_DIR:-}"
-  [ -n "$r" ] || r="$(git -C "${1:-$PWD}" rev-parse --show-toplevel 2>/dev/null || true)"
-  [ -n "$r" ] || r="${1:-$PWD}"
-  realpath_m "$r"
+# work_root <cwd>: the git top level of cwd, else cwd (resolved). The checks (verify gate, textlint, terms) work
+# here: in a worktree, cwd moves while CLAUDE_PROJECT_DIR stays at the session's start.
+work_root() {
+  local r
+  r="$(git -C "${1:-$PWD}" rev-parse --show-toplevel 2>/dev/null || true)"
+  realpath_m "${r:-${1:-$PWD}}"
 }
+# git_common_dir <dir>: the repository's shared .git directory (the same for all its worktrees), resolved; empty when
+# the directory is not in a repository or git is too old for --path-format (2.31).
+git_common_dir() {
+  local d
+  d="$(git -C "$1" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || return 0
+  [ -n "$d" ] && realpath_m "$d"
+  return 0
+}
+# project_roots <cwd>: the roots the guards allow, one per line: CLAUDE_PROJECT_DIR, plus the git top level of cwd
+# only when that checkout belongs to the same repository (the same git common dir: a worktree of it, wherever it
+# lives). Bash can move cwd into any directory; a checkout of another repository must not become a root, so when
+# either common dir cannot be read the cwd's top level is left out. Without CLAUDE_PROJECT_DIR: the git top level
+# of cwd, else cwd.
+project_roots() {
+  local p="" t pc
+  [ -n "${CLAUDE_PROJECT_DIR:-}" ] && p="$(realpath_m "$CLAUDE_PROJECT_DIR")"
+  t="$(git -C "${1:-$PWD}" rev-parse --show-toplevel 2>/dev/null || true)"
+  [ -n "$t" ] && t="$(realpath_m "$t")"
+  if [ -n "$p" ] && [ -n "$t" ] && [ "$t" != "$p" ]; then
+    pc="$(git_common_dir "$p")"
+    { [ -n "$pc" ] && [ "$pc" = "$(git_common_dir "$t")" ]; } || t=""
+  fi
+  [ -n "$p" ] || [ -n "$t" ] || t="$(realpath_m "${1:-$PWD}")"
+  [ -n "$p" ] && printf '%s\n' "$p"
+  [ -n "$t" ] && [ "$t" != "$p" ] && printf '%s\n' "$t"
+  return 0
+}
+# roots_text <roots>: the roots on one line, for a reason text
+roots_text() { printf '%s' "$1" | paste -sd, - | sed 's/,/, /g'; }
 # is_allow_file <abs-path>: the path (symlinks resolved) is a session allow file, sessions/<id>/allow in the state
 # dir. Only allow-repo.sh writes those; the guards deny every other write, whatever the allow files say.
 is_allow_file() {
@@ -78,13 +107,45 @@ is_allow_file() {
   case "$p" in "$st"/sessions/*/allow) return 0 ;; esac
   return 1
 }
-# path_allowed <abs-path> <root> <session_id>: inside the root, the fixed allowlist, or the session's allow file
-# The scratch/tmp part of the allowlist is USKN_GUARD_ALLOW_DIRS (colon-separated; default /tmp and $TMPDIR).
+# The verify gate's state in sessions/<id>/. The gate trusts these files (rewriting verified or removing baseline
+# skips the check), so the guards deny every write by the agent, whatever the allow files say; only hooks write them.
+GATE_FILES="baseline verified verify-blocks"
+GATE_DENY="is the verify gate's state (sessions/<id>/ baseline, verified, verify-blocks in $USKN_STATE). Only the harness hooks write it, and nothing lifts this restriction. To skip the gate deliberately, the user sets USKN_SKIP_VERIFY=1."
+state_real() { [ -n "${_USKN_STATE_REAL:-}" ] || _USKN_STATE_REAL="$(realpath_m "$USKN_STATE")"; }   # sets _USKN_STATE_REAL
+# is_gate_file <abs-path>: the path (symlinks resolved) is one of the gate's state files of some session
+is_gate_file() {
+  local p rest
+  p="$(realpath_m "$1")"; state_real
+  case "$p" in "$_USKN_STATE_REAL"/sessions/*/*) ;; *) return 1 ;; esac
+  rest="${p#"$_USKN_STATE_REAL"/sessions/}"
+  case "$rest" in */*/*) return 1 ;; esac
+  case " $GATE_FILES " in *" ${rest#*/} "*) return 0 ;; esac
+  return 1
+}
+# is_session_dir <abs-path>: the path is a session's state dir itself, sessions/<id>
+is_session_dir() {
+  local p rest
+  p="$(realpath_m "$1")"; state_real
+  case "$p" in "$_USKN_STATE_REAL"/sessions/?*) ;; *) return 1 ;; esac
+  rest="${p#"$_USKN_STATE_REAL"/sessions/}"
+  case "$rest" in */*) return 1 ;; esac
+  return 0
+}
+# holds_state <abs-path>: removing the path removes the state of every session: sessions/, the state dir, or above
+holds_state() {
+  local p
+  p="$(realpath_m "$1")"; state_real
+  [ "$p" = "$_USKN_STATE_REAL/sessions" ] && return 0
+  under "$_USKN_STATE_REAL" "$p"
+}
+# path_allowed <abs-path> <roots> <session_id>: inside one of the roots (one per line, see project_roots), the fixed
+# allowlist, or the session's allow file. The scratch/tmp part of the allowlist is USKN_GUARD_ALLOW_DIRS
+# (colon-separated; default /tmp and $TMPDIR).
 # A session allow file is never allowed (is_allow_file), even though the state dir is on the list.
 path_allowed() {
-  local p="$1" root="$2" sid="$3" a dirs
+  local p="$1" roots="$2" sid="$3" a dirs
   is_allow_file "$p" && return 1
-  under "$p" "$root" && return 0
+  while IFS= read -r a; do [ -n "$a" ] && under "$p" "$a" && return 0; done <<< "$roots"
   case "$p" in /dev/*) return 0 ;; esac   # /dev/null and friends are not a repository
   dirs="${USKN_GUARD_ALLOW_DIRS-/tmp:${TMPDIR:-}}"
   for a in $(printf '%s' "$dirs" | tr ':' ' ') "$USKN_STATE" "${CLAUDE_PLUGIN_DATA:-}"; do

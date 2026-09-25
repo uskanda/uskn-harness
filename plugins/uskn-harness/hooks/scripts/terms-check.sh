@@ -4,7 +4,7 @@
 #   terms   every katakana word and 「quoted」 term must be in openspec/glossary.yml or the common-word list
 #
 #   terms-check.sh <file.md> ...        CLI: print findings, exit 1 when there are any (make verify)
-#   (stdin JSON)                        PostToolUse hook on a .md / .markdown file: findings as additionalContext
+#   (stdin JSON)                        PostToolUse hook on a .md file: findings as additionalContext
 #
 # Contract: exit 0 in hook mode whatever happens; silent when there is nothing to report; skipped entirely
 # when USKN_SKIP_TERMS=1. Code fences, code spans, links and English documents are out of scope.
@@ -27,13 +27,13 @@ else
   [ -z "$(json_field "$INPUT" '.agent_type' agent_type)" ] || exit 0
   MODE=hook
   F="$(json_field "$INPUT" '.tool_input.file_path' file_path)"; [ -n "$F" ] || exit 0
-  case "$F" in *.md | *.markdown) ;; *) exit 0 ;; esac
+  case "$F" in *.md) ;; *) exit 0 ;; esac   # the same filter as the if in hooks.json, for versions without it
   CWD="$(json_field "$INPUT" '.cwd' cwd)"
   case "$F" in /*) ;; *) F="${CWD:-$PWD}/$F" ;; esac
   FILES=("$(realpath_m "$F")")
 fi
 
-ROOT="$(project_root "${CWD:-$PWD}")"
+ROOT="$(work_root "${CWD:-$PWD}")"   # the git top level of cwd: a worktree reads its own files
 GLOSSARY="$ROOT/openspec/glossary.yml"
 ALLOW="$ROOT/openspec/known-names.txt"
 COMMON="${USKN_COMMON_WORDS:-$(harness_dir)/skills/ja-writing/common-words.txt}"

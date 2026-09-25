@@ -1,6 +1,6 @@
 {
   "name": "uskn-harness",
-  "description": "Hooks for the uskn harness: repository context at session start, guards on writes and shell commands, textlint and terms checks after writes, and the verify gate at stop. Skills are installed separately by `uskn-harness sync`.",
+  "description": "Hooks for the uskn harness: repository context at session start, guards on writes and shell commands, textlint and terms checks after writes, and the verify gate at stop; short commands for skills in bin/. Skills are installed separately by `uskn-harness sync`.",
   "version": "0.1.0",
   "author": { "name": "uskanda" },
   "repository": "https://github.com/uskanda/uskn-harness",

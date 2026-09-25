@@ -11,7 +11,7 @@ Goal: the commits since the branch diverged from its base become 1–5 well-form
 ## Context
 
 Use the `<repo-context>` block injected at session start for the integration branch. If it is absent, run
-`"${USKN_HARNESS_DIR:-$HOME/.local/share/uskn-harness}/plugins/uskn-harness/hooks/scripts/session-start.sh" --json`.
+`uskn-repo-context --json`.
 The base is `$ARGUMENTS` when given, otherwise the integration branch.
 
 ## Steps

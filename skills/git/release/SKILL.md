@@ -9,7 +9,7 @@ allowed-tools: Bash
 ## Context
 
 Use the `<repo-context>` block injected at session start: platform and CLI, the default branch, and `release_tag`. If the block is absent, run
-`"${USKN_HARNESS_DIR:-$HOME/.local/share/uskn-harness}/plugins/uskn-harness/hooks/scripts/session-start.sh" --json`.
+`uskn-repo-context --json`.
 If `release_tag` is not `calver`, ask the user for the exact tag to use instead of computing one. Notes language: follow the user or repository instructions; default to Japanese.
 
 ## Tag rule (calver)

@@ -15,7 +15,7 @@ Behavior depends on whether there are uncommitted changes and whether the curren
 ## Context
 
 Use the `<repo-context>` block injected at session start (platform, CLI, default / integration / qa branches). If it is absent, run
-`"${USKN_HARNESS_DIR:-$HOME/.local/share/uskn-harness}/plugins/uskn-harness/hooks/scripts/session-start.sh" --json`
+`uskn-repo-context --json`
 and use its values. Do not re-detect by hand when either is available.
 
 ## Steps

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# uskn-repo-context: the repository context that the SessionStart hook injects, on demand for skills
+# (openspec: claude-plugin-packaging). Claude Code puts the plugin's bin/ on the Bash tool's PATH; hooks, CI, and a
+# plain shell do not have it and call hooks/scripts/session-start.sh directly.
+#   uskn-repo-context --plain hosting [DIR]    github | gitlab | unknown
+#   uskn-repo-context --plain branches [DIR]   default=.. integration=.. qa=.. release_tag=..
+#   uskn-repo-context --json [DIR]             everything above plus the protected-branch declaration
+# Same arguments, output, and exit code as session-start.sh, which it runs.
+exec "$(dirname "$0")/../hooks/scripts/session-start.sh" "$@"

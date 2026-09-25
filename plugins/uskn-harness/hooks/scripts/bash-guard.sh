@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # bash-guard.sh: PreToolUse hook (Bash). Denies the typical ways of changing another repository from the shell and
-# warns, via additionalContext, about writes to paths outside the project root.
+# warns, via additionalContext, about writes to paths outside the project roots (CLAUDE_PROJECT_DIR, plus cwd's
+# checkout when it is a worktree of the same repository: project_roots; a cd into another repository adds nothing).
 #   deny  chezmoi apply|add|update|edit|re-add|merge, unless the session allow file covers the chezmoi source dir
 #         a git write subcommand whose repository (-C, --git-dir, --work-tree, GIT_DIR, cd, pushd) is outside
 #         a command that names or writes a session allow file (sessions/<id>/allow): only allow-repo.sh writes those
-#   warn  redirects and cp|mv|rm|rmdir|ln|tee|mkdir|touch|rsync|install|sed -i whose target is outside the root
+#         a command that names, writes, or removes the verify gate's state (GATE_FILES, a session dir, and for
+#         rm | rmdir | mv the sessions dir, the state dir, or above): only the hooks write those
+#   warn  redirects and cp|mv|rm|rmdir|ln|tee|mkdir|touch|rsync|install|sed -i whose target is outside the roots
 # The command is first split into words and operators (the awk program below): quotes removed, heredoc bodies
 # dropped, `$(...)` kept inside its word. Each simple command is then judged on its own, with the working directory
 # followed through cd / pushd and restored after a `( ... )` subshell. Words that start with `$` are not guessed.
@@ -16,19 +19,24 @@ set -u
 INPUT="$(cat 2>/dev/null || true)"; [ -n "$INPUT" ] || exit 0
 CMD="$(json_field "$INPUT" '.tool_input.command' command)"; [ -n "$CMD" ] || exit 0
 CWD="$(json_field "$INPUT" '.cwd' cwd)"; SID="$(json_field "$INPUT" '.session_id' session_id)"
-ROOT="$(project_root "${CWD:-$PWD}")"
+ROOTS="$(project_roots "${CWD:-$PWD}")"   # CLAUDE_PROJECT_DIR, plus cwd's checkout of the same repository
 # expand ~ and $HOME for the path checks only
 CMDX="$(printf '%s' "$CMD" | sed "s#\(^\|[[:space:]=\"']\)~/#\1$HOME/#g; s#\\\$HOME/#$HOME/#g; s#\\\${HOME}/#$HOME/#g")"
 GIT_WRITES=' push commit reset checkout switch rebase merge cherry-pick apply am '
 CHEZMOI_WRITES=' apply add update edit re-add merge '
-DENY=""; WARN=""; GIT_DENIED=0; ALLOW_DENIED=0
+DENY=""; WARN=""; GIT_DENIED=0; ALLOW_DENIED=0; GATE_DENIED=0; REMOVING=0
 add_deny() { DENY="${DENY:+$DENY }$1"; }
 add_warn() { case " $WARN " in *" $1 "*) ;; *) WARN="${WARN:+$WARN }$1" ;; esac; }
-outside() { ! path_allowed "$1" "$ROOT" "$SID"; }   # <abs path>
+outside() { ! path_allowed "$1" "$ROOTS" "$SID"; }   # <abs path>
 deny_allow_file() {
   [ "$ALLOW_DENIED" = 1 ] && return 0
   ALLOW_DENIED=1
   add_deny "This command names or writes a session allow file ($USKN_STATE/sessions/<id>/allow). Only the allow-repo skill writes it, when the user asks in this session; to read it, run allow-repo.sh --list --session <sid8>."
+}
+deny_gate_state() {
+  [ "$GATE_DENIED" = 1 ] && return 0
+  GATE_DENIED=1
+  add_deny "This command names, writes, or removes what $GATE_DENY"
 }
 
 # ---- 1. split into words (W), operators (O), and redirections (R), one token per line
@@ -148,6 +156,8 @@ write_target() { # <word>: a path this command writes
   local p
   p="$(resolve "$1")" || return 0
   if is_allow_file "$p"; then deny_allow_file; return 0; fi
+  # the gate's state: a state file, a session dir as the target (cp f <dir>/), or a removal of what holds them all
+  if is_gate_file "$p" || is_session_dir "$p" || { [ "$REMOVING" = 1 ] && holds_state "$p"; }; then deny_gate_state; return 0; fi
   outside "$p" && add_warn "$p"
   return 0
 }
@@ -317,7 +327,8 @@ simple_command() {
     chezmoi) do_chezmoi "$i" ;;
     cp | install | rsync) do_copy "$i" "$cmd" ;;
     ln) do_ln "$i" ;;
-    mv | rm | rmdir | mkdir | touch | tee) do_all "$i" ;;
+    mv | rm | rmdir) REMOVING=1; do_all "$i"; REMOVING=0 ;;
+    mkdir | touch | tee) do_all "$i" ;;
     sed) do_sed "$i" ;;
   esac
   return 0
@@ -334,6 +345,18 @@ allow_file_named() {
   return 1
 }
 allow_file_named && deny_allow_file
+# The same for the verify gate's state files (GATE_FILES): baseline-head or verify.log are not among them.
+gate_file_named() {
+  local s esc names
+  names="$(printf '%s' "$GATE_FILES" | tr ' ' '|')"
+  printf '%s' "$CMDX" | grep -qE "uskn-harness/sessions/[A-Za-z0-9_-]+/($names)([^[:alnum:]_.-]|\$)" && return 0
+  for s in "$USKN_STATE" "$(realpath_m "$USKN_STATE")"; do
+    esc="$(printf '%s' "$s" | sed 's#[][\.*^$+?(){}|]#\\&#g')"
+    printf '%s' "$CMDX" | grep -qE "${esc}/sessions/[A-Za-z0-9_-]+/($names)([^[:alnum:]_.-]|\$)" && return 0
+  done
+  return 1
+}
+gate_file_named && deny_gate_state
 
 PENDING=""
 while IFS= read -r line; do
@@ -355,11 +378,11 @@ simple_command
 if [ -n "$DENY" ]; then
   MSG="uskn-harness: $DENY"
   [ "$GIT_DENIED" = 1 ] && MSG="$MSG Other repositories are changed through a pull request from a fresh clone in the scratchpad, or a handoff document. If the user explicitly allowed it in this session, run /allow-repo <path> first."
-  deny_json "$MSG Project root: $ROOT."
+  deny_json "$MSG Project roots: $(roots_text "$ROOTS")."
   exit 0
 fi
 if [ -n "$WARN" ]; then
-  MSG="uskn-harness: this command touches paths outside the project root ($ROOT): $WARN. Other repositories are changed through a PR or a handoff document; if the user explicitly allowed writing there in this session, run /allow-repo <path>."
+  MSG="uskn-harness: this command touches paths outside the project roots ($(roots_text "$ROOTS")): $WARN. Other repositories are changed through a PR or a handoff document; if the user explicitly allowed writing there in this session, run /allow-repo <path>."
   if have jq; then jq -c -n --arg m "$MSG" '{hookSpecificOutput:{hookEventName:"PreToolUse",additionalContext:$m}}'
   else printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":"%s"}}\n' "$(printf '%s' "$MSG" | sed 's/\\/\\\\/g; s/"/\\"/g')"; fi
 fi

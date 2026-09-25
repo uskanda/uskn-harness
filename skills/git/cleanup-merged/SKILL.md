@@ -9,7 +9,7 @@ allowed-tools: Bash, AskUserQuestion
 ## Context
 
 Base branch: `$ARGUMENTS` when given, otherwise the integration branch from the `<repo-context>` block injected at session start. If the block is absent, run
-`"${USKN_HARNESS_DIR:-$HOME/.local/share/uskn-harness}/plugins/uskn-harness/hooks/scripts/session-start.sh" --json`.
+`uskn-repo-context --json`.
 
 ## Steps
 
