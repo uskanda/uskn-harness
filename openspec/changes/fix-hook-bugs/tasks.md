@@ -21,9 +21,9 @@
 
 ## 4. terms-check
 
-- [ ] 4.1 terms-checkのテストを足す。PNGを追跡するリポジトリでの検査、CLIでのpythonの異常終了の非ゼロ、python3が無いときの既定とstrictの違い。失敗を確認する
-- [ ] 4.2 hookが黙るテストの `.ts` に、用語集に無いカタカナ語のコメントを入れる。失敗を確認する
-- [ ] 4.3 `terms-check.sh` を直す。バイト列で読み、hookはMarkdownに限り、CLIではpythonの失敗を返し、`VERIFY_STRICT` を読む。`Makefile` の `verify-terms` は `VERIFY_STRICT` を渡す。4.1と4.2が通ることを確認する
+- [x] 4.1 terms-checkのテストを足す。PNGを追跡するリポジトリでの検査、CLIでのpythonの異常終了の非ゼロ、python3が無いときの既定とstrictの違い。失敗を確認する
+- [x] 4.2 hookが黙るテストの `.ts` に、用語集に無いカタカナ語のコメントを入れる。失敗を確認する
+- [x] 4.3 `terms-check.sh` を直す。バイト列で読み、hookはMarkdownに限り、CLIではpythonの失敗を返し、`VERIFY_STRICT` を読む。`Makefile` の `verify-terms` は `VERIFY_STRICT` を渡す。4.1と4.2が通ることを確認する
 
 ## 5. syncの終了コード
 

@@ -73,5 +73,5 @@ verify-design:
 
 verify-terms:
 	@if [ -x "$(TERMS_CHECK)" ]; then echo "[terms] $(words $(DOCS_TERMS)) documents"; \
-	  "$(TERMS_CHECK)" $(DOCS_TERMS) || exit 1; \
+	  VERIFY_STRICT=$(VERIFY_STRICT) "$(TERMS_CHECK)" $(DOCS_TERMS) || exit 1; \
 	else $(call skip,[terms] skipped (terms-check.sh missing)); fi

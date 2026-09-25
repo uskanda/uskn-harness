@@ -4,10 +4,12 @@
 #   terms   every katakana word and 「quoted」 term must be in openspec/glossary.yml or the common-word list
 #
 #   terms-check.sh <file.md> ...        CLI: print findings, exit 1 when there are any (make verify)
-#   (stdin JSON)                        PostToolUse hook: findings as additionalContext, never blocks
+#   (stdin JSON)                        PostToolUse hook on a .md / .markdown file: findings as additionalContext
 #
 # Contract: exit 0 in hook mode whatever happens; silent when there is nothing to report; skipped entirely
 # when USKN_SKIP_TERMS=1. Code fences, code spans, links and English documents are out of scope.
+# CLI mode never hides a failure of the check itself: a python error exits 2, and a missing python3 exits 1 under
+# VERIFY_STRICT=1 (0 with a note otherwise). Tracked files that hold NUL bytes are left out of the name corpus.
 set -u
 # shellcheck source=lib/common.sh
 . "$(dirname "$0")/lib/common.sh"
@@ -22,6 +24,7 @@ else
   [ -z "$(json_field "$INPUT" '.agent_type' agent_type)" ] || exit 0
   MODE=hook
   F="$(json_field "$INPUT" '.tool_input.file_path' file_path)"; [ -n "$F" ] || exit 0
+  case "$F" in *.md | *.markdown) ;; *) exit 0 ;; esac
   CWD="$(json_field "$INPUT" '.cwd' cwd)"
   case "$F" in /*) ;; *) F="${CWD:-$PWD}/$F" ;; esac
   FILES=("$(realpath_m "$F")")
@@ -34,9 +37,15 @@ COMMON="${USKN_COMMON_WORDS:-$(harness_dir)/skills/ja-writing/common-words.txt}"
 
 # The whole check is one awk-free python pass: the text work (fences, spans, katakana runs) is beyond
 # what bash and jq do well, and python3 is already a dependency of the harness helpers.
-have python3 || exit 0
+if ! have python3; then
+  [ "$MODE" = cli ] || exit 0
+  if [ "${VERIFY_STRICT:-0}" = 1 ]; then echo "terms-check: python3 not found -- VERIFY_STRICT=1: this check is required" >&2; exit 1; fi
+  echo "terms-check: python3 not found; skipped" >&2; exit 0
+fi
 
-OUT="$(python3 - "$ROOT" "$GLOSSARY" "$ALLOW" "$COMMON" "${FILES[@]}" <<'PY' 2>/dev/null || true
+ERR="$(mktemp "${TMPDIR:-/tmp}/terms-check.XXXXXX")" || exit 0
+trap 'rm -f "$ERR"' EXIT
+OUT="$(python3 - "$ROOT" "$GLOSSARY" "$ALLOW" "$COMMON" "${FILES[@]}" <<'PY' 2>"$ERR"
 import os, re, subprocess, sys
 
 root, glossary_path, allow_path, common_path, *files = sys.argv[1:]
@@ -44,11 +53,15 @@ if not files:
     sys.exit(0)
 
 def read(p):
+    """The file as text. Binary files (NUL bytes) read as empty; bytes that are not UTF-8 are replaced."""
     try:
-        with open(p, encoding="utf-8") as fh:
-            return fh.read()
+        with open(p, "rb") as fh:
+            data = fh.read()
     except OSError:
         return ""
+    if b"\0" in data:
+        return ""
+    return data.decode("utf-8", errors="replace")
 
 # ---- what counts as an existing name -------------------------------------------------
 def git(*args):
@@ -186,7 +199,11 @@ for f in files:
 for line in dict.fromkeys(findings):
     print(line)
 PY
-)"
+)"; RC=$?
+if [ "$RC" -ne 0 ]; then
+  [ "$MODE" = cli ] || exit 0
+  echo "terms-check: the check itself failed (python exit $RC):" >&2; cat "$ERR" >&2; exit 2
+fi
 
 [ -n "$OUT" ] || exit 0
 N="$(printf '%s\n' "$OUT" | grep -c .)"

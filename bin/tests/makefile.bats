@@ -28,6 +28,13 @@ mk() { env -i HOME="$BATS_TEST_TMPDIR/home" PATH="$NOTOOLS" make -C "$REPO" "$@"
   [ "$status" -ne 0 ]; [[ "$output" == *"[plugin]"* ]]
 }
 
+@test "verify-terms without python3: skipped by default, a failure under VERIFY_STRICT=1" {
+  run mk verify-terms
+  [ "$status" -eq 0 ]; [[ "$output" == *"skipped"* ]]
+  run mk verify-terms VERIFY_STRICT=1
+  [ "$status" -ne 0 ]; [[ "$output" == *"[terms]"* ]]; [[ "$output" == *"VERIFY_STRICT"* ]]
+}
+
 @test "VERIFY_STRICT=0 behaves like the default" {
   run mk verify-design VERIFY_STRICT=0
   [ "$status" -eq 0 ]; [[ "$output" == *"skipped"* ]]
