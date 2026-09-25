@@ -19,6 +19,7 @@ AGENTS.md、Agent Skills（`SKILL.md`）、MCP。hookはイベント語彙が揃
 3. プロダクトリポジトリには、規約が求めるファイルだけを置く。現時点の内訳は `AGENTS.md` `CLAUDE.md`
    `openspec/`（`glossary.yml` を含む）と検証規約。`DESIGN.md` と `PRODUCT.md` はUIを持つプロダクトだけ。
    列挙は内訳であって、置ける数の上限ではない（2026-09-06に表現を修正）。
+   `CLAUDE.md` は2026-09-25にADR-0003で置き換え、内訳から外した。
    検証コマンドは `make verify` → `pnpm run verify` / `npm run verify` の規約で探し、無ければ警告のみ
 4. 役割ごとに採用と代替をADRに残し、外部スキルとCLIは `deps.json` でピン止めする
 5. 常時ロードは目次と規則だけ。手順はスキル、詳細は `references/` へ。環境から分かることは書かない
@@ -48,6 +49,7 @@ GitHub public（2026-09-06にprivateから変更）、`main` のみ、CalVerタ�
 ### 5. 指示ファイルと言語
 各リポジトリは `AGENTS.md` を正本、`CLAUDE.md` は `@AGENTS.md` とClaude固有の数行。ユーザー層は `templates/user/AGENTS.md` を
 `~/.claude/CLAUDE.md` へ配置。スキル、hook、テンプレート、本リポジトリのAGENTS.mdは英語。チャット、コミット、PR、ADR、OpenSpec成果物は日本語。
+各リポジトリの `CLAUDE.md` は2026-09-25にADR-0003で置き換えた。指示ファイルは `AGENTS.md` だけにする。
 
 ### 6. ワークフロー
 1. `/spec <idea>` がgrillingを回す（ラウンド形式。mattpocock/skillsの `grilling` を参照）。

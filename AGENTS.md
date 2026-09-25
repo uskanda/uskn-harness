@@ -46,12 +46,17 @@ artifacts: Japanese.
   and `~/repos/*` stay untouched until the owner says otherwise.
 - External skills are referenced, pinned in `deps.json`, and never copied, except the entries listed under
   `forks`, which carry their upstream license.
-- A product repository carries only what the conventions call for: `AGENTS.md`, `CLAUDE.md`, `openspec/`
-  (with `glossary.yml`), a `verify` target, and `DESIGN.md` plus `PRODUCT.md` when it has a user interface. The
-  list is today's contents, not a cap. Everything else arrives through the installer.
+- A product repository carries only what the conventions call for: `AGENTS.md`, `openspec/` (with
+  `glossary.yml`), a `verify` target, and `DESIGN.md` plus `PRODUCT.md` when it has a user interface. The list is
+  today's contents, not a cap. Everything else arrives through the installer. `AGENTS.md` is the only instruction
+  file, here too: no `CLAUDE.md` (ADR-0003).
 - Every guide (skill, rule) that matters gets a sensor (hook, lint, test). Prefer computational sensors.
 - Names come from the code, `openspec/glossary.yml`, or a document you consulted. A new term goes into the
   glossary before it goes into prose. One concept, one term. A backticked name must exist.
+
+## Claude Code
+
+- OpenSpec artifacts live under `openspec/`; the commands are `/opsx:*`.
 
 ## References
 
