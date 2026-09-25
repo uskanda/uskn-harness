@@ -24,7 +24,6 @@ tree_fingerprint() {
     git -C "$1" ls-files --others --exclude-standard -z 2>/dev/null | (cd "$1" && xargs -0 git hash-object -- 2>/dev/null) || true
   } | sha
 }
-now_iso() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 # with_timeout <seconds> <command...>: run an external command under a time cap; exit 124 when the cap was hit.
 # GNU timeout, else gtimeout (Homebrew coreutils on macOS), else perl: the command runs in a process group of its
 # own, which gets TERM and a second later KILL, so what it started (make -> bats) stops too. No perl: no cap.
@@ -47,26 +46,11 @@ with_timeout() {
     ' "$t" "$@"
   else "$@"; fi
 }
-# ---- session journals
-USKN_SESSIONS="${USKN_SESSIONS_DIR:-$HOME/.ai-sessions}"
-sid8() { printf '%s' "${1:0:8}"; }
-# project_key <repo-top>: origin owner/repo as owner__repo (nested groups keep joining with __); else the dir name
-project_key() {
-  local url path
-  url="$(git -C "$1" remote get-url origin 2>/dev/null || true)"
-  if [ -n "$url" ]; then
-    path="$(printf '%s' "$url" | sed -E 's#\.git/?$##; s#^[a-z+]+://[^/]+/##; s#^[^@/]+@[^:]+:##; s#^/##')"
-    printf '%s' "$path" | sed 's#/#__#g'
-  else basename "$1"; fi
-}
-# session_dir_for_prefix <sid8>: the newest state dir whose name starts with the prefix
+# ---- session state
+# session_dir_for_prefix <sid8>: the newest state dir whose name starts with the prefix (allow-repo.sh)
 session_dir_for_prefix() {
   local d; d="$(ls -1dt "$USKN_STATE/sessions/$1"* 2>/dev/null | head -n 1)"
   [ -n "$d" ] && [ -d "$d" ] && printf '%s' "$d"
-}
-# to_local_stamp <iso-utc>: YYYY-MM-DD-HHMM in local time; falls back to now
-to_local_stamp() {
-  date -d "$1" +%Y-%m-%d-%H%M 2>/dev/null || date -j -u -f '%Y-%m-%dT%H:%M:%SZ' "$1" +%Y-%m-%d-%H%M 2>/dev/null || date +%Y-%m-%d-%H%M
 }
 # ---- paths and the project boundary
 realpath_m() { # resolve symlinks in the existing part of a path that may not exist yet
@@ -103,7 +87,7 @@ path_allowed() {
   under "$p" "$root" && return 0
   case "$p" in /dev/*) return 0 ;; esac   # /dev/null and friends are not a repository
   dirs="${USKN_GUARD_ALLOW_DIRS-/tmp:${TMPDIR:-}}"
-  for a in $(printf '%s' "$dirs" | tr ':' ' ') "$HOME/.ai-sessions" "$USKN_STATE" "${CLAUDE_PLUGIN_DATA:-}"; do
+  for a in $(printf '%s' "$dirs" | tr ':' ' ') "$USKN_STATE" "${CLAUDE_PLUGIN_DATA:-}"; do
     [ -n "$a" ] || continue; [ -e "$a" ] && a="$(realpath_m "$a")"; under "$p" "$a" && return 0
   done
   case "$p" in "$(realpath_m "$HOME")"/.claude/projects/*/memory | "$(realpath_m "$HOME")"/.claude/projects/*/memory/*) return 0 ;; esac

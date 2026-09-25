@@ -19,7 +19,7 @@ TOP="$(git -C "${CWD:-$PWD}" rev-parse --show-toplevel 2>/dev/null || true)"; [ 
 DIR="$USKN_STATE/sessions/$SID"; mkdir -p "$DIR" 2>/dev/null || exit 0
 NOW="$(tree_fingerprint "$TOP")"
 if [ ! -s "$DIR/baseline" ]; then
-  printf '%s\n' "$NOW" > "$DIR/baseline"; ( cd "$TOP" && pwd -P ) > "$DIR/project"; [ -s "$DIR/started" ] || now_iso > "$DIR/started"
+  printf '%s\n' "$NOW" > "$DIR/baseline"
   exit 0
 fi
 [ "$NOW" = "$(cat "$DIR/baseline")" ] && exit 0
