@@ -25,6 +25,12 @@ age() { local d="$1"; shift; perl -e 'my $t = time - shift(@ARGV) * 86400; utime
 # refute <command...>: fails when the command succeeds. A bare `! cmd` that is not the last line of a test never
 # fails it (errexit ignores negated commands); the non-zero return of a function does.
 refute() { ! "$@"; }
+# dep <jq path>: a value from deps.json, so a pin bump needs no test edit.
+dep() { jq -r "$1" "$REPO/deps.json"; }
+# npm_specs <cli key>: the install arguments sync builds for a pinned npm cli -- package@version, then its bundle.
+npm_specs() {
+  jq -r --arg k "$1" '.clis[$k] | [ "\(.package)@\(.version)" ] + ((.bundle // {}) | to_entries | map("\(.key)@\(.value)")) | join(" ")' "$REPO/deps.json"
+}
 
 @test "--help prints usage and exits 0" {
   run "$CLI" --help
@@ -65,9 +71,9 @@ refute() { ! "$@"; }
   [ "$(readlink -f "$HOME/.local/share/openspec/schemas/uskn")" = "$REPO/schemas/uskn" ]
   [ -f "$CLAUDE_CONFIG_DIR/CLAUDE.md" ]
   head -1 "$CLAUDE_CONFIG_DIR/CLAUDE.md" | grep -q "managed by uskn-harness"
-  grep -q "mise use -g node@24" "$USKN_HARNESS_STUB_LOG"
-  grep -q "openspec@1.13.2" "$USKN_HARNESS_STUB_LOG"
-  grep -q "skills@latest add mattpocock/skills --skill grilling" "$USKN_HARNESS_STUB_LOG"
+  grep -qF "mise use -g node@$(dep .runtimes.node.version)" "$USKN_HARNESS_STUB_LOG"
+  grep -qF "openspec@$(dep .clis.openspec.version)" "$USKN_HARNESS_STUB_LOG"
+  grep -qF "skills@$(dep .clis.skills.version) add mattpocock/skills#$(dep .skills.grilling.ref)@grilling" "$USKN_HARNESS_STUB_LOG"
   [ ! -e "$HOME/.ai-sessions" ]
   [[ "$output" != *"sessions repo"* ]]
   [[ "$output" == *"created"* ]]
@@ -77,8 +83,8 @@ refute() { ! "$@"; }
 @test "sync --tools installs the runtime, the pinned CLIs, and the schema link only; --tools --remove exits 2" {
   run "$CLI" sync --tools
   [ "$status" -eq 0 ]
-  grep -q "mise use -g node@24" "$USKN_HARNESS_STUB_LOG"
-  grep -q "openspec@1.13.2" "$USKN_HARNESS_STUB_LOG"
+  grep -qF "mise use -g node@$(dep .runtimes.node.version)" "$USKN_HARNESS_STUB_LOG"
+  grep -qF "openspec@$(dep .clis.openspec.version)" "$USKN_HARNESS_STUB_LOG"
   [ -L "$HOME/.local/share/openspec/schemas/uskn" ]
   [ "$(readlink -f "$HOME/.local/share/openspec/schemas/uskn")" = "$REPO/schemas/uskn" ]
   [ ! -e "$STABLE" ]
@@ -88,7 +94,8 @@ refute() { ! "$@"; }
   [ ! -e "$CLAUDE_CONFIG_DIR/CLAUDE.md" ]
   [ ! -e "$HOME/.ai-sessions" ]
   refute grep -q "git clone" "$USKN_HARNESS_STUB_LOG"
-  refute grep -q "skills@latest add" "$USKN_HARNESS_STUB_LOG"
+  refute grep -q "skills@" "$USKN_HARNESS_STUB_LOG"
+  refute grep -q "impeccable" "$USKN_HARNESS_STUB_LOG"
   refute grep -q "openspec-user-layer" "$USKN_HARNESS_STUB_LOG"
   run "$CLI" sync --tools; [ "$status" -eq 0 ]; [[ "$output" == *"ok"*"openspec schema uskn"* ]]
   run "$CLI" sync --tools --remove; [ "$status" -eq 2 ]
@@ -334,11 +341,9 @@ refute() { ! "$@"; }
 @test "sync installs the pinned npm CLIs with their bundles and the UI / writing skills from deps.json" {
   run "$CLI" sync
   [ "$status" -eq 0 ]
-  grep -q "npm install -g textlint@15.8.0 textlint-rule-preset-ja-technical-writing@12.0.2 @textlint-ja/textlint-rule-preset-ai-writing@1.7.0" "$USKN_HARNESS_STUB_LOG"
-  grep -q "npm install -g agent-style@0.4.2" "$USKN_HARNESS_STUB_LOG"
-  grep -q "npm install -g @google/design.md@0.4.0" "$USKN_HARNESS_STUB_LOG"
-  grep -q "impeccable@4.0.1 install" "$USKN_HARNESS_STUB_LOG"
-  grep -q "skills@latest add anthropics/claude-plugins-official --skill frontend-design" "$USKN_HARNESS_STUB_LOG"
+  for cli in textlint agent-style designmd; do grep -qF "npm install -g $(npm_specs "$cli")" "$USKN_HARNESS_STUB_LOG"; done
+  grep -qF "releases/download/$(dep .skills.impeccable.ref)/" "$USKN_HARNESS_STUB_LOG"
+  grep -qF "anthropics/claude-plugins-official#$(dep '.skills["frontend-design"].ref')@frontend-design" "$USKN_HARNESS_STUB_LOG"
   for s in ja-writing en-writing ui-guidelines test-driven-development systematic-debugging verify; do
     [ -L "$SKILLS/$s" ]
     [ "$(readlink -f "$SKILLS/$s")" = "$REPO/skills/$s" ]
@@ -347,23 +352,23 @@ refute() { ! "$@"; }
 
 @test "sync skips an npm CLI whose package and bundle are already at the pinned versions" {
   export USKN_NPM_ROOT="$BATS_TEST_TMPDIR/npm"
-  for p in textlint:15.8.0 textlint-rule-preset-ja-technical-writing:12.0.2 @textlint-ja/textlint-rule-preset-ai-writing:1.7.0 \
-           textlint-rule-preset-jtf-style:3.0.3 textlint-rule-prh:6.1.0 agent-style:0.4.2; do
-    mkdir -p "$USKN_NPM_ROOT/${p%%:*}"; printf '{"version":"%s"}\n' "${p##*:}" > "$USKN_NPM_ROOT/${p%%:*}/package.json"
+  for p in $(npm_specs textlint) $(npm_specs agent-style); do   # scoped names start with @: split at the last one
+    mkdir -p "$USKN_NPM_ROOT/${p%@*}"; printf '{"version":"%s"}\n' "${p##*@}" > "$USKN_NPM_ROOT/${p%@*}/package.json"
   done
   run "$CLI" sync
   [ "$status" -eq 0 ]
-  refute grep -q "textlint@15.8.0" "$USKN_HARNESS_STUB_LOG"
-  refute grep -q "agent-style@0.4.2" "$USKN_HARNESS_STUB_LOG"
-  grep -q "@google/design.md@0.4.0" "$USKN_HARNESS_STUB_LOG"
-  [[ "$output" == *"ok"*"textlint 15.8.0"* ]]
+  refute grep -qF "textlint@$(dep .clis.textlint.version)" "$USKN_HARNESS_STUB_LOG"
+  refute grep -qF "agent-style@$(dep '.clis["agent-style"].version')" "$USKN_HARNESS_STUB_LOG"
+  grep -qF "@google/design.md@$(dep .clis.designmd.version)" "$USKN_HARNESS_STUB_LOG"
+  [[ "$output" == *"ok"*"textlint $(dep .clis.textlint.version)"* ]]
 }
 
 @test "doctor warns about a missing or mismatched npm CLI and reports the pinned version" {
   export USKN_NPM_ROOT="$BATS_TEST_TMPDIR/npm"
   mkdir -p "$USKN_NPM_ROOT/textlint"; echo '{"version":"15.0.0"}' > "$USKN_NPM_ROOT/textlint/package.json"
   run "$CLI" doctor
-  [[ "$output" == *"warn"*"textlint"*"15.0.0"*"15.8.0"* ]]
+  [ "$(dep .clis.textlint.version)" != 15.0.0 ]
+  [[ "$output" == *"warn"*"textlint"*"15.0.0"*"$(dep .clis.textlint.version)"* ]]
   [[ "$output" == *"warn"*"agent-style"*"none"* ]]
   [[ "$output" == *"warn"*"third-party impeccable"* ]]
 }

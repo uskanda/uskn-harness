@@ -1,6 +1,6 @@
 {
-  "_readme": "External things the harness depends on, pinned. `mode` is reference (installed from upstream, never edited), vendored (copied into skills/ with upstream license), or cli. `ref` is the upstream commit or tag verified on `checked`. `clis` entries with `global: true` are npm packages that `uskn-harness sync` installs globally through mise at `version` (plus `bundle`); `bin` is what ends up on PATH. Update refs deliberately and record why in an ADR or change.",
-  "updated": "2026-09-05",
+  "_readme": "External things the harness depends on, pinned. `mode` is reference (installed from upstream, never edited), vendored (copied into skills/ with upstream license), or cli. `ref` is the upstream tag or full 40-character commit SHA verified on `checked` (the skills CLI cannot install a short SHA). `clis` entries with `global: true` are npm packages that `uskn-harness sync` installs globally through mise at `version` (plus `bundle`); `bin` is what ends up on PATH. `skills` entries with `via` are installed by `sync`: `via: skills` through the skills CLI pinned in `clis`, `via: impeccable` from the release asset checked against `sha256`. Update refs deliberately and record why in an ADR or change.",
+  "updated": "2026-09-25",
   "runtimes": {
     "mise": {
       "version": "2026.9.1",
@@ -30,11 +30,10 @@
     },
     "skills": {
       "package": "skills",
-      "version": "latest",
+      "version": "1.7.0",
       "repo": "vercel-labs/skills",
-      "role": "installs skills into each agent's directory via symlink",
-      "install": "npx skills@latest add <source> -g",
-      "checked": "2026-09-05"
+      "role": "installs the `skills` entries with `via: skills` as `npx -y skills@<version> add '<source>#<ref>@<name>' -g -a claude-code -y`. Global installs are recorded in $XDG_STATE_HOME/skills/.skill-lock.json, else ~/.agents/.skill-lock.json; sync reinstalls and doctor warns when the recorded `ref` differs from deps.json",
+      "checked": "2026-09-25"
     },
     "textlint": {
       "package": "textlint",
@@ -57,7 +56,7 @@
       "bin": "designmd",
       "global": true,
       "repo": "google-labs-code/design.md",
-      "ref": "9bf8eae67128",
+      "ref": "9bf8eae67128b6cc55ad9bf86665767deb4c11cd",
       "status": "alpha",
       "role": "DESIGN.md lint / diff / export / spec; used by ui-guidelines and by make verify on templates/repo/DESIGN.md",
       "checked": "2026-09-05"
@@ -68,7 +67,7 @@
       "bin": "agent-style",
       "global": true,
       "repo": "yzhao062/agent-style",
-      "ref": "99722a59e5ab",
+      "ref": "99722a59e5ab654bafe68788f3bff7d1c8237f5a",
       "role": "21 English writing rules (CC BY 4.0 + MIT): `agent-style rules`, `agent-style review --audit-only`; used by en-writing. `enable` is not used (the user layer CLAUDE.md is managed by the harness)",
       "checked": "2026-09-05"
     }
@@ -76,74 +75,87 @@
   "skills": {
     "grilling": {
       "mode": "reference",
+      "via": "skills",
       "source": "mattpocock/skills",
       "path": "skills/productivity/grilling",
-      "ref": "3cca18b368ae",
+      "ref": "3cca18b368ae95cdbdebbff572ccafa662551015",
       "role": "mandatory interview before any spec decision",
-      "install": "npx -y skills@latest add mattpocock/skills --skill grilling -g -a claude-code -y",
-      "checked": "2026-09-05"
+      "checked": "2026-09-25"
     },
     "grill-me": {
       "mode": "reference",
+      "via": "skills",
       "source": "mattpocock/skills",
       "path": "skills/productivity/grill-me",
-      "ref": "3cca18b368ae",
+      "ref": "3cca18b368ae95cdbdebbff572ccafa662551015",
       "role": "user-invoked wrapper for grilling",
-      "checked": "2026-09-05",
-      "install": "npx -y skills@latest add mattpocock/skills --skill grill-me -g -a claude-code -y"
+      "checked": "2026-09-25"
     },
     "handoff": {
       "mode": "reference",
+      "via": "skills",
       "source": "mattpocock/skills",
       "path": "skills/productivity/handoff",
-      "ref": "3cca18b368ae",
+      "ref": "3cca18b368ae95cdbdebbff572ccafa662551015",
       "role": "compact a conversation into a handoff document",
-      "checked": "2026-09-05",
-      "install": "npx -y skills@latest add mattpocock/skills --skill handoff -g -a claude-code -y"
+      "checked": "2026-09-25"
     },
     "writing-for-agents": {
       "mode": "reference",
+      "via": "skills",
       "source": "mattpocock/skills",
       "path": "skills/productivity/writing-for-agents",
-      "ref": "3cca18b368ae",
+      "ref": "3cca18b368ae95cdbdebbff572ccafa662551015",
       "role": "rules for writing SKILL.md and AGENTS.md",
-      "checked": "2026-09-05",
-      "install": "npx -y skills@latest add mattpocock/skills --skill writing-for-agents -g -a claude-code -y"
+      "checked": "2026-09-25"
     },
     "humanizer": {
       "mode": "reference",
+      "via": "skills",
       "source": "blader/humanizer",
-      "ref": "v2.11.1",
-      "role": "English prose de-AI pass; accepts voice samples",
-      "checked": "2026-09-05",
-      "install": "npx -y skills@latest add blader/humanizer -g -a claude-code -y",
+      "ref": "v3.0.0",
+      "role": "English prose de-AI pass; accepts voice samples. en-writing asks for its embedded mode, which returns only the final text",
+      "checked": "2026-09-25",
       "status": "installed globally; en-writing calls it as the final pass"
     },
     "expo-skills": {
       "mode": "reference",
       "source": "expo/skills",
-      "ref": "d0075ffa0992",
+      "ref": "d0075ffa09928f1edb3e7ac4f5af07586d4b344d",
       "role": "React Native / Expo guidance for monolith",
       "checked": "2026-09-05",
       "status": "project-level install in Expo repositories (phase 4); not installed globally"
     },
     "frontend-design": {
       "mode": "reference",
+      "via": "skills",
       "source": "anthropics/claude-plugins-official",
       "path": "plugins/frontend-design",
+      "ref": "44490cccaf6d9f82fdeec9416fbf7c9bd72575dc",
       "role": "fallback UI guidance for a new web surface that has no DESIGN.md yet (ui-guidelines step 4)",
-      "install": "npx -y skills@latest add anthropics/claude-plugins-official --skill frontend-design -g -a claude-code -y",
-      "checked": "2026-09-05"
+      "checked": "2026-09-25"
     },
     "impeccable": {
       "mode": "reference",
+      "via": "impeccable",
       "source": "pbakaus/impeccable",
-      "ref": "cli-v4.0.1",
-      "package": "impeccable",
-      "version": "4.0.1",
-      "role": "UI commands (audit, critique, polish, harden, adapt, ...). init / document / extract / doctor are not used: DESIGN.md follows the Google spec, PRODUCT.md comes from templates/repo",
-      "install": "npx -y impeccable@4.0.1 install -y --providers=claude --scope=global --no-hooks",
-      "checked": "2026-09-05"
+      "ref": "skill-v4.3.1",
+      "version": "4.3.1",
+      "asset": "universal.zip",
+      "sha256": "1deea4cdfb1608df6d9e08ef359629e7cc866a22ab7c2195a835627b887f190b",
+      "cli": {
+        "package": "impeccable",
+        "version": "4.1.0",
+        "ref": "cli-v4.1.0"
+      },
+      "remove_agents": [
+        "impeccable-asset-producer",
+        "impeccable-documenter",
+        "impeccable-finish-reviewer",
+        "impeccable-manual-edit-applier"
+      ],
+      "role": "UI commands (audit, critique, polish, harden, adapt, ...). init / document / extract / doctor are not used: DESIGN.md follows the Google spec, PRODUCT.md comes from templates/repo. Skill tags (skill-v*) and CLI tags (cli-v*) are independent, and the CLI's `install` fetches the latest skill unless IMPECCABLE_BUNDLE_PATH names a local zip. A local zip skips the CLI's signature check, so sync checks it against `sha256` first. Every install writes the agents in `remove_agents`; sync deletes them",
+      "checked": "2026-09-25"
     }
   },
   "forks": {

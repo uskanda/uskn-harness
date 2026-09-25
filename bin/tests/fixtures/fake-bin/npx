@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Stand-in for npx in bin/tests/third-party.bats. Appends its arguments and IMPECCABLE_BUNDLE_PATH to $FAKE_LOG and
+# exits with $FAKE_NPX_RC (default 0). As the Impeccable CLI (`install` with a bundle path) it also does what the
+# real one does to the user layer: the skill at $FAKE_IMPECCABLE_VERSION and the four agents.
+printf 'npx %s | bundle=%s\n' "$*" "${IMPECCABLE_BUNDLE_PATH:-}" >> "${FAKE_LOG:-/dev/null}"
+if [ "${FAKE_NPX_RC:-0}" = 0 ] && [[ " $* " == *" install "* ]] && [ -n "${IMPECCABLE_BUNDLE_PATH:-}" ]; then
+  [ -f "$IMPECCABLE_BUNDLE_PATH" ] || { echo "fake npx: bundle missing: $IMPECCABLE_BUNDLE_PATH" >&2; exit 3; }
+  d="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+  mkdir -p "$d/skills/impeccable" "$d/agents"
+  printf -- '---\nname: impeccable\ndescription: x\nversion: %s\n---\n' "${FAKE_IMPECCABLE_VERSION:-0}" > "$d/skills/impeccable/SKILL.md"
+  for a in impeccable-asset-producer impeccable-documenter impeccable-finish-reviewer impeccable-manual-edit-applier; do
+    echo "# $a" > "$d/agents/$a.md"
+  done
+fi
+exit "${FAKE_NPX_RC:-0}"

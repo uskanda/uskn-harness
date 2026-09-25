@@ -42,6 +42,10 @@ terms:
     definition: "OpenSpecの1つの変更が持つ文書。grilling、proposal、specs、design、tasks。"
     aliases: ["アーティファクト"]
     en: "artifact"
+  - term: "サイドカー"
+    definition: "Impeccableが `DESIGN.md` の隣に書く補助ファイル `.impeccable/design.json`。ハーネスでは採らない。"
+    aliases: []
+    en: "sidecar"
   - term: "変更"
     definition: "`openspec/changes/<name>/` に置く、1つのまとまった仕事の単位。"
     aliases: []
