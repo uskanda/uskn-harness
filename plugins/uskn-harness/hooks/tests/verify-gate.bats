@@ -16,12 +16,12 @@ stop() { printf '{"session_id":"sid","cwd":"%s","hook_event_name":"Stop","stop_h
 runs() { [ -f "$R/runs.log" ] && wc -l < "$R/runs.log" || echo 0; }
 
 @test "no change since baseline: silent, verify not run" {
-  run stop; [ "$status" -eq 0 ] && [ -z "$output" ]; [ "$(runs)" -eq 0 ]
+  run stop; [ "$status" -eq 0 ]; [ -z "$output" ]; [ "$(runs)" -eq 0 ]
 }
 
 @test "change + passing verify: silent, verified fingerprint recorded, no rerun without further change" {
   echo x > "$R/new.txt"
-  run stop; [ "$status" -eq 0 ] && [ -z "$output" ]; [ "$(runs)" -eq 1 ]
+  run stop; [ "$status" -eq 0 ]; [ -z "$output" ]; [ "$(runs)" -eq 1 ]
   [ -s "$USKN_STATE_DIR/sessions/sid/verified" ]
   run stop; [ -z "$output" ]; [ "$(runs)" -eq 1 ]
   echo y > "$R/new.txt"
@@ -58,7 +58,7 @@ runs() { [ -f "$R/runs.log" ] && wc -l < "$R/runs.log" || echo 0; }
 @test "outside git: silent" {
   mkdir -p "$BATS_TEST_TMPDIR/plain"
   run bash -c "printf '{\"session_id\":\"s9\",\"cwd\":\"$BATS_TEST_TMPDIR/plain\",\"stop_hook_active\":false}' | '$SCRIPT'"
-  [ "$status" -eq 0 ] && [ -z "$output" ]
+  [ "$status" -eq 0 ]; [ -z "$output" ]
 }
 
 @test "package.json with scripts.verify and pnpm-lock.yaml uses pnpm run verify" {

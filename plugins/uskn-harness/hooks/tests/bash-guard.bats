@@ -4,8 +4,9 @@ SCRIPT="$BATS_TEST_DIRNAME/../scripts/bash-guard.sh"
 setup() {
   export HOME="$BATS_TEST_TMPDIR/home"; export USKN_STATE_DIR="$BATS_TEST_TMPDIR/state"; mkdir -p "$HOME/dotfiles" "$USKN_STATE_DIR/sessions/sid12345678"
   export GIT_CONFIG_GLOBAL=/dev/null
-  export USKN_GUARD_ALLOW_DIRS="${TMPDIR:-/nonexistent}:/tmp/claude-1000"   # bats itself lives under /tmp, so narrow the default
-  ROOT="$BATS_TEST_TMPDIR/repos/a"; OTHER="$BATS_TEST_TMPDIR/repos/b"; mkdir -p "$ROOT" "$OTHER"; ( cd "$ROOT" && git init -q -b main )
+  # The default allowlist (/tmp, $TMPDIR) would cover BATS_TEST_TMPDIR itself, wherever TMPDIR points; use a dedicated one.
+  SCRATCH="$BATS_TEST_TMPDIR/scratch"; export USKN_GUARD_ALLOW_DIRS="$SCRATCH"
+  ROOT="$BATS_TEST_TMPDIR/repos/a"; OTHER="$BATS_TEST_TMPDIR/repos/b"; mkdir -p "$ROOT" "$OTHER" "$SCRATCH"; ( cd "$ROOT" && git init -q -b main )
   export CLAUDE_PROJECT_DIR="$ROOT"
 }
 call() { jq -c -n --arg c "$1" --arg cwd "$ROOT" '{session_id:"sid12345678", cwd:$cwd, tool_name:"Bash", tool_input:{command:$c}}' | "$SCRIPT"; }
@@ -13,7 +14,11 @@ denied() { echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "de
 warned() { echo "$output" | jq -e '(.hookSpecificOutput.permissionDecision // "none") == "none" and (.hookSpecificOutput.additionalContext | length) > 0' >/dev/null; }
 
 @test "chezmoi apply / add / update are denied" {
-  for c in "chezmoi apply --force" "chezmoi add ~/.claude/settings.json" "chezmoi update"; do run call "$c"; [ "$status" -eq 0 ]; denied; done
+  for c in "chezmoi apply --force" "chezmoi add ~/.claude/settings.json" "chezmoi update"; do
+    run call "$c"
+    [ "$status" -eq 0 ]
+    denied
+  done
 }
 
 @test "git writes in another repo are denied: cd form and -C form, with ~ expansion" {

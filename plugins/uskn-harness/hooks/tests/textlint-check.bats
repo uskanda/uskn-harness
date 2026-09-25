@@ -27,6 +27,8 @@ EOF
 
 call() { jq -c -n --arg f "$1" --arg cwd "$R" '{session_id:"s", cwd:$cwd, hook_event_name:"PostToolUse", tool_name:"Write", tool_input:{file_path:$f, content:"x"}, tool_response:{}}' | "$SCRIPT"; }
 ctx() { echo "$output" | jq -r '.hookSpecificOutput.additionalContext'; }
+# refute <command...>: fails when the command succeeds (a bare `! cmd` mid-test never fails a bats test).
+refute() { ! "$@"; }
 
 @test "japanese markdown with findings returns them as PostToolUse additionalContext" {
   export FAKE_FINDINGS="$F1
@@ -67,7 +69,7 @@ $F3"
     printf 'Before: 日本語の例。 After: 直した例。\n'; } > "$R/docs/skill.md"
   export FAKE_FINDINGS="$F1"
   run call "$R/docs/skill.md"
-  [ "$status" -eq 0 ] && [ -z "$output" ]
+  [ "$status" -eq 0 ]; [ -z "$output" ]
   [ ! -s "$LOG" ]
 }
 
@@ -96,7 +98,7 @@ $F3"
   run call "docs/ja.md"
   [ "$status" -eq 0 ]
   ctx | grep -q "1 problem"
-  ! grep -q -- "--config" "$LOG"
+  refute grep -q -- "--config" "$LOG"
   grep -q "cwd=$R" "$LOG"
 }
 

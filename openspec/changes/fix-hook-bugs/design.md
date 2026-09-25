@@ -112,6 +112,10 @@ verify gateは、テストで打ち切りを試せるよう、上限を `USKN_VE
 
 `[ A ] && [ B ]` は、Aが偽でもbatsの失敗にならない。`set -e` は `&&` の途中の失敗では止まらないからである。1行に1つの判定へ分ける。
 行の途中の `! grep` も同じ理由で失敗にならない。`refute() { ! "$@"; }` という補助関数を各ファイルに置き、`refute grep -q ...` と書く。関数の戻り値は `set -e` の対象になる。
+判定を直すと、`textlint-check.bats` のリポジトリ設定のテストが失敗し始めた。
+`ls .textlintrc .textlintrc.*` は片方が無いだけで非ゼロを返すため、`.textlintrc.json` だけを置いたリポジトリでハーネスの設定が使われていた。
+ファイルを1つずつ `-f` で確かめる形に直す。textlint-hookのspecの「設定の選択」の要件どおりの振る舞いに戻るだけなので、specは変えない。
+
 ガードのテストは `USKN_GUARD_ALLOW_DIRS` を、`BATS_TEST_TMPDIR` の下の専用ディレクトリだけにする。既定の許可リスト（`/tmp` と `$TMPDIR`）は、別のテストで `USKN_GUARD_ALLOW_DIRS` を外して確かめる。
 
 ### そのほか

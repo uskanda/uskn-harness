@@ -25,8 +25,9 @@ BYTES="$(wc -c < "$ABS" 2>/dev/null || echo 0)"
 [ $((KANA * 100 / BYTES)) -ge "${USKN_TEXTLINT_MIN_JA:-6}" ] || exit 0
 have textlint || exit 0
 ROOT="$(project_root "${CWD:-$PWD}")"
-CONF=""
-if ! ls "$ROOT"/.textlintrc "$ROOT"/.textlintrc.* >/dev/null 2>&1; then
+CONF="" LOCAL_RC=""
+for f in "$ROOT"/.textlintrc "$ROOT"/.textlintrc.*; do [ -f "$f" ] && LOCAL_RC="$f"; done
+if [ -z "$LOCAL_RC" ]; then
   CONF="$(harness_dir)/skills/ja-writing/textlintrc.json"; [ -f "$CONF" ] || exit 0
 fi
 MAX=20

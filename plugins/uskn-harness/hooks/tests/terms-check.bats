@@ -31,7 +31,7 @@ ctx() { echo "$output" | jq -r '.hookSpecificOutput.additionalContext'; }
 @test "a backticked name that exists as a path, a path element, or in a tracked file passes" {
   printf '# t\n\n`bin/real-script.sh` と `Makefile` と `VERIFY_TOKEN` と `docs` を使う。\n' > "$R/docs/ok.md"
   run cli "$R/docs/ok.md"
-  [ "$status" -eq 0 ] && [ -z "$output" ]
+  [ "$status" -eq 0 ]; [ -z "$output" ]
 }
 
 @test "a backticked name that exists nowhere is reported and fails in CLI mode" {
@@ -44,20 +44,20 @@ ctx() { echo "$output" | jq -r '.hookSpecificOutput.additionalContext'; }
 @test "placeholders, assignments and version examples are not names" {
   printf '# t\n\n`<name>` と `KEY=value` と `v26.09.1` と `vYY.MM.X` を書く。\n' > "$R/docs/ph.md"
   run cli "$R/docs/ph.md"
-  [ "$status" -eq 0 ] && [ -z "$output" ]
+  [ "$status" -eq 0 ]; [ -z "$output" ]
 }
 
 @test "the allowlist silences a name that is real but lives outside the repository" {
   printf 'timeout.exe\n' > "$R/openspec/known-names.txt"
   printf '# t\n\nWindowsの `timeout.exe` は別物である。\n' > "$R/docs/ext.md"
   run cli "$R/docs/ext.md"
-  [ "$status" -eq 0 ] && [ -z "$output" ]
+  [ "$status" -eq 0 ]; [ -z "$output" ]
 }
 
 @test "a katakana word that is in neither list is reported; glossary and common words are not" {
   printf '# t\n\nハーネスのコマンドはファイルを読む。\n' > "$R/docs/known.md"
   run cli "$R/docs/known.md"
-  [ "$status" -eq 0 ] && [ -z "$output" ]
+  [ "$status" -eq 0 ]; [ -z "$output" ]
   printf '# t\n\nこのフレームワークはコマンドを読む。\n' > "$R/docs/new.md"
   run cli "$R/docs/new.md"
   [ "$status" -ne 0 ]
@@ -68,7 +68,7 @@ ctx() { echo "$output" | jq -r '.hookSpecificOutput.additionalContext'; }
   printf '# t\n\nハーネス基盤を導入する。\n' > "$R/docs/alias.md"
   run cli "$R/docs/alias.md"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"ハーネス基盤"* ]] && [[ "$output" == *"ハーネス"* ]]
+  [[ "$output" == *"ハーネス基盤"* ]]; [[ "$output" == *"ハーネス"* ]]
 }
 
 @test "quoted terms are checked, code blocks and English files are not" {
@@ -77,7 +77,7 @@ ctx() { echo "$output" | jq -r '.hookSpecificOutput.additionalContext'; }
   [ "$status" -ne 0 ]; [[ "$output" == *"未知概念"* ]]
   printf '# t\n\n```\nハーネス基盤 `harness.yaml` 「未知概念」\n```\n' > "$R/docs/fence.md"
   run cli "$R/docs/fence.md"
-  [ "$status" -eq 0 ] && [ -z "$output" ]
+  [ "$status" -eq 0 ]; [ -z "$output" ]
 }
 
 @test "hook mode returns additionalContext and never blocks" {
@@ -91,18 +91,18 @@ ctx() { echo "$output" | jq -r '.hookSpecificOutput.additionalContext'; }
 
 @test "hook mode is silent for a clean file, a non-markdown file, and a missing file" {
   printf '# t\n\n`Makefile` を読む。\n' > "$R/docs/clean.md"
-  run hook "$R/docs/clean.md"; [ "$status" -eq 0 ] && [ -z "$output" ]
+  run hook "$R/docs/clean.md"; [ "$status" -eq 0 ]; [ -z "$output" ]
   printf 'const x = 1;\n' > "$R/docs/code.ts"
-  run hook "$R/docs/code.ts"; [ "$status" -eq 0 ] && [ -z "$output" ]
-  run hook "$R/docs/gone.md"; [ "$status" -eq 0 ] && [ -z "$output" ]
+  run hook "$R/docs/code.ts"; [ "$status" -eq 0 ]; [ -z "$output" ]
+  run hook "$R/docs/gone.md"; [ "$status" -eq 0 ]; [ -z "$output" ]
 }
 
 @test "USKN_SKIP_TERMS=1 and a repository without a glossary keep the name check working" {
   printf '# t\n\n設定は `harness.yaml` に置く。ハーネス基盤も書く。\n' > "$R/docs/skip.md"
   USKN_SKIP_TERMS=1 run cli "$R/docs/skip.md"
-  [ "$status" -eq 0 ] && [ -z "$output" ]
+  [ "$status" -eq 0 ]; [ -z "$output" ]
   rm "$R/openspec/glossary.yml"
   run cli "$R/docs/skip.md"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"harness.yaml"* ]] && [[ "$output" != *"ハーネス基盤"* ]]
+  [[ "$output" == *"harness.yaml"* ]]; [[ "$output" != *"ハーネス基盤"* ]]
 }

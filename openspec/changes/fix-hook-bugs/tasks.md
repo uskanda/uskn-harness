@@ -1,7 +1,8 @@
 ## 1. テストの判定を直す
 
-- [ ] 1.1 journal系を除く全batsで、`[ A ] && [ B ]` を1行1判定に分ける。行の途中の `! grep` と `|| true` の判定は `refute` に直す。`grep` で該当行が残らないことと、batsが通ることを確認する
-- [ ] 1.2 `bash-guard.bats` と `write-guard.bats` の許可ディレクトリを `BATS_TEST_TMPDIR` の下の専用ディレクトリにする。既定の許可リストは別のテストで確かめる。scratchpadの下の `TMPDIR` で両方が通ることを確認する
+- [x] 1.1 journal系を除く全batsで、`[ A ] && [ B ]` を1行1判定に分ける。行の途中の `! grep` と `|| true` の判定は `refute` に直す。`grep` で該当行が残らないことと、batsが通ることを確認する
+- [x] 1.2 `bash-guard.bats` と `write-guard.bats` の許可ディレクトリを `BATS_TEST_TMPDIR` の下の専用ディレクトリにする。既定の許可リストは別のテストで確かめる。scratchpadの下の `TMPDIR` で両方が通ることを確認する
+- [x] 1.3 1.1で失敗し始めた `textlint-check.bats` の判定を調べる。`.textlintrc` と `.textlintrc.json` の片方だけでは、リポジトリの設定が使われていなかった。`textlint-check.sh` の判定を直し、テストが通ることを確認する
 
 ## 2. 許可ファイルの保護
 
