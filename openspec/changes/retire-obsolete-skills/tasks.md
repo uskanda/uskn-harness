@@ -36,9 +36,9 @@
 ## 5. 移行スクリプトを削除する
 
 - [x] 5.1 `templates/chezmoi/` の移行スクリプトを削除し、ファイル名を `openspec/known-names.txt` に足す。`make verify-terms` が通ることを確かめる
-- [ ] 5.2 dotfilesをscratchpadにfresh cloneし、スクリプトのコピーを消すdraft PRを作る。PRのURLを確かめる
+- [x] 5.2 dotfilesをscratchpadにfresh cloneし、スクリプトのコピーを消すdraft PRを作る。PRのURLを確かめる（uskanda/dotfiles#11）
 
 ## 6. 全体の確認
 
-- [ ] 6.1 `make verify` と `openspec validate retire-obsolete-skills --strict` が通ることを確かめる
-- [ ] 6.2 `fix-hook-bugs` とこの変更を、一時的なcloneで順にarchiveする。main specsにRENAMEDとMODIFIEDが反映されることを確かめる
+- [x] 6.1 `make verify` と `openspec validate retire-obsolete-skills --strict` が通ることを確かめる
+- [x] 6.2 `fix-hook-bugs` とこの変更を、一時的なcloneで順にarchiveする。main specsにRENAMEDとMODIFIEDが反映されることを確かめる
