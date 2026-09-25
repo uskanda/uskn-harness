@@ -29,16 +29,11 @@ hook() { jq -c -n --arg f "$1" --arg cwd "$R" '{session_id:"s", cwd:$cwd, hook_e
 ctx() { echo "$output" | jq -r '.hookSpecificOutput.additionalContext'; }
 # path_without_python: a directory of links to everything on PATH except python3, for a machine without it
 path_without_python() {
-  local d f n farm="$BATS_TEST_TMPDIR/nopython" IFS=:
+  local farm="$BATS_TEST_TMPDIR/nopython" d
   mkdir -p "$farm"
-  for d in $PATH; do
-    [ -d "$d" ] || continue
-    for f in "$d"/*; do
-      n="${f##*/}"
-      case "$n" in python3*) continue ;; esac
-      [ -x "$f" ] && [ ! -e "$farm/$n" ] && ln -s "$f" "$farm/$n"
-    done
-  done
+  local IFS=:
+  for d in $PATH; do [ -d "$d" ] && ln -s "$d"/* "$farm"/ 2>/dev/null; done   # first match wins
+  rm -f "$farm"/python3*
   printf '%s' "$farm"
 }
 

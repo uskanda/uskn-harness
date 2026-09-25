@@ -52,11 +52,11 @@ path_without() {
   printf 'verify:\n\t@sleep 30\n' > "$R/Makefile"
   P="$(path_without timeout gtimeout)"
   start="$(date +%s)"
-  HOME="$BATS_TEST_TMPDIR/h" USKN_VERIFY_TIMEOUT=2 PATH="$P" run stop
+  HOME="$BATS_TEST_TMPDIR/h" USKN_VERIFY_TIMEOUT=1 PATH="$P" run stop
   [ "$status" -eq 0 ]
   [ $(( $(date +%s) - start )) -lt 15 ]
   echo "$output" | jq -e '.decision == "block"' >/dev/null
-  echo "$output" | jq -r '.reason' | grep -q "timed out after 2s"
+  echo "$output" | jq -r '.reason' | grep -q "timed out after 1s"
 }
 
 @test "stop_hook_active: silent even when failing" {
