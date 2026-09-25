@@ -88,7 +88,7 @@ Verify GREENは、触ったテストのファイルとその周りを実行す�
 `root-cause-tracing.md` の「NEVER fix just the symptom」と、`defense-in-depth.md` の大文字の「EVERY」が該当する。
 `writing-good-tests.md` は具体的な規則だけなので、変えない。
 
-`deps.json` の `forks` の2項目には、`diverged`（分岐した日）と `note`（Opus 5.x向けに書き直し、再取り込みしない）を足す。`changes` にも1行足す。
+`deps.json` の `forks` の2項目には、`diverged`（分岐した日）と `note`（Opus 5.x向けに書き直し、再取り込みしない）を足す。`changes` には書き直しの1行を足す。TDDの項目にある「GREENの実行は検証規約」の行は、今のHarness Notesに合わせて直す。
 
 代案として、上流の最新版を取り込み直す形も考えた。上流は同じ書き方を保っているので、取り込むたびに書き直しが要る。grilling.mdのQ14で分岐を選んだ。
 
@@ -127,6 +127,21 @@ Q12で、完了前の検証はgateに任せると決めたため。起動条件�
 `Makefile` は `bin/tests` の下のbatsをすべて実行するので、`Makefile` は変えない。
 方法論スキルの本文に禁止語が無いことは、テストにしない。`writing-good-tests.md` の「本文の文字を検索するテストは書かない」に従う。
 
+### 7. 強調と検証を促す文の点検の結果
+
+`skills/` と `templates/` を、大文字の強調と、確かめ直しや検証の追加を促す文で検索した。方法論スキルの外で直したのは次の2か所。
+
+- `templates/repo/AGENTS.md` の「How to work here」にあった2行。grillingの手順と、検証規約が通るまで完了としない旨の行。ユーザー層とverify gateが持つので消した。
+- `allow-repo` の説明文の「Never run this on your own initiative」。`disable-model-invocation` が同じことを強制するので消した。
+
+残したものと理由は次のとおり。
+
+- `fix-ci` の報告項目「Local re-check result」：報告に載せる項目で、確かめ直しを足す指示ではない。gitスキルの本文は別の変更が持つ。
+- `verify` の本文の「Evidence before claims」：`retire-obsolete-skills` のQ9で決まった規則。スキルが動いたときの報告の形を決める。
+- `archive-push` の2回目の検証：archiveで同期したspecを確かめる。ユーザーだけが起動するスキルなので、文脈にも載らない。
+- `templates/repo/Makefile` の先頭のコメント：gateとの関係を人に説明する文で、常に読み込まれる文ではない。
+- 小文字の「never」や「do not」：普通の言い方の範囲にある。
+
 ## Risks / Trade-offs
 
 - 5つのスキルを、モデルが自分で勧めなくなる → `ok` スキルが、起動できないスキルの入力をユーザーに頼む。onboard-skillとaudit-writing-skillのScenarioで、入力を勧めることを定める。
@@ -149,8 +164,11 @@ Q12で、完了前の検証はgateに任せると決めたため。起動条件�
 
 | 対象 | 変更前 | 変更後 |
 |---|---|---|
-| モデルが読む説明文の合計 | 19スキル、5,194文字 | 測定待ち |
-| `skills/test-driven-development/SKILL.md` | 333行、9,834バイト | 測定待ち |
-| `skills/systematic-debugging/SKILL.md` | 287行、9,719バイト | 測定待ち |
-| `templates/user/CLAUDE.md` | 39行、3,595バイト | 測定待ち |
-| `AGENTS.md` | 64行、3,406バイト | 測定待ち |
+| モデルが読む説明文の合計 | 19スキル、5,194文字 | 14スキル、2,350文字（55％減） |
+| うち、変更後もモデルが読む14スキル | 3,879文字 | 2,350文字（39％減） |
+| `skills/test-driven-development/SKILL.md` | 333行、9,834バイト | 203行、6,815バイト |
+| `skills/systematic-debugging/SKILL.md` | 287行、9,719バイト | 161行、7,201バイト |
+| `templates/user/CLAUDE.md` | 39行、3,595バイト | 12行、1,750バイト |
+| `AGENTS.md` | 64行、3,406バイト | 47行、2,350バイト |
+
+ユーザーだけが起動するスキルにした5つは、変更前に合わせて1,315文字を文脈に置いていた。

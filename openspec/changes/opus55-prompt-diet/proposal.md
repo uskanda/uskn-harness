@@ -37,7 +37,7 @@ ADR-0001の1.5節も、常時ロードを目次と規則に限り、環境から
 ## Impact
 
 - 配布物：`templates/user/CLAUDE.md`。各マシンで次に `uskn-harness sync` を実行すると `~/.claude/CLAUDE.md` が入れ替わる
-- 指示ファイル：このリポジトリの `AGENTS.md`
+- 指示ファイル：このリポジトリの `AGENTS.md`。プロダクトリポジトリ向けの `templates/repo/AGENTS.md` からも、ユーザー層と重なる2行を消す
 - スキル：`skills/test-driven-development/`、`skills/systematic-debugging/`（参照ファイルを含む）の本文。すべてのスキルのfrontmatter
 - ピン：`deps.json` の `forks` の2項目だけ。ほかの項目には触れない
 - テスト：`bin/tests/skill-invocation.bats`（新規）、`bin/tests/uskn-harness.bats` のユーザー層の大きさのテスト
