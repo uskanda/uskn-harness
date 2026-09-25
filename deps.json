@@ -1,5 +1,5 @@
 {
-  "_readme": "External things the harness depends on, pinned. `mode` is reference (installed from upstream, never edited), vendored (copied into skills/ with upstream license), or cli. `ref` is the upstream commit or tag verified on `checked`. `clis` entries with `global: true` are npm packages that `uskn-harness sync` installs globally through mise at `version` (plus `bundle`); `bin` is what ends up on PATH. Update refs deliberately and record why in an ADR or change.",
+  "_readme": "External things the harness depends on, pinned. `mode` is reference (installed from upstream, never edited), vendored (copied into skills/ with upstream license), or cli. `ref` is the upstream commit or tag verified on `checked`. `clis` entries with `global: true` are npm packages that `uskn-harness sync` installs globally through mise at `version` (plus `bundle`); `bin` is what ends up on PATH. A `runtimes` entry with `min_version` is a floor, not a pin: `uskn-harness doctor` warns about an install older than it, `sync` never installs or pins it, and any newer version is fine. Update refs deliberately and record why in an ADR or change.",
   "updated": "2026-09-05",
   "runtimes": {
     "mise": {
@@ -16,6 +16,10 @@
       "version": "1.7",
       "via": "mise when the OS has no jq",
       "role": "JSON parsing in hooks and the installer"
+    },
+    "claude-code": {
+      "min_version": "2.1.281",
+      "role": "floor checked by `uskn-harness doctor` for the claude CLI on PATH and each VS Code extension: from 2.1.281 Claude Code reads AGENTS.md in a repository without CLAUDE.md, on every provider and with telemetry off (ADR-0003). `sync` never installs, updates, or pins Claude Code, and CI installs the latest"
     }
   },
   "clis": {

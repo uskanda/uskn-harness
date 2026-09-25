@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
-# Tests for bin/uskn-harness (spec: harness-sync, harness-doctor, user-layer-instructions).
+# Tests for bin/uskn-harness (spec: harness-sync, harness-doctor, user-layer-instructions, onboard-check).
 # HOME and CLAUDE_CONFIG_DIR point into $BATS_TEST_TMPDIR; network steps are stubbed and logged.
+# A fake `claude` in the temporary HOME's .local/bin sits first on PATH, so the real one never decides a result.
 
 REPO="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
 CLI="$REPO/bin/uskn-harness"
@@ -15,7 +16,33 @@ setup() {
   : > "$USKN_HARNESS_STUB_LOG"
   SKILLS="$CLAUDE_CONFIG_DIR/skills"
   STABLE="$HOME/.local/share/uskn-harness"
+  MIN="$(jq -r '.runtimes["claude-code"].min_version' "$REPO/deps.json")"
+  export PATH="$HOME/.local/bin:$PATH"
+  fake_claude "$MIN (Claude Code)"
 }
+
+fake_claude() { # <what `claude --version` prints>
+  printf '#!/bin/sh\necho "%s"\n' "$1" > "$HOME/.local/bin/claude"
+  chmod +x "$HOME/.local/bin/claude"
+}
+fake_extension() { # <extensions dir under HOME> <version> [platform]: a Claude Code VS Code extension directory
+  mkdir -p "$HOME/$1/anthropic.claude-code-$2-${3:-linux-x64}"
+}
+# path_without_claude: PATH with every `claude` hidden. A directory that holds one is replaced by links to its
+# other entries, so the tools living next to it (mise, node) still resolve.
+path_without_claude() {
+  local IFS=: dir f out="" shadow n=0
+  for dir in $PATH; do
+    if [ -e "$dir/claude" ]; then
+      n=$((n + 1)); shadow="$BATS_TEST_TMPDIR/noclaude$n"; mkdir -p "$shadow"
+      for f in "$dir"/*; do [ "${f##*/}" = claude ] || ln -s "$f" "$shadow/"; done
+      dir="$shadow"
+    fi
+    out="${out:+$out:}$dir"
+  done
+  printf '%s' "$out"
+}
+claude_code_lines() { grep -E '^(ok|warn|fail) +Claude Code' <<<"$output" || true; }
 
 snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
 # refute <command...>: fails when the command succeeds. A bare `! cmd` that is not the last line of a test never
@@ -247,9 +274,102 @@ refute() { ! "$@"; }
   [[ "$output" == *"warn"* ]]
 }
 
+@test "templates/repo carries no CLAUDE.md, and its AGENTS.md offers an optional Claude Code section" {
+  [ ! -e "$REPO/templates/repo/CLAUDE.md" ]
+  grep -q '^## Claude Code' "$REPO/templates/repo/AGENTS.md"
+}
+
 @test "templates/user/CLAUDE.md is under 60 lines and starts with the marker" {
   [ "$(wc -l < "$REPO/templates/user/CLAUDE.md")" -le 60 ]
   head -1 "$REPO/templates/user/CLAUDE.md" | grep -q "managed by uskn-harness"
+}
+
+# ---- Claude Code minimum version (spec: harness-doctor, harness-sync)
+
+@test "doctor: an old claude CLI is warn with both versions and says AGENTS.md is not read" {
+  fake_claude "2.1.270 (Claude Code)"
+  run "$CLI" doctor
+  [ "$status" -eq 0 ]
+  line="$(claude_code_lines)"
+  [ "$(grep -c . <<<"$line")" -eq 1 ]
+  [[ "$line" == "warn"*"$HOME/.local/bin/claude"* ]]
+  [[ "$line" == *"2.1.270"* ]]
+  [[ "$line" == *"$MIN"* ]]
+  [[ "$line" == *"AGENTS.md"* ]]
+  [[ "$line" == *"CLAUDE.md"* ]]
+}
+
+@test "doctor: a claude CLI at or above the minimum is ok, however new" {
+  for v in 2.1.282 3.0.0; do
+    fake_claude "$v (Claude Code)"
+    run "$CLI" doctor
+    line="$(claude_code_lines)"
+    [[ "$line" == "ok"*"$HOME/.local/bin/claude"*"$v"* ]]
+    refute grep -q '^warn' <<<"$line"
+  done
+}
+
+@test "doctor: a claude CLI whose version cannot be read is warn with the output attached" {
+  fake_claude "unknown option --version"
+  run "$CLI" doctor
+  [ "$status" -eq 0 ]
+  line="$(claude_code_lines)"
+  [[ "$line" == "warn"*"$HOME/.local/bin/claude"* ]]
+  [[ "$line" == *"unknown option --version"* ]]
+}
+
+@test "doctor: an old VS Code extension is warn with its directory and both versions" {
+  fake_extension .vscode-server/extensions 2.1.279
+  run "$CLI" doctor
+  [ "$status" -eq 0 ]
+  line="$(claude_code_lines | grep vscode)"
+  [[ "$line" == "warn"*"$HOME/.vscode-server/extensions/anthropic.claude-code-2.1.279-linux-x64"* ]]
+  [[ "$line" == *"$MIN"* ]]
+  [[ "$line" == *"AGENTS.md"* ]]
+}
+
+@test "doctor: ~/.vscode/extensions is checked as well" {
+  fake_extension .vscode/extensions 2.1.279 darwin-arm64
+  run "$CLI" doctor
+  line="$(claude_code_lines | grep vscode)"
+  [[ "$line" == "warn"*"$HOME/.vscode/extensions/anthropic.claude-code-2.1.279-darwin-arm64"* ]]
+}
+
+@test "doctor: only the newest extension in one extensions directory is compared" {
+  fake_extension .vscode-server/extensions 2.1.279
+  fake_extension .vscode-server/extensions 2.1.282
+  run "$CLI" doctor
+  line="$(claude_code_lines | grep vscode)"
+  [ "$(grep -c . <<<"$line")" -eq 1 ]
+  [[ "$line" == "ok"*"anthropic.claude-code-2.1.282-linux-x64"* ]]
+  refute grep -q '2\.1\.279' <<<"$output"
+}
+
+@test "doctor: an old CLI next to a new extension gives exactly one warn" {
+  fake_claude "2.1.270 (Claude Code)"
+  fake_extension .vscode-server/extensions 2.1.282
+  run "$CLI" doctor
+  [ "$status" -eq 0 ]
+  [ "$(claude_code_lines | grep -c '^warn')" -eq 1 ]
+  [[ "$(claude_code_lines | grep '^warn')" == *"$HOME/.local/bin/claude"* ]]
+  [[ "$(claude_code_lines | grep vscode)" == "ok"* ]]
+}
+
+@test "doctor: no Claude Code line when there is neither a claude on PATH nor a VS Code extension" {
+  run "$CLI" doctor
+  [[ "$(claude_code_lines)" == "ok"* ]]   # control: the default fake claude is reported
+  rm "$HOME/.local/bin/claude"
+  export PATH="$(path_without_claude)"
+  run "$CLI" doctor
+  [ "$status" -eq 0 ]
+  refute grep -q 'Claude Code' <<<"$output"
+}
+
+@test "sync never installs or pins Claude Code; deps.json keeps only a floor for it" {
+  jq -e '.runtimes["claude-code"] | has("min_version") and (has("version") | not)' "$REPO/deps.json"
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+  refute grep -qE '@anthropic-ai/claude-code|claude\.ai/install|claude update' "$USKN_HARNESS_STUB_LOG"
 }
 
 # ---- phase 3: pinned npm CLIs (textlint, agent-style, design.md) and UI skills (spec: harness-sync, harness-doctor)
@@ -298,26 +418,26 @@ fixture_repo() { # <dir> [ui]  -- a bare product repo, optionally with a UI depe
   [ "${2:-}" = ui ] && printf '{"dependencies":{"expo":"~54.0.0","react":"19.1.0"}}\n' > "$1/package.json"
   return 0
 }
-onboarded_repo() { # <dir> -- everything onboard-harness would place, with a UI dependency
+onboarded_repo() { # <dir> -- everything onboard-harness would place, with a UI dependency (no CLAUDE.md)
   fixture_repo "$1" ui
   printf '# product\n' > "$1/AGENTS.md"
-  printf '@AGENTS.md\n' > "$1/CLAUDE.md"
   mkdir -p "$1/openspec/specs" "$1/openspec/changes"; printf 'schema: uskn\n' > "$1/openspec/config.yaml"
   printf 'verify:\n\t@echo ok\n' > "$1/Makefile"
   printf '%s\n' '---' 'name: x' '---' > "$1/DESIGN.md"; printf '# Product\n' > "$1/PRODUCT.md"
 }
 
-@test "onboard-check on an untouched repo warns about every item and still exits 0" {
+@test "onboard-check on an untouched repo warns about every item but CLAUDE.md and still exits 0" {
   P="$BATS_TEST_TMPDIR/fresh"; fixture_repo "$P" ui
   run "$CLI" onboard-check "$P"
   [ "$status" -eq 0 ]
   [[ "$output" == *"warn"*"AGENTS.md"* ]]
-  [[ "$output" == *"warn"*"CLAUDE.md"* ]]
   [[ "$output" == *"warn"*"openspec"* ]]
   [[ "$output" == *"warn"*"verify"* ]]
   [[ "$output" == *"warn"*"DESIGN.md"* ]]
   [[ "$output" == *"warn"*"PRODUCT.md"* ]]
-  refute grep -q '^ok ' <<<"$output"
+  refute grep -q '^warn .*CLAUDE' <<<"$output"
+  [ "$(grep -c '^ok ' <<<"$output")" -eq 1 ]
+  grep -q '^ok .*CLAUDE.md' <<<"$output"
 }
 
 @test "onboard-check on an onboarded repo reports ok for every item" {
@@ -326,6 +446,7 @@ onboarded_repo() { # <dir> -- everything onboard-harness would place, with a UI 
   [ "$status" -eq 0 ]
   [[ "$output" != *"warn"* ]]
   [[ "$output" == *"ok"*"AGENTS.md"* ]]
+  grep -q '^ok .*CLAUDE.md' <<<"$output"
   [[ "$output" == *"ok"*"schema: uskn"* ]]
   [[ "$output" == *"ok"*"make verify"* ]]
 }
@@ -357,11 +478,52 @@ onboarded_repo() { # <dir> -- everything onboard-harness would place, with a UI 
   [[ "$output" != *"warn"*"release-expo"* ]]
 }
 
-@test "onboard-check warns when CLAUDE.md does not point at AGENTS.md" {
+@test "onboard-check: a CLAUDE.md that imports @AGENTS.md is ok" {
+  P="$BATS_TEST_TMPDIR/import"; onboarded_repo "$P"
+  printf '@AGENTS.md\n' > "$P/CLAUDE.md"
+  run "$CLI" onboard-check "$P"
+  [[ "$output" != *"warn"* ]]
+  grep -q '^ok .*CLAUDE.md -> @AGENTS.md' <<<"$output"
+}
+
+@test "onboard-check warns when CLAUDE.md does not import AGENTS.md, and says AGENTS.md goes unread" {
   P="$BATS_TEST_TMPDIR/stale"; onboarded_repo "$P"
   printf '# rules\n\n色々書いてある\n' > "$P/CLAUDE.md"
   run "$CLI" onboard-check "$P"
-  [[ "$output" == *"warn"*"CLAUDE.md"* ]]
+  line="$(grep '^warn .*CLAUDE.md' <<<"$output")"
+  [[ "$line" == *"AGENTS.md"*"not read"* ]]
+  refute grep -q '^ok .*CLAUDE' <<<"$output"
+}
+
+@test "onboard-check judges .claude/CLAUDE.md the same way" {
+  P="$BATS_TEST_TMPDIR/dotclaude"; onboarded_repo "$P"
+  mkdir -p "$P/.claude"; printf '# rules\n' > "$P/.claude/CLAUDE.md"
+  run "$CLI" onboard-check "$P"
+  grep -q '^warn .*\.claude/CLAUDE.md' <<<"$output"
+  printf '@AGENTS.md\n' > "$P/.claude/CLAUDE.md"
+  run "$CLI" onboard-check "$P"
+  [[ "$output" != *"warn"* ]]
+  grep -q '^ok .*\.claude/CLAUDE.md -> @AGENTS.md' <<<"$output"
+}
+
+@test "onboard-check warns about CLAUDE.local.md in a repo that relies on AGENTS.md, and names the fix" {
+  P="$BATS_TEST_TMPDIR/local"; onboarded_repo "$P"
+  printf '# mine\n' > "$P/CLAUDE.local.md"
+  run "$CLI" onboard-check "$P"
+  [ "$status" -eq 0 ]
+  line="$(grep '^warn .*CLAUDE.local.md' <<<"$output")"
+  [[ "$line" == *"AGENTS.md"* ]]
+  [[ "$line" == *"delete"* ]]
+  [[ "$line" == *"claude-md-and-agents-md"* ]]
+  refute grep -q '^ok .*CLAUDE' <<<"$output"
+}
+
+@test "onboard-check: CLAUDE.local.md is fine next to a CLAUDE.md that imports @AGENTS.md" {
+  P="$BATS_TEST_TMPDIR/local-ok"; onboarded_repo "$P"
+  printf '@AGENTS.md\n' > "$P/CLAUDE.md"; printf '# mine\n' > "$P/CLAUDE.local.md"
+  run "$CLI" onboard-check "$P"
+  [[ "$output" != *"warn"* ]]
+  grep -q '^ok .*CLAUDE.md -> @AGENTS.md' <<<"$output"
 }
 
 @test "onboard-check defaults to the current directory and reports the path" {
