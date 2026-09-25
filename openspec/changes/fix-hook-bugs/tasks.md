@@ -6,8 +6,8 @@
 
 ## 2. 許可ファイルの保護
 
-- [ ] 2.1 write-guardのテストに、許可ファイルへのWrite、symlink経由のEdit、状態ディレクトリを許可したあとのWriteが拒否される場合を足し、失敗を確認する
-- [ ] 2.2 `lib/common.sh` の `path_allowed` から許可ファイルを除き、write-guardに解除できない拒否を足す。2.1が通ることを確認する
+- [x] 2.1 write-guardのテストに、許可ファイルへのWrite、symlink経由のEdit、状態ディレクトリを許可したあとのWriteが拒否される場合を足し、失敗を確認する
+- [x] 2.2 `lib/common.sh` の `path_allowed` から許可ファイルを除き、write-guardに解除できない拒否を足す。2.1が通ることを確認する
 - [ ] 2.3 bash-guardのテストに、許可ファイルへのリダイレクトと `cp` が拒否され、`allow-repo.sh` の実行は黙る場合を足し、失敗を確認する
 - [ ] 2.4 bash-guardに許可ファイルの文字列の照合と、書き込み先の解決による拒否を足す。2.3が通ることを確認する
 

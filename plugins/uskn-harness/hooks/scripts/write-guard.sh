@@ -11,6 +11,10 @@ CWD="$(json_field "$INPUT" '.cwd' cwd)"; SID="$(json_field "$INPUT" '.session_id
 ROOT="$(project_root "${CWD:-$PWD}")"
 case "$FILE" in /*) ABS="$FILE" ;; *) ABS="${CWD:-$PWD}/$FILE" ;; esac
 ABS="$(realpath_m "$ABS")"
+if is_allow_file "$ABS"; then
+  deny_json "uskn-harness: $ABS is a session allow file. Only the allow-repo skill (/allow-repo <path>) writes it, and only when the user asks for it in this session; nothing lifts this restriction."
+  exit 0
+fi
 path_allowed "$ABS" "$ROOT" "$SID" && exit 0
 deny_json "uskn-harness: writing outside the project root is not allowed. Target: $ABS. Root: $ROOT. Changes another repository needs go through a pull request made from a fresh clone in the scratchpad, whose body carries the handoff. If the user explicitly allowed editing that location in this session, run the allow-repo skill (/allow-repo <path>) first."
 exit 0

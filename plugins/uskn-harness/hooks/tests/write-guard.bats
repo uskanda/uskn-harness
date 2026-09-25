@@ -29,7 +29,19 @@ denied() { echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "de
   run call "$SCRATCH/x/scratchpad/f"; [ -z "$output" ]
   run call "$HOME/.ai-sessions/x/j.md"; [ -z "$output" ]
   run call "$HOME/.claude/projects/p/memory/m.md"; [ -z "$output" ]
-  run call "$USKN_STATE_DIR/sessions/sid12345678/allow"; [ -z "$output" ]
+  run call "$USKN_STATE_DIR/sessions/sid12345678/notes"; [ -z "$output" ]
+}
+
+@test "the session allow file is denied: directly, through a symlink, and even with the state dir allowed" {
+  run call "$USKN_STATE_DIR/sessions/sid12345678/allow"
+  [ "$status" -eq 0 ]
+  denied
+  echo "$output" | jq -r '.hookSpecificOutput.permissionDecisionReason' | grep -q "/allow-repo"
+  run call "$USKN_STATE_DIR/sessions/another-session/allow" Edit; denied
+  ln -s "$USKN_STATE_DIR" "$SCRATCH/state-link"
+  run call "$SCRATCH/state-link/sessions/sid12345678/allow" Edit; denied
+  echo "$USKN_STATE_DIR" > "$USKN_STATE_DIR/sessions/sid12345678/allow"
+  run call "$USKN_STATE_DIR/sessions/sid12345678/allow"; denied
 }
 
 @test "default allowlist without USKN_GUARD_ALLOW_DIRS: /tmp and TMPDIR are silent" {
