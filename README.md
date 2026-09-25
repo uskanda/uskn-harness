@@ -19,9 +19,9 @@
 | 領域 | 実装 | センサー |
 |---|---|---|
 | 配布と導入 | `bin/uskn-harness`（sync / doctor / onboard-check）、`templates/`、`deps.json` のピン、`plugins/uskn-harness` | `uskn-harness doctor`、bats |
-| 仕様づくり | `skills/spec/` がgrillingを回し、schema `uskn` がgrillingをproposalの前提にする。簡単な改修はユーザーの指示で `skills/no-grilling/` が省略を記録する。提案は `skills/ok/` で承諾し、違う点だけを書き添える。終えた変更は `skills/archive-push/` がarchiveからpushまで1回で進める | PreToolUse hook `grilling-guard` |
-| 実装と検証 | `skills/verify/`、obra/superpowersからforkした方法論スキル4件（TDD、系統的デバッグ、完了前検証、worktree） | Stop hook `verify-gate`、`make verify`、CI |
-| git運用 | ワークフローのスキル11個（commit、push、pr、rebase、releaseほか）。旧名は1行のエイリアスで残す | SessionStart hookが `<repo-context>` を注入する |
+| 仕様づくり | `skills/spec/` がgrillingを回し、schema `uskn` がgrillingをproposalの前提にする。OpenSpecの操作はコマンド `/opsx:*` で行う。簡単な改修はユーザーの指示で `skills/no-grilling/` が省略を記録する。提案は `skills/ok/` で承諾し、違う点だけを書き添える。終えた変更は `skills/archive-push/` がarchiveからpushまで1回で進める | PreToolUse hook `grilling-guard` |
+| 実装と検証 | `skills/verify/`（完了の根拠を示す規則と、検証規約が無いときにCIの設定から確認する手順を含む）、obra/superpowersからforkした方法論スキル2件（TDD、系統的デバッグ） | Stop hook `verify-gate`、`make verify`、CI |
+| git運用 | ワークフローのスキル9個（commit、push、pr、rebase、releaseほか）。旧名は1行のエイリアスで残す | SessionStart hookが `<repo-context>` を注入する |
 | 記録 | セッションjournalを各端末のローカルgit（`~/.ai-sessions`）に貯め、pushしない。`skills/journal/` と `skills/recall/` | Stop hookが事実を書き、決定欄が空なら1度だけ促す |
 | 安全 | `skills/allow-repo/`。ルート外への書き込み、`chezmoi apply`、他リポジトリへのgit操作を止める | PreToolUse hook `write-guard` と `bash-guard` |
 | 文章 | `skills/ja-writing/`（JTF準拠の表記、成果物ごとの文体）、`skills/en-writing/`（agent-styleとhumanizer） | PostToolUse hook `textlint-check`、`make verify` |

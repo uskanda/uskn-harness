@@ -19,12 +19,12 @@
 
 ## 3. スキルを削除し、verifyに統合する
 
-- [ ] 3.1 `skills/verify/SKILL.md` に、完了の根拠の規則、CIの設定から確認コマンドを導く手順、報告の例を足す。descriptionも合わせ、`make verify-skills` が通ることを確かめる
-- [ ] 3.2 `nessun-dorma`、`pre-merge`、`using-git-worktrees`、`verification-before-completion` のディレクトリを削除する。
+- [x] 3.1 `skills/verify/SKILL.md` に、完了の根拠の規則、CIの設定から確認コマンドを導く手順、報告の例を足す。descriptionも合わせ、`make verify-skills` が通ることを確かめる
+- [x] 3.2 `nessun-dorma`、`pre-merge`、`using-git-worktrees`、`verification-before-completion` のディレクトリを削除する。
   `deps.json` の `forks` の2項目も削除する。batsの導入スキルの一覧を直し、テストが通ることを確かめる
-- [ ] 3.3 `templates/user/CLAUDE.md`、`skills/git/fix-ci`、`skills/verify`、`skills/systematic-debugging` の参照を直す。
+- [x] 3.3 `templates/user/CLAUDE.md`、`skills/git/fix-ci`、`skills/verify`、`skills/systematic-debugging` の参照を直す。
   `templates/user/CLAUDE.md` が削除したスキルの名前を含まないことを確かめるbatsのテストを足し、通ることを確かめる
-- [ ] 3.4 README、ADR-0001の§8と§9、`docs/setup-new-machine.md`、`methodology-skills` のmain specのPurposeを直す。
+- [x] 3.4 README、ADR-0001の§8と§9、`docs/setup-new-machine.md`、`methodology-skills` のmain specのPurposeを直す。
   archiveとproposalの記録を除く `grep` で、削除したスキルの名前が残っていないことを確かめる
 
 ## 4. uskn schemaに上流の案内文を取り込む

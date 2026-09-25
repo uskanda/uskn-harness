@@ -88,6 +88,11 @@ cleanup-merged、pre-merge、fix-ci、release、nessun-dormaも移す。
 chezmoi-merge、sync-claude-settings、set-workspace-theme、cleanupはdotfilesに残す。
 `openspec-*` はCLI生成物に置き換える。
 
+2026-09-25に `nessun-dorma` と `pre-merge` を削除した（change `retire-obsolete-skills`）。
+長時間の自律作業はClaude Codeのネイティブの `/goal` が受け持つ。CIと同じ確認は `verify` スキルに統合した。
+`openspec-*` のスキルはユーザー層に配らなくなり、OpenSpecの操作はコマンド（`/opsx:*`）で行う（§6）。
+旧名のエイリアス（mr、mr-main、mr-qa、merge-develop、switch-develop-branch）は残す。
+
 ### 9. 方法論スキル
 superpowersは丸ごと採用しない。forkするのは次の4つで、どれにもMIT表記を付ける。
 
@@ -95,6 +100,11 @@ superpowersは丸ごと採用しない。forkするのは次の4つで、どれ�
 - systematic-debugging
 - verification-before-completion
 - using-git-worktrees
+
+2026-09-25に `verification-before-completion` と `using-git-worktrees` を削除した。
+forkは2つになった（change `retire-obsolete-skills`）。
+完了前の確認は、根拠を示す規則として `verify` スキルが持ち、Stop hookの `verify-gate` が強制する。
+隔離した作業場所は、エージェントのネイティブのworktreeで作る。Claude Codeはそれをプロジェクトルートの中に置く。
 
 mattpocock/skillsのgrilling、grill-me、handoff、writing-for-agentsは参照してピン止めする。
 humanizer、agent-style、Impeccable、expo/skillsも同じ扱いにする。
@@ -136,4 +146,5 @@ journalは端末ごとに閉じた記録で、他の端末のjournalは `recall`
 
 - 良い点：プロダクトリポジトリが軽い。スキルとhookが1か所に集まり、差し替えは `deps.json` とADRの更新で済む。仕様決定の履歴が `openspec/` とsessionsリポジトリに残る
 - 引き受けるコスト：miseへの移行とdotfilesの変更（PR）。OpenSpec schemaはexperimentalで、CLI更新時に追従が要る。Claude Code以外は未検証のまま
-- 後回し：Codex等の実機検証、episodic-memory、OpenSpec stores、intake tier、`nessun-dorma` の `/goal` ベース書き直し
+- 後回し：Codex等の実機検証、episodic-memory、OpenSpec stores、intake tier、`nessun-dorma` の `/goal` ベース書き直し。
+  最後の1つは、2026-09-25に `nessun-dorma` を削除してネイティブの `/goal` に任せたので不要になった

@@ -1,7 +1,7 @@
 # methodology-skills Specification
 
 ## Purpose
-superpowersからforkした4つの方法論スキル（TDD、系統的デバッグ、完了前検証、git worktree）の外形と、ハーネスへの適合点。
+superpowersからforkした2つの方法論スキル（TDD、系統的デバッグ）の外形と、ハーネスへの適合点。
 
 ## Requirements
 
