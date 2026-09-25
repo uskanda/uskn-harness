@@ -82,7 +82,7 @@ async function gitInit(directory: string) {
 }
 ```
 
-**Critical:** Use `console.error()` in tests (not logger - may not show)
+In tests, log with `console.error()`; a logger may be suppressed.
 
 **Run and capture:**
 ```bash
@@ -138,11 +138,11 @@ digraph principle {
     "Fix at source" [shape=box];
     "Add validation at each layer" [shape=box];
     "Bug impossible" [shape=doublecircle];
-    "NEVER fix just the symptom" [shape=octagon, style=filled, fillcolor=red, fontcolor=white];
+    "Fix at the deepest point reached" [shape=box];
 
     "Found immediate cause" -> "Can trace one level up?";
     "Can trace one level up?" -> "Trace backwards" [label="yes"];
-    "Can trace one level up?" -> "NEVER fix just the symptom" [label="no"];
+    "Can trace one level up?" -> "Fix at the deepest point reached" [label="no"];
     "Trace backwards" -> "Is this the source?";
     "Is this the source?" -> "Trace backwards" [label="no - keeps going"];
     "Is this the source?" -> "Fix at source" [label="yes"];
@@ -151,7 +151,7 @@ digraph principle {
 }
 ```
 
-**NEVER fix just where the error appears.** Trace back to find the original trigger.
+Fix where the bad value originates, which is rarely where the error appears: trace back to the original trigger.
 
 ## Stack Trace Tips
 

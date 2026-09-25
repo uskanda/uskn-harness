@@ -158,10 +158,12 @@
       "license": "MIT",
       "path": "skills/test-driven-development",
       "vendored": "2026-09-05",
+      "diverged": "2026-09-25",
+      "note": "Prose rewritten for Opus 5.x as positive instructions (change opus55-prompt-diet). Diverged from upstream; not re-vendored. Port upstream improvements by hand.",
       "changes": [
         "skill references renamed to harness skill names",
-        "verify convention named as the GREEN command",
-        "Harness notes section"
+        "Harness notes section: the verify convention is the full run, left to verify-gate",
+        "Iron Law, rationalization table, red flags, completion checklist, and cycle diagram removed; prose rewritten as positive instructions"
       ]
     },
     "systematic-debugging": {
@@ -171,9 +173,12 @@
       "license": "MIT",
       "path": "skills/systematic-debugging",
       "vendored": "2026-09-05",
+      "diverged": "2026-09-25",
+      "note": "Prose rewritten for Opus 5.x as positive instructions (change opus55-prompt-diet). Diverged from upstream; not re-vendored. Port upstream improvements by hand.",
       "changes": [
         "references use harness skill names",
-        "CREATION-LOG.md and test-*.md (skill tests) not vendored"
+        "CREATION-LOG.md and test-*.md (skill tests) not vendored",
+        "Iron Law, red flags, and rationalization table removed; prose rewritten as positive instructions; description narrowed to failures whose cause is not yet understood"
       ]
     }
   }
