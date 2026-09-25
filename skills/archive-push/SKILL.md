@@ -1,6 +1,7 @@
 ---
 name: archive-push
-description: Finish an OpenSpec change in one run - settle its open tasks, verify, archive it with spec sync, commit, and push. Argument - the change name.
+description: Finish an OpenSpec change in one run - settle its open tasks, verify, archive it with spec sync, commit, and push.
+argument-hint: "[change-name]"
 disable-model-invocation: true
 allowed-tools: Bash, Read, Edit, Glob, Grep, Skill, AskUserQuestion
 ---

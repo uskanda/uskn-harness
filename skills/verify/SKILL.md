@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Find and run the repository's verify convention (make verify, else pnpm run verify / npm run verify), fix what fails, and show the command and its result before claiming anything. With no convention, derive the checks from the CI configuration and say that no convention exists. Use before calling work done, fixed, or passing, before opening a pull request, when the verify gate hook blocked a stop, or when the user asks to verify or check the build.
+description: Run the repository's checks (make verify, else pnpm or npm run verify, else what CI runs) and fix what fails. Use when the verify gate blocked a stop, before a pull request, or when asked to verify.
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 ---
 

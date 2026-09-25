@@ -1,6 +1,7 @@
 ---
 name: onboard-harness
-description: Bring a product repository onto the harness - decide what belongs there, place it, and deliver it as a draft pull request. Use when a repository should start using the harness, when its AGENTS.md or CLAUDE.md predates the harness, or when `uskn-harness onboard-check` reports missing items.
+description: Bring a product repository onto the harness and deliver what it needs as a draft pull request.
+disable-model-invocation: true
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 ---
 

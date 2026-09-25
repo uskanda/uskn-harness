@@ -1,6 +1,7 @@
 ---
 name: commit
-description: Commit the current changes in meaningful units with well-formed messages. Use when the user asks to commit, or when another skill needs uncommitted work committed first. Arguments - an optional issue id (`123` or `#123`) to prefix every message with, then optional instructions on how to split and word the commits.
+description: Commit the current changes in meaningful units with well-formed messages. Use when the user asks to commit, or when another skill needs uncommitted work committed first.
+argument-hint: "[issue-id] [instructions on how to split and word the commits]"
 context: fork
 model: sonnet
 effort: low

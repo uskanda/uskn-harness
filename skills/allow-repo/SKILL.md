@@ -1,6 +1,7 @@
 ---
 name: allow-repo
-description: Let this session write to a path outside the project root, such as another repository, after the user explicitly asked for it. Argument - the path to allow. Never run this on your own initiative.
+description: Let this session write to a path outside the project root, after the user asked for it.
+argument-hint: "<path> | --list"
 disable-model-invocation: true
 allowed-tools: Bash
 ---
