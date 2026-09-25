@@ -34,14 +34,14 @@
 
 ## 6. プラグインのbin/
 
-- [ ] 6.1 `plugin-bin.bats` を足し、失敗を確認する。2つのコマンドが元のスクリプトと同じ出力と終了コードを返すこと、symlinkを通したプラグインでも動くことを確かめる
-- [ ] 6.2 `bin/tests/skill-commands.bats` を足し、失敗を確認する。スキルは `session-start.sh` と `terms-check.sh` を長いパスで呼ばない。スキルの呼ぶ `uskn-*` は `bin/` に実在する
-- [ ] 6.3 `plugins/uskn-harness/bin/` に `uskn-repo-context` と `uskn-terms-check` を置く。6.1とshellcheckが通ることを確認する
-- [ ] 6.4 gitスキル8つとaudit-writingスキルの呼び出しを短いコマンドに替える。6.2が通ることを確認する
-- [ ] 6.5 `plugin.json` の説明と `plugins/uskn-harness/README.md` に `bin/` と `if` を書く。`make verify-plugin` と `make verify-terms` が通ることを確認する
-- [ ] 6.6 ADR-0005を書き、ADR-0002に注記を足す。textlintとtermsの検査が通ることを確認する
+- [x] 6.1 `plugin-bin.bats` を足し、失敗を確認する。2つのコマンドが元のスクリプトと同じ出力と終了コードを返すこと、symlinkを通したプラグインでも動くことを確かめる
+- [x] 6.2 `bin/tests/skill-commands.bats` を足し、失敗を確認する。スキルは `session-start.sh` と `terms-check.sh` を長いパスで呼ばない。スキルの呼ぶ `uskn-*` は `bin/` に実在する
+- [x] 6.3 `plugins/uskn-harness/bin/` に `uskn-repo-context` と `uskn-terms-check` を置く。6.1とshellcheckが通ることを確認する
+- [x] 6.4 gitスキル8つとaudit-writingスキルの呼び出しを短いコマンドに替える。6.2が通ることを確認する
+- [x] 6.5 `plugin.json` の説明と `plugins/uskn-harness/README.md` に `bin/` と `if` を書く。`make verify-plugin` と `make verify-terms` が通ることを確認する
+- [x] 6.6 ADR-0005を書き、ADR-0002に注記を足す。textlintとtermsの検査が通ることを確認する
 
 ## 7. 仕上げ
 
-- [ ] 7.1 `openspec/glossary.yml` の「verify gate」の定義を、1ターンに3回までblockする形に直す。`make verify-terms` が通ることを確認する
-- [ ] 7.2 `make verify` と `openspec validate hook-native-features --strict` が通ることを確認する。`make verify` と `make verify-fast` の所要時間を記録する
+- [x] 7.1 `openspec/glossary.yml` の「verify gate」の定義を、1ターンに3回までblockする形に直す。`make verify-terms` が通ることを確認する
+- [x] 7.2 `make verify` と `openspec validate hook-native-features --strict` が通ることを確認する。`make verify` と `make verify-fast` の所要時間を記録する
