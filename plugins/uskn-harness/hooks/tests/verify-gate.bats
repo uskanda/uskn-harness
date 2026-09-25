@@ -14,6 +14,8 @@ setup() {
 }
 stop() { printf '{"session_id":"sid","cwd":"%s","hook_event_name":"Stop","stop_hook_active":%s%s}' "$R" "${1:-false}" "${2:-}" | "$SCRIPT"; }
 runs() { [ -f "$R/runs.log" ] && wc -l < "$R/runs.log" || echo 0; }
+# refute <command...>: fails when the command succeeds (a bare `! cmd` mid-test never fails a bats test).
+refute() { ! "$@"; }
 # path_without <cmd>...: a directory of links to everything on PATH except the named commands (first match wins)
 path_without() {
   local farm="$BATS_TEST_TMPDIR/farm" d x
@@ -59,8 +61,65 @@ path_without() {
   echo "$output" | jq -r '.reason' | grep -q "timed out after 1s"
 }
 
-@test "stop_hook_active: silent even when failing" {
-  touch "$R/FAIL"; run stop true; [ -z "$output" ]; [ "$(runs)" -eq 0 ]
+blocked() { echo "$output" | jq -e '.decision == "block"' >/dev/null; }
+
+@test "a continuation (stop_hook_active) is verified too: it blocks while failing and is silent once fixed" {
+  touch "$R/FAIL"
+  run stop; blocked; [ "$(runs)" -eq 1 ]
+  echo 1 > "$R/n.txt"
+  run stop true; [ "$status" -eq 0 ]; blocked; [ "$(runs)" -eq 2 ]
+  rm "$R/FAIL"
+  run stop true; [ -z "$output" ]; [ "$(runs)" -eq 3 ]
+  [ -s "$USKN_STATE_DIR/sessions/sid/verified" ]
+  [ ! -e "$USKN_STATE_DIR/sessions/sid/verify-blocks" ]
+}
+
+@test "at most 3 blocks in a turn: the 4th failing Stop ends the turn with a systemMessage" {
+  touch "$R/FAIL"
+  run stop; blocked
+  for i in 2 3; do echo "$i" > "$R/n.txt"; run stop true; blocked; done
+  echo 4 > "$R/n.txt"
+  run stop true
+  [ "$status" -eq 0 ]
+  [ "$(runs)" -eq 4 ]
+  echo "$output" | jq -e 'has("decision") | not' >/dev/null
+  echo "$output" | jq -r '.systemMessage' | grep -q "make verify"
+  echo "$output" | jq -r '.systemMessage' | grep -q "verify.log"
+  echo "$output" | jq -r '.systemMessage' | grep -q "3"
+}
+
+@test "a new turn (stop_hook_active false) counts from zero again" {
+  touch "$R/FAIL"
+  run stop; blocked
+  for i in 2 3 4; do echo "$i" > "$R/n.txt"; run stop true; done
+  refute blocked
+  echo 5 > "$R/n.txt"
+  run stop false; blocked
+}
+
+@test "a continuation with the tree unchanged since the failure blocks again without rerunning verify" {
+  touch "$R/FAIL"
+  run stop; blocked; first="$(echo "$output" | jq -r '.reason')"
+  run stop true; blocked; [ "$(runs)" -eq 1 ]
+  [ "$(echo "$output" | jq -r '.reason')" = "$first" ]
+}
+
+@test "verify-fast in the Makefile is preferred over verify" {
+  printf 'verify:\n\t@echo full >> runs.log\nverify-fast:\n\t@echo fast >> runs.log\n' > "$R/Makefile"
+  ( cd "$R" && git commit -qam fast )
+  printf '{"session_id":"sid2","cwd":"%s","hook_event_name":"SessionStart"}' "$R" | "$BASE"
+  echo x > "$R/new.txt"
+  run bash -c "printf '{\"session_id\":\"sid2\",\"cwd\":\"$R\",\"stop_hook_active\":false}' | '$SCRIPT'"
+  [ -z "$output" ]
+  [ "$(cat "$R/runs.log")" = fast ]
+}
+
+@test "verify runs at the git root of cwd, not at CLAUDE_PROJECT_DIR (a worktree)" {
+  export CLAUDE_PROJECT_DIR="$BATS_TEST_TMPDIR/elsewhere"; mkdir -p "$CLAUDE_PROJECT_DIR"
+  mkdir -p "$R/sub"; echo x > "$R/new.txt"
+  run bash -c "printf '{\"session_id\":\"sid\",\"cwd\":\"$R/sub\",\"stop_hook_active\":false}' | '$SCRIPT'"
+  [ -z "$output" ]
+  [ "$(runs)" -eq 1 ]
 }
 
 @test "USKN_SKIP_VERIFY=1: silent" {

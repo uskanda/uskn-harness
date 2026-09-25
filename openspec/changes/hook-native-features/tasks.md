@@ -14,10 +14,10 @@
 
 ## 3. verify gateの再検証と上限
 
-- [ ] 3.1 `verify-gate.bats` の `stop_hook_active` で黙るテストを、継続でも検証してblockするテストに置き換える。失敗を確認する
-- [ ] 3.2 `verify-gate.bats` にテストを足し、失敗を確認する。3回までのblock、4回目の `systemMessage`、次のターンでの再開、変わらない作業ツリーでの再実行なし
-- [ ] 3.3 `verify-gate.bats` にテストを足し、失敗を確認する。`verify-fast` のあるMakefileでは `make verify-fast` だけが走る。`CLAUDE_PROJECT_DIR` と違う `cwd` のgitルートで走る
-- [ ] 3.4 `verify-gate.sh` に、`verify-blocks` による回数と前回の失敗の記録、`verify-fast` の探索を入れる。`baseline` が無いときの行には触れない。3.1〜3.3とshellcheckが通ることを確認する
+- [x] 3.1 `verify-gate.bats` の `stop_hook_active` で黙るテストを、継続でも検証してblockするテストに置き換える。失敗を確認する
+- [x] 3.2 `verify-gate.bats` にテストを足し、失敗を確認する。3回までのblock、4回目の `systemMessage`、次のターンでの再開、変わらない作業ツリーでの再実行なし
+- [x] 3.3 `verify-gate.bats` にテストを足し、失敗を確認する。`verify-fast` のあるMakefileでは `make verify-fast` だけが走る。`CLAUDE_PROJECT_DIR` と違う `cwd` のgitルートで走る
+- [x] 3.4 `verify-gate.sh` に、`verify-blocks` による回数と前回の失敗の記録、`verify-fast` の探索を入れる。`baseline` が無いときの行には触れない。3.1〜3.3とshellcheckが通ることを確認する
 
 ## 4. verify-fast
 
