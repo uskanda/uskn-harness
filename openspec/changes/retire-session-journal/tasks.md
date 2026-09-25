@@ -30,7 +30,7 @@
 - [x] 4.1 `skills/journal/` と `skills/recall/` を削除する。`make verify` の `verify-skills` が通ることを確かめる
 - [x] 4.2 `skills/allow-repo/SKILL.md` の手順を、`${CLAUDE_SESSION_ID}` の先頭8文字を渡す形にする。置換されないときは `CLAUDE_CODE_SESSION_ID` を読むと書く。`<repo-context>` への言及が無いことを `grep` で確かめる
 - [x] 4.3 `skills/ja-writing/SKILL.md` の例文からjournalを外す。直す前の文でtextlintの指摘が4件出ることを確かめる
-- [ ] 4.4 `skills/git/commit/SKILL.md` のSession trailerの規則を外す。代わりに、常に `Co-Authored-By: Claude <noreply@anthropic.com>` を付ける規則にする。`grep` でSession trailerの記述が無いことを確かめる（fork-skills-model-effortのarchive後に行う）
+- [x] 4.4 `skills/git/commit/SKILL.md` のSession trailerの規則を外す。代わりに、常に `Co-Authored-By: Claude <noreply@anthropic.com>` を付ける規則にする。`grep` でSession trailerの記述が無いことを確かめる（fork-skills-model-effortのarchive後に行う）
 
 ## 5. 文書と仕様
 

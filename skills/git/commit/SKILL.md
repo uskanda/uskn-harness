@@ -32,12 +32,8 @@ reason the caller wants in a message must arrive in the arguments.
 3. Message format: line 1 is a short summary of what was done; line 2 is blank; lines 3 and after explain the details in 2–5 lines.
 4. Do not use `--no-verify`, `--amend`, or anything that rewrites published history. Reorganizing commits is the `rebase` skill's job.
 5. If a staged file looks like a secret (`.env*`, credentials, tokens, private keys), do not commit it. Stop and report.
-6. End every message with the trailer `Session: <sid8>` (blank line before it). It links the commit to the session
-   journal (`recall <sid8>`). `<sid8>` is the first 8 characters of the session id:
-   - The session id is `${CLAUDE_SESSION_ID}`. Use that value when it is made of hex characters and dashes.
-   - Otherwise (the value is empty, or still reads as a `${...}` placeholder), read the environment variable instead:
-     `printf '%.8s\n' "$CLAUDE_CODE_SESSION_ID"`.
-   - Only when neither gives an id, add no trailer and say so in the report. Never copy an id from an example.
+6. End every message with the trailer `Co-Authored-By: Claude <noreply@anthropic.com>` (blank line before it), in
+   every run: this skill runs as a fork, where Claude Code's own attribution note does not arrive.
 
 ## Steps
 
@@ -63,12 +59,12 @@ reason the caller wants in a message must arrive in the arguments.
    <detail line>
    <detail line>
 
-   Session: <sid8>
+   Co-Authored-By: Claude <noreply@anthropic.com>
    MSG
    ```
 
 6. Confirm with `git status --short` (should be empty unless files were deliberately left out) and `git log --oneline -5`.
-7. Report the commits made (hash and summary line), the trailer value, and anything intentionally left uncommitted.
+7. Report the commits made (hash and summary line) and anything intentionally left uncommitted.
 
 ## Examples
 
@@ -92,5 +88,5 @@ other changes are split by purpose ahead of it.
 - ログイン / ログアウトの API エンドポイントを追加
 - 認証ミドルウェアを作成し、保護されたルートに適用
 
-Session: <sid8>
+Co-Authored-By: Claude <noreply@anthropic.com>
 ```
