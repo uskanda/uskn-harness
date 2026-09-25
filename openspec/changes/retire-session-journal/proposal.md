@@ -8,7 +8,7 @@
 ## What Changes
 
 - **BREAKING** `journal` と `recall` のスキルを削除する
-- **BREAKING** hookの `journal-recent.sh`、`journal-update.sh`、`journal-end.sh` を削除する。`hooks.json` からSessionStartとStopの該当項目、SessionEndの節を外す
+- **BREAKING** hookのjournal-recent.sh、journal-update.sh、journal-end.shを削除する。`hooks.json` からSessionStartとStopの該当項目、SessionEndの節を外す
 - `<repo-context>` にsession行とトレーラの案内を出さない
 - `commit` はSession trailerを付けず、常に `Co-Authored-By: Claude <noreply@anthropic.com>` を付ける。既存のコミットはそのまま
 - `allow-repo` は `${CLAUDE_SESSION_ID}` の先頭8文字をsid8に使う。置換されないときは環境変数 `CLAUDE_CODE_SESSION_ID` から得る

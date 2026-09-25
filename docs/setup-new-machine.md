@@ -8,7 +8,8 @@ macOS、Ubuntu、WSL2（Ubuntu）の端末にuskn-harnessを入れる手順。
 
 1. dotfiles（`uskanda/dotfiles`）をchezmoiで適用すると、`run_once_install-uskn-harness.sh` が1回だけ走る
 2. スクリプトはmiseを `~/.local/bin/mise` に入れ、`~/.local/share/uskn-harness` を用意する。`~/repos/uskn-harness` にcheckoutがあればsymlink、無ければGitHubからcloneする
-3. 最後に `uskn-harness sync` が走り、6つを揃える。miseのNodeとjq、ピンしたCLI、スキルとプラグインのsymlink、OpenSpec schema、sessionsリポジトリ、ユーザー層CLAUDE.md
+3. 最後に `uskn-harness sync` が走り、5つを揃える。miseのNodeとjq、ピンしたCLI、スキルとプラグインのsymlink、OpenSpec schema、ユーザー層CLAUDE.md。
+   あわせて、ハーネスから削除したスキルのsymlinkと、30日より長く更新されていないセッションの状態を消す
 4. 以後の更新は `git pull` と `uskn-harness sync` の再実行。syncは冪等で、手で置いたものは `conflict` として触らない
 
 run_onceはWindowsでは何もしない（spec `machine-bootstrap`）。WindowsはWSL2の中でLinuxの手順を踏む。
@@ -17,7 +18,7 @@ run_onceはWindowsでは何もしない（spec `machine-bootstrap`）。Windows�
 
 - git
 - GitHubの認証。`uskanda/uskn-harness` と `uskanda/dotfiles` はpublicで、cloneに認証は要らない。
-  journalを貯める `~/.ai-sessions` も `sync` がローカルに `git init` で作る。`pr` や `fix-ci` などのスキルが `gh` を使うので、`gh auth login` と `gh auth setup-git` は済ませておく
+  `pr` や `fix-ci` などのスキルが `gh` を使うので、`gh auth login` と `gh auth setup-git` は済ませておく
 - ネットワーク。mise、Node、npm globalのCLI、サードパーティスキルをダウンロードする
 - Claude Code本体（デスクトップアプリかCLI）。ハーネスはClaude Codeを入れない。導入とloginは公式手順に従う
 
@@ -73,7 +74,7 @@ claude plugin list                      # uskn-harness@skills-dir が出る
 ```
 
 続けて任意のgitリポジトリでClaude Codeのセッションを始める。最初の応答の前に `<repo-context>` が注入されていればSessionStart hookが動いている。
-Stop hookとSessionEnd hookの確認方法はREADMEの「hookの発火を確かめる」にある。
+Stop hookの確認方法はREADMEの「hookの発火を確かめる」にある。
 
 ## 更新
 
@@ -92,10 +93,13 @@ uskn-harness sync && uskn-harness doctor
 uskn-harness sync --remove              # ハーネス由来の symlink と管理コピーだけを消す
 ```
 
-`~/.ai-sessions`、mise、npm globalのCLIは残る。
+mise、npm globalのCLI、状態ディレクトリは残る。
 
-`~/.ai-sessions` は各端末のローカルgitだけで扱い、hookはpushしない。
-2026-09-14より前にcloneした端末では、`origin` が削除済みのGitHubリポジトリを指したまま残る。`git -C ~/.ai-sessions remote remove origin` で外してよい。
+## journal を使っていた端末
+
+セッションjournalの仕組みは2026-09-25に廃止した（ADR-0004）。
+以前から使っていた端末には `~/.ai-sessions` が残る。
+ハーネスはこのディレクトリを作らず、検査せず、hookから書き込まない。要らなければ消してよい。
 
 ## よくある warn
 

@@ -2,7 +2,7 @@
 
 動機はproposal.mdのWhyを参照。現状の仕組みは次のとおり。
 
-- hookは3本がjournal専用。SessionStartの `journal-recent.sh`、Stopの `journal-update.sh`、SessionEndの `journal-end.sh`
+- hookは3本がjournal専用。SessionStartのjournal-recent.sh、Stopのjournal-update.sh、SessionEndのjournal-end.sh
 - SessionStartの `session-start.sh` は `<repo-context>` にsession行とトレーラの案内を出す。`session-baseline.sh` は `baseline` のほかに、journalだけが読む `project`、`started`、`baseline-head` を書く。verify gateも `baseline` が無いときに `project` と `started` を書く
 - `lib/common.sh` はjournal用の関数（`project_key`、`to_local_stamp` など）を持つ。write-guardとbash-guardが共有する許可リストに `~/.ai-sessions` を含む
 - `bin/uskn-harness` の `sync` は `~/.ai-sessions` を `git init` で作り、`doctor` はそれを検査する
@@ -32,6 +32,7 @@ fork-skills-model-effortは `git-workflow-skills` のSessionトレーラの要�
 
 `journal-context`、`journal-skeleton`、`journal-skill`、`journal-sync`、`recall-skill` は、要件をすべてREMOVEDにした差分を置く。
 OpenSpec 1.12はarchiveのときに、最後の要件が消えた能力の `spec.md` を削除する。main specを手で消す必要は無い。
+ただし削除には、変更の `.openspec.yaml` に `retire_capabilities: true` が要る。無いとarchiveは要件の無いspecを拒んで止まる。
 各REMOVEDのMigrationに、代わりに見る場所を書く。
 
 ### archiveの順序
@@ -54,8 +55,8 @@ OpenSpec 1.12はarchiveのときに、最後の要件が消えた能力の `spec
 
 ### sid8はスキルとスクリプトの両方で得られるようにする
 
-`allow-repo` スキルは `--session "${CLAUDE_SESSION_ID}"` のように、置換された値を渡す。先頭8文字に切るのはスキルの手順に書く。
-`allow-repo.sh` は `--session` が無いか空のとき、環境変数 `CLAUDE_CODE_SESSION_ID` の先頭8文字を使う。
+`allow-repo` スキルは、読み込み時に置換された `${CLAUDE_SESSION_ID}` の先頭8文字を `--session` に渡す。
+`allow-repo.sh` は `--session` が無いか空のとき、環境変数 `CLAUDE_CODE_SESSION_ID` を使う。どちらの値も先頭8文字に切ってから探す。
 `${CLAUDE_SESSION_ID}` が置換されずにシェルへ渡ると、未設定の変数として空に展開される。その場合もスクリプト側の代替で拾える。
 代替をスクリプトに置くと、batsで確かめられる。スキルの本文だけに書く案より、センサーを付けやすい。
 この探索に使う `session_dir_for_prefix` は `lib/common.sh` から外さない。
@@ -90,6 +91,7 @@ forkした `commit` には、本体のセッションが受け取るattribution�
 ADR-0003とADR-0005は別の変更が使うので、この変更はADR-0004とする。ADR-0004はADR-0001 §10（履歴）と、§7のjournalに関わる行を置き換える。
 ADR-0001には置き換えの注記だけを足し、本文は記録として残す。
 用語集からは、journalを指していた項目を外す。grilling.mdで使う「アーカイブ」を足し、一般語リストに「データ」を足す。
+ユーザー層の `CLAUDE.md` では、journalと `recall` の行を、決定の置き場（アーカイブ、ADR、コミット）を示す1行に替える。再決定の前に探す先を、`recall` の代わりに示すため。
 `ja-writing` の例文は、journalの代わりに保護ブランチの注入を題材にする。直す前の文の指摘の数は変えない。
 
 ## Risks / Trade-offs
