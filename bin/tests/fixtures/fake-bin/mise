@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Stand-in for mise in bin/tests/third-party.bats: `mise exec [...] -- <command...>` runs <command...>; nothing else.
+while [ $# -gt 0 ] && [ "$1" != -- ]; do shift; done
+[ $# -gt 0 ] || { echo "fake mise: only 'exec ... -- <command>' is supported" >&2; exit 2; }
+shift
+exec "$@"
