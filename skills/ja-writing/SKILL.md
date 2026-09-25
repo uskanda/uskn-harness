@@ -96,8 +96,8 @@ its own, not for prose you would rather not rewrite.
 
 Before (four findings: length, doubled 「も」, redundant 「記録を行う」, space before 「は」):
 
-> SessionStart hook は hosting とブランチモデルを判定して注入し、journal の直近要約も注入し、作業ツリーの指紋の記録も行う。
+> SessionStart hook は hosting とブランチモデルを判定して注入し、AGENTS.md の保護ブランチの宣言も注入し、作業ツリーの指紋の記録も行う。
 
 After:
 
-> SessionStart hookはhostingとブランチモデルを判定して注入する。journalの直近要約も注入する。作業ツリーの指紋は別のスクリプトが記録する。
+> SessionStart hookはhostingとブランチモデルを判定して注入する。AGENTS.mdの保護ブランチの宣言も注入する。作業ツリーの指紋は別のスクリプトが記録する。
