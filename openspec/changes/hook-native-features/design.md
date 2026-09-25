@@ -110,11 +110,19 @@ hook1本は、いちばん重い `verify-gate.bats` を持つ `verify-gate.sh` �
 
 `verify-gate.sh` の `baseline` が無いときに記録する行は、別の変更が `project` と `started` の書き込みを外す。その行には触れない。
 
-### ルートは 2 つ、検査は cwd の git ルート
+### ルートは同じリポジトリのcheckoutに限る、検査は cwd の git ルート
 
-`lib/common.sh` に `project_roots` を置く。`CLAUDE_PROJECT_DIR` と `cwd` のgitルートを、実体に解決して改行区切りで返す。
-同じなら1行にし、どちらも無ければ `cwd` を返す。
+`lib/common.sh` に `project_roots` を置く。`CLAUDE_PROJECT_DIR` を必ず返し、`cwd` のgitルートは条件付きで加える。どちらも実体に解決し、改行区切りで返す。
+条件は、`cwd` のcheckoutが `CLAUDE_PROJECT_DIR` と同じリポジトリであることである。
+両方の `git rev-parse --path-format=absolute --git-common-dir` を実体に解決して比べ、一致したときだけ加える。
+どちらかが得られないとき（gitの管理外、2.31より古いgit）は加えない。拒否の側に倒す。
+`CLAUDE_PROJECT_DIR` が無ければ `cwd` のgitルート、それも無ければ `cwd` を返す。
 `path_allowed` は、ルートの一覧のどれかの下にあれば許す。write-guardとbash-guardの理由の文には、ルートをすべて書く。
+
+Q20の意図はworktreeである。Claude Codeはworktreeを `<root>/.claude/worktrees/` に作り、EnterWorktreeは同じリポジトリのほかのworktreeにも入る。
+worktreeは本体とgit common dirを共有するので、置き場所に関係なくこの比較で見分けられる。
+`cwd` のgitルートを無条件に許す案は採らない。Bashの `cd ~/dotfiles` のあとで、そのリポジトリへのWriteやgitの書き込みが通ってしまうからである。
+置き場所（`.claude/worktrees/` の下か）で見分ける案も採らない。ルートの外のworktreeを拒否し、ルートの下に置いた別のリポジトリのcheckoutを許してしまう。
 
 textlint-checkとterms-checkは `work_root`（`cwd` のgitルート、無ければ `cwd`）を使う。
 worktreeで用語集を変えたとき、開始時のルートの用語集を読むと誤った指摘になるからである。
@@ -178,7 +186,8 @@ terminology-guardのMarkdownに限る要件は、fix-hook-bugsが足すもので
 ## Risks / Trade-offs
 
 - 作業ディレクトリの外の `.md` は、新しい版ではtextlintとtermsの検査にかからない → commitとprのスキルは自分で検査する。リポジトリの文書は `verify-fast` とCIが見る
-- `cwd` のgitルートを許すと、Bashの `cd` で `cwd` を移した先のリポジトリへ書ける → Claude Codeは `cd` の先を作業ディレクトリと追加のディレクトリに限る。ユーザーが渡した場所の中だけで広がる
+- Bashの `cd` で `cwd` がほかのリポジトリに移っても、そこはルートにならない → git common dirが違うので拒否と警告のまま。同じリポジトリのほかのworktreeへ移った場合だけ広がり、そこはQ20が許した範囲である
+- git common dirを読めない環境（2.31より古いgit）では、ルートの外のworktreeも拒否される → 拒否の側に倒れるだけで、`/allow-repo` で解除できる
 - `verify-fast` は、変えたファイルの外への影響を見ない。ファイルの削除で別の文書の名前が切れる場合や、共通でないスクリプトの変更で別のテストが落ちる場合である → フルの `verify` をCIとarchive-pushが走らせる
 - 基準の参照が古いと、範囲が広がって遅くなる → 検査が減る向きには外れない
 - 状態ファイルの保護は、変数に入れたパス、`find -delete`、`xargs`、別の言語から計算したパスを拾わない → bash-guardの既知の取りこぼしと同じ扱い

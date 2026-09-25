@@ -11,7 +11,7 @@ worktreeに入ったセッションでは、ガードが自分の作業場所へ
 - verify gateは、`Makefile` に `verify-fast` があればそれを使い、無ければ従来どおり `verify` を使う
 - ハーネスの `Makefile` に `verify-fast` を足す。変更された文書のtextlintとterms、変更されたスクリプトのshellcheck、関わるbatsだけを走らせる。フルの `verify` はCIとarchive-pushで回す
 - verify gateは `stop_hook_active` のときに黙るのをやめる。失敗が続く間は1ターンに3回までblockし、そのあとは失敗したままである旨を返して終わらせる
-- ガードのルートを、`CLAUDE_PROJECT_DIR` と `cwd` のgitルートの両方にする。verify gate、textlint-check、terms-checkは `cwd` のgitルートで動く
+- ガードのルートを、`CLAUDE_PROJECT_DIR` と、同じリポジトリのcheckout（worktree）であるときの `cwd` のgitルートにする。別のリポジトリへ `cd` してもルートは広がらない。verify gate、textlint-check、terms-checkは `cwd` のgitルートで動く
 - verify gateの状態ファイル（`baseline`、`verified`、`verify-blocks`）を、許可ファイルと同じくエージェントのWrite、Edit、Bashから守る
 - プラグインに `bin/` を足し、スキルが長いパスで呼んでいた `session-start.sh` と `terms-check.sh` を短いコマンドにする。gitスキルとaudit-writingスキルはそれを呼ぶ。ADR-0002の「skills-dirプラグインは `bin/` 非対応」を直す
 - terms-checkとtextlint-checkのhookは `.markdown` を対象から外す（`if` の `**/*.md` に揃える）

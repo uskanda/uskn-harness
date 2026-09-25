@@ -164,12 +164,30 @@ path_without() {
   run call "cp x $OTHER/"; [ -z "$output" ]
 }
 
-@test "two roots: git writes in a cwd worktree outside CLAUDE_PROJECT_DIR and copies to the start root are silent" {
-  WT="$BATS_TEST_TMPDIR/repos/a-wt"; mkdir -p "$WT"; git -C "$WT" init -q -b main
+@test "two roots: git writes in a cwd worktree of the session repository and copies to the start root are silent" {
+  git -C "$ROOT" -c user.name=t -c user.email=t@x commit -q --allow-empty -m init
+  WT="$BATS_TEST_TMPDIR/repos/a-wt"; git -C "$ROOT" worktree add -q -b wt "$WT"
   wt() { jq -c -n --arg c "$1" --arg cwd "$WT" '{session_id:"sid12345678", cwd:$cwd, tool_name:"Bash", tool_input:{command:$c}}' | "$SCRIPT"; }
   run wt "git commit -m x"; [ "$status" -eq 0 ]; [ -z "$output" ]
   run wt "cp x.md $ROOT/"; [ -z "$output" ]
   run wt "git -C $OTHER push"; denied
+}
+
+@test "cwd moved into another repository: git writes and outside writes there are denied or warned" {
+  git -C "$OTHER" init -q -b main
+  at() { jq -c -n --arg c "$1" --arg cwd "$OTHER" '{session_id:"sid12345678", cwd:$cwd, tool_name:"Bash", tool_input:{command:$c}}' | "$SCRIPT"; }
+  run at "git commit -m x"; [ "$status" -eq 0 ]; denied
+  run at "git push origin main"; denied
+  run at "echo x > notes.md"; warned
+  run at "git log --oneline -3"; [ -z "$output" ]
+  run at "cp x.md $ROOT/"; [ -z "$output" ]
+}
+
+@test "cwd in a subdirectory of the session root: git writes are silent" {
+  mkdir -p "$ROOT/src"
+  at() { jq -c -n --arg c "$1" --arg cwd "$ROOT/src" '{session_id:"sid12345678", cwd:$cwd, tool_name:"Bash", tool_input:{command:$c}}' | "$SCRIPT"; }
+  run at "git commit -m x"; [ -z "$output" ]
+  run at "echo x > ../notes.md"; [ -z "$output" ]
 }
 
 @test "broken input: silent exit 0" {

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # bash-guard.sh: PreToolUse hook (Bash). Denies the typical ways of changing another repository from the shell and
-# warns, via additionalContext, about writes to paths outside the project roots (CLAUDE_PROJECT_DIR and the git top
-# level of cwd: project_roots).
+# warns, via additionalContext, about writes to paths outside the project roots (CLAUDE_PROJECT_DIR, plus cwd's
+# checkout when it is a worktree of the same repository: project_roots; a cd into another repository adds nothing).
 #   deny  chezmoi apply|add|update|edit|re-add|merge, unless the session allow file covers the chezmoi source dir
 #         a git write subcommand whose repository (-C, --git-dir, --work-tree, GIT_DIR, cd, pushd) is outside
 #         a command that names or writes a session allow file (sessions/<id>/allow): only allow-repo.sh writes those
@@ -19,7 +19,7 @@ set -u
 INPUT="$(cat 2>/dev/null || true)"; [ -n "$INPUT" ] || exit 0
 CMD="$(json_field "$INPUT" '.tool_input.command' command)"; [ -n "$CMD" ] || exit 0
 CWD="$(json_field "$INPUT" '.cwd' cwd)"; SID="$(json_field "$INPUT" '.session_id' session_id)"
-ROOTS="$(project_roots "${CWD:-$PWD}")"   # CLAUDE_PROJECT_DIR and the git top level of cwd
+ROOTS="$(project_roots "${CWD:-$PWD}")"   # CLAUDE_PROJECT_DIR, plus cwd's checkout of the same repository
 # expand ~ and $HOME for the path checks only
 CMDX="$(printf '%s' "$CMD" | sed "s#\(^\|[[:space:]=\"']\)~/#\1$HOME/#g; s#\\\$HOME/#$HOME/#g; s#\\\${HOME}/#$HOME/#g")"
 GIT_WRITES=' push commit reset checkout switch rebase merge cherry-pick apply am '

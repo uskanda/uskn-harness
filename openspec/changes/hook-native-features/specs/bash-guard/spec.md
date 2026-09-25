@@ -1,13 +1,18 @@
 ## ADDED Requirements
 
 ### Requirement: ルートの範囲
-hookは、`CLAUDE_PROJECT_DIR` と `cwd` のgitルートの両方をプロジェクトルートとして扱わなければならない（MUST）。
-どちらも得られなければ `cwd` をルートとする。
+hookは、write-guardと同じプロジェクトルートを使わなければならない（MUST）。
+ルートは `CLAUDE_PROJECT_DIR` と、それと同じリポジトリ（同じgit common dir）のcheckoutであるときだけの `cwd` のgitルートである。
+別のリポジトリのcheckoutは、`cwd` のgitルートであってもルートにならない。
 denyパターンとwarnパターンで言うルートの外とは、どのルートの外にもあることを指す。
 
 #### Scenario: ルートの外の worktree での commit
 - **WHEN** `CLAUDE_PROJECT_DIR` が `~/repos/a`、`cwd` がそのworktree `~/repos/a-wt` のセッションで、`git commit -m x` を実行しようとする
 - **THEN** 何も出力しない
+
+#### Scenario: cwd が別のリポジトリに移った
+- **WHEN** `CLAUDE_PROJECT_DIR` が `~/repos/a` のセッションで `cwd` が別のリポジトリ `~/dotfiles` に移り、`git commit -m x` を実行しようとする
+- **THEN** 拒否される
 
 #### Scenario: 開始時のルートへの書き込み
 - **WHEN** 同じセッションで `cp x.md ~/repos/a/` を実行しようとする

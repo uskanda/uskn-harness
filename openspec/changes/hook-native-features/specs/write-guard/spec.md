@@ -1,7 +1,10 @@
 ## MODIFIED Requirements
 
 ### Requirement: ルート外の拒否
-プロジェクトルートは2つある。`CLAUDE_PROJECT_DIR` と、`cwd` のgitルートである。どちらも得られなければ `cwd` をルートとする。
+プロジェクトルートは `CLAUDE_PROJECT_DIR` である。
+`cwd` のgitルートは、`CLAUDE_PROJECT_DIR` と同じリポジトリのcheckoutであるときだけルートに加える。
+同じリポジトリとは、`git rev-parse --path-format=absolute --git-common-dir` の結果が一致することを言う。どちらかが得られなければ加えない。
+`CLAUDE_PROJECT_DIR` が無ければ `cwd` のgitルート、それも無ければ `cwd` をルートとする。
 対象パスは `file_path` または `notebook_path` である。
 対象パスの実体がどのルートの外にもあるとき、hookは `permissionDecision: deny` と理由を返さなければならない（MUST）。
 理由にはルートと、`/allow-repo <path>` で解除できる旨を書く。
@@ -27,11 +30,19 @@
 
 #### Scenario: ルートの外の worktree
 - **WHEN** `CLAUDE_PROJECT_DIR` が `~/repos/a`、`cwd` がそのworktree `~/repos/a-wt` のセッションで、`~/repos/a-wt/x.md` をWriteする
-- **THEN** `cwd` のgitルートの中なので何も出力しない
+- **THEN** 同じリポジトリのcheckoutなので何も出力しない
 
 #### Scenario: 開始時のルート
 - **WHEN** 同じセッションで `~/repos/a/y.md` をWriteする
 - **THEN** `CLAUDE_PROJECT_DIR` の中なので何も出力しない
+
+#### Scenario: cwd が別のリポジトリに移った
+- **WHEN** `CLAUDE_PROJECT_DIR` が `~/repos/a` のセッションで `cwd` が別のリポジトリ `~/dotfiles` に移り、`~/dotfiles/x.md` をWriteする
+- **THEN** `~/dotfiles` は `cwd` のgitルートだが、別のリポジトリなので拒否される
+
+#### Scenario: ルートの下のディレクトリ
+- **WHEN** `cwd` が `~/repos/a/src` のセッションで `~/repos/a/z.md` をWriteする
+- **THEN** 何も出力しない
 
 ## ADDED Requirements
 

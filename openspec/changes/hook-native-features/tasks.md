@@ -4,6 +4,8 @@
 - [x] 1.2 write-guardとbash-guardのテストに、ルートの外のworktreeの場合を足す。書き込みとcommitは黙り、3つ目のリポジトリは拒否される。失敗を確認する
 - [x] 1.3 textlint-checkとterms-checkのテストに、worktreeにだけある `.textlintrc.json` と用語集の語が使われる場合を足す。失敗を確認する
 - [x] 1.4 `lib/common.sh` に `project_roots` と `work_root` を足し、`path_allowed` をルートの一覧で判定させる。ガードは `project_roots`、検査は `work_root` を使う。1.1〜1.3と既存のテストが通ることを確認する
+- [x] 1.5 `git worktree add` で作った本物のworktreeで、ルートの外のworktreeのテストを書き直す。別のリポジトリへ移った `cwd` のテストを足す。write-guardのWriteと、bash-guardのgitの書き込みが拒否される。ルートの下のディレクトリのテストも足し、失敗を確認する
+- [x] 1.6 `project_roots` が `cwd` のgitルートを加えるのを、同じgit common dirのときだけに限る。読めないときは加えない。1.5と既存のテストが通ることを確認する
 
 ## 2. verify gateの状態ファイルを守る
 

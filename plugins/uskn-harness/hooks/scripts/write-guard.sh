@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # write-guard.sh: PreToolUse hook (Write | Edit | NotebookEdit). Denies writes outside the project roots
-# (CLAUDE_PROJECT_DIR and the git top level of cwd: project_roots) unless the path is on the fixed allowlist
-# (scratchpad / tmp, ~/.ai-sessions, auto-memory, harness state) or the session's allow file (/allow-repo).
+# (CLAUDE_PROJECT_DIR, plus cwd's checkout when it is a worktree of the same repository: project_roots) unless the
+# path is on the fixed allowlist (scratchpad / tmp, ~/.ai-sessions, auto-memory, harness state) or the session's
+# allow file (/allow-repo).
 # A session allow file and the verify gate's state files are denied whatever the lists say. Silent otherwise.
 # Contract (openspec: write-guard): exit 0 always.
 set -u

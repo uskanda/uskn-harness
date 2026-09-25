@@ -86,13 +86,28 @@ work_root() {
   r="$(git -C "${1:-$PWD}" rev-parse --show-toplevel 2>/dev/null || true)"
   realpath_m "${r:-${1:-$PWD}}"
 }
-# project_roots <cwd>: the roots the guards allow, one per line: CLAUDE_PROJECT_DIR and the git top level of cwd
-# (resolved, the same one once); cwd when there is neither.
+# git_common_dir <dir>: the repository's shared .git directory (the same for all its worktrees), resolved; empty when
+# the directory is not in a repository or git is too old for --path-format (2.31).
+git_common_dir() {
+  local d
+  d="$(git -C "$1" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || return 0
+  [ -n "$d" ] && realpath_m "$d"
+  return 0
+}
+# project_roots <cwd>: the roots the guards allow, one per line: CLAUDE_PROJECT_DIR, plus the git top level of cwd
+# only when that checkout belongs to the same repository (the same git common dir: a worktree of it, wherever it
+# lives). Bash can move cwd into any directory; a checkout of another repository must not become a root, so when
+# either common dir cannot be read the cwd's top level is left out. Without CLAUDE_PROJECT_DIR: the git top level
+# of cwd, else cwd.
 project_roots() {
-  local p="" t
+  local p="" t pc
   [ -n "${CLAUDE_PROJECT_DIR:-}" ] && p="$(realpath_m "$CLAUDE_PROJECT_DIR")"
   t="$(git -C "${1:-$PWD}" rev-parse --show-toplevel 2>/dev/null || true)"
   [ -n "$t" ] && t="$(realpath_m "$t")"
+  if [ -n "$p" ] && [ -n "$t" ] && [ "$t" != "$p" ]; then
+    pc="$(git_common_dir "$p")"
+    { [ -n "$pc" ] && [ "$pc" = "$(git_common_dir "$t")" ]; } || t=""
+  fi
   [ -n "$p" ] || [ -n "$t" ] || t="$(realpath_m "${1:-$PWD}")"
   [ -n "$p" ] && printf '%s\n' "$p"
   [ -n "$t" ] && [ "$t" != "$p" ] && printf '%s\n' "$t"
