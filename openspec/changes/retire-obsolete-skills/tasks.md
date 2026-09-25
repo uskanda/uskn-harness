@@ -35,7 +35,7 @@
 
 ## 5. 移行スクリプトを削除する
 
-- [ ] 5.1 `templates/chezmoi/` の移行スクリプトを削除し、ファイル名を `openspec/known-names.txt` に足す。`make verify-terms` が通ることを確かめる
+- [x] 5.1 `templates/chezmoi/` の移行スクリプトを削除し、ファイル名を `openspec/known-names.txt` に足す。`make verify-terms` が通ることを確かめる
 - [ ] 5.2 dotfilesをscratchpadにfresh cloneし、スクリプトのコピーを消すdraft PRを作る。PRのURLを確かめる
 
 ## 6. 全体の確認

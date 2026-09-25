@@ -11,3 +11,4 @@ pcb-spec.md
 run_once_install-uskn-harness.sh
 2026-09-10-dotfiles-mise-migration.md
 hookSpecificOutput.additionalContext
+run_onchange_before_remove-migrated-claude-skills.sh.tmpl
