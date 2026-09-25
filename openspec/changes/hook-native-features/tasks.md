@@ -47,3 +47,7 @@
 
 - [x] 7.1 `openspec/glossary.yml` の「verify gate」の定義を、1ターンに3回までblockする形に直す。`make verify-terms` が通ることを確認する
 - [x] 7.2 `make verify` と `openspec validate hook-native-features --strict` が通ることを確認する。`make verify` と `make verify-fast` の所要時間を記録する
+
+## 統合（2026-09-25）
+
+- [x] 統合のときに、write-guardの「ルート外の拒否」へretire-session-journalの変更（許可リストから `~/.ai-sessions` を外し、拒否のシナリオを足す）を取り込む。archiveはfix-hook-bugs、retire-session-journal、この変更の順に行う

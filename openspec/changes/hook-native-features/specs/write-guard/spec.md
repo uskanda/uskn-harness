@@ -9,7 +9,7 @@
 対象パスの実体がどのルートの外にもあるとき、hookは `permissionDecision: deny` と理由を返さなければならない（MUST）。
 理由にはルートと、`/allow-repo <path>` で解除できる旨を書く。
 ルート内と許可リスト内は何も出力しない。
-許可リストは `/tmp`、`$TMPDIR`、`~/.ai-sessions`、`~/.claude/projects/*/memory`、ハーネスの状態ディレクトリ、`$CLAUDE_PLUGIN_DATA`。
+許可リストは `/tmp`、`$TMPDIR`、`~/.claude/projects/*/memory`、ハーネスの状態ディレクトリ、`$CLAUDE_PLUGIN_DATA`。
 状態ディレクトリのうち、セッションの許可ファイル `sessions/<session_id>/allow` は許可リストに含めない。
 
 #### Scenario: 他のリポジトリ
@@ -27,6 +27,10 @@
 #### Scenario: 状態ディレクトリのほかのファイル
 - **WHEN** 状態ディレクトリの `sessions/<session_id>/notes` をWriteする
 - **THEN** 何も出力しない
+
+#### Scenario: journal の置き場だった場所
+- **WHEN** `~/.ai-sessions/x/j.md` をWriteする
+- **THEN** ほかのルート外と同じく拒否される
 
 #### Scenario: ルートの外の worktree
 - **WHEN** `CLAUDE_PROJECT_DIR` が `~/repos/a`、`cwd` がそのworktree `~/repos/a-wt` のセッションで、`~/repos/a-wt/x.md` をWriteする
