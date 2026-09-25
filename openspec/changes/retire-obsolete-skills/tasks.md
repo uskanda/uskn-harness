@@ -29,9 +29,9 @@
 
 ## 4. uskn schemaに上流の案内文を取り込む
 
-- [ ] 4.1 `schemas/uskn/schema.yaml` の指示とテンプレートに、上流 `spec-driven` の1.12.0から1.13.2までの差分を移す。
+- [x] 4.1 `schemas/uskn/schema.yaml` の指示とテンプレートに、上流 `spec-driven` の1.12.0から1.13.2までの差分を移す。
   1.13.2と1.12.0の両方で `openspec schema validate uskn` が通ることを確かめる
-- [ ] 4.2 `openspec instructions proposal` の出力に `openspec list --specs` が含まれることを、この作業ツリーのschemaを解決させた状態で確かめる
+- [x] 4.2 `openspec instructions proposal` の出力に `openspec list --specs` が含まれることを、この作業ツリーのschemaを解決させた状態で確かめる
 
 ## 5. 移行スクリプトを削除する
 
