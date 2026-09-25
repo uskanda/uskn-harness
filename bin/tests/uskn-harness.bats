@@ -350,8 +350,9 @@ refute() { ! "$@"; }
   grep -q '^## Claude Code' "$REPO/templates/repo/AGENTS.md"
 }
 
-@test "templates/user/CLAUDE.md is under 60 lines and starts with the marker" {
+@test "templates/user/CLAUDE.md is under 60 lines and 2,000 bytes and starts with the marker" {
   [ "$(wc -l < "$REPO/templates/user/CLAUDE.md")" -le 60 ]
+  [ "$(wc -c < "$REPO/templates/user/CLAUDE.md")" -le 2000 ]
   head -1 "$REPO/templates/user/CLAUDE.md" | grep -q "managed by uskn-harness"
 }
 

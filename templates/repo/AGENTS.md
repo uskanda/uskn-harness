@@ -17,8 +17,9 @@
 
 ## How to work here
 
-- Spec decisions go through the grilling interview before any OpenSpec proposal.
-- Verification: `make verify` (or `pnpm run verify` / `npm run verify`). It must pass before a change is done.
+<!-- Only what is specific to this repository. The spec workflow, the verify convention, and git come from the user
+     layer and the harness skills. -->
+
 - <build / run commands only if they are not discoverable from package.json, Makefile, or README>
 
 ## Branch model

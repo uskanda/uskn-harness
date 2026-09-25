@@ -1,30 +1,25 @@
 # uskn-harness
 
 Shared harness for agentic coding across the owner's personal products: skills, hooks, templates, and the
-installer that distributes them. This file is the entry point; it stays short and points elsewhere.
+installer that distributes them.
 
 ## Layout
 
 | Path | What lives there |
 |---|---|
 | `skills/<name>/SKILL.md` | Canonical skills. Agent Skills spec (agentskills.io), English, under 500 lines |
-| `templates/repo/` , `templates/user/` , `templates/chezmoi/` | Files installed into product repos, into the user layer, and the dotfiles bootstrap |
+| `templates/repo/` , `templates/user/` , `templates/chezmoi/` | Files installed into product repos, into the user layer, and the dotfiles bootstrap. English |
 | `schemas/` | OpenSpec schema `uskn` (grilling artifact ahead of proposal) |
-| `plugins/uskn-harness/` | Claude Code plugin: the hook bodies (bash + jq), `hooks.json`, and their bats tests. No skills |
+| `plugins/uskn-harness/` | Claude Code plugin: the hook bodies (bash + jq), `hooks.json`, their bats tests, and the short commands skills call. No skills |
+| `bin/` | The installer `uskn-harness` (sync, doctor, onboard-check) and the bats tests for it and for skill frontmatter |
 | `deps.json` | Pinned sources of every external skill, CLI, and runtime |
 | `docs/adr/` | Architecture decisions. Start with ADR-0001 |
 | `openspec/` | This repository's own specs and changes (dogfooding) |
 
 ## How work happens here
 
-1. A change starts with `/spec <idea>`: the grilling interview, its record (`grilling.md`), then the OpenSpec
-   artifacts. Writing proposal / design / tasks / specs without `grilling.md` is denied by a hook. On the user's
-   instruction, a simple change uses `/no-grilling` instead: it records the skip in `grilling.md`.
-2. Implement through `/opsx:apply`. Scripts get bats tests first (TDD); skills get a worked example in their body.
-3. `make verify` must pass before a change is called done. Hooks call the same target; CI runs it with
-   `VERIFY_STRICT=1`, where a missing tool fails instead of skipping.
-4. Archive with `/opsx:archive`, or with `/archive-push <change>`, which also verifies, commits, and pushes. The
-   archive is the decision history; do not delete it.
+- Scripts get bats tests first; skills get a worked example in their body.
+- CI runs `make verify` with `VERIFY_STRICT=1`, where a missing tool fails instead of skipping.
 
 ## Branch model
 
@@ -34,18 +29,10 @@ installer that distributes them. This file is the entry point; it stays short an
 protected: none
 ```
 
-## Language
-
-Skills, hook code, templates, and this file: English. Chat replies, commits, pull requests, ADRs, and OpenSpec
-artifacts: Japanese.
-
 ## Hard constraints
 
-- Never edit a project outside this repository. A change another repository needs becomes a pull request made from
-  a fresh clone in the scratchpad, and its body carries the whole handoff. Live working trees such as `~/dotfiles`
-  and `~/repos/*` stay untouched until the owner says otherwise.
-- External skills are referenced, pinned in `deps.json`, and never copied, except the entries listed under
-  `forks`, which carry their upstream license.
+- External skills are referenced and pinned in `deps.json`. Only the entries under `forks` are copied, each with its
+  upstream license.
 - A product repository carries only what the conventions call for: `AGENTS.md`, `openspec/` (with
   `glossary.yml`), a `verify` target, and `DESIGN.md` plus `PRODUCT.md` when it has a user interface. The list is
   today's contents, not a cap. Everything else arrives through the installer. `AGENTS.md` is the only instruction
@@ -53,10 +40,6 @@ artifacts: Japanese.
 - Every guide (skill, rule) that matters gets a sensor (hook, lint, test). Prefer computational sensors.
 - Names come from the code, `openspec/glossary.yml`, or a document you consulted. A new term goes into the
   glossary before it goes into prose. One concept, one term. A backticked name must exist.
-
-## Claude Code
-
-- OpenSpec artifacts live under `openspec/`; the commands are `/opsx:*`.
 
 ## References
 
