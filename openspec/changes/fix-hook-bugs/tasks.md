@@ -8,16 +8,16 @@
 
 - [x] 2.1 write-guardのテストに、許可ファイルへのWrite、symlink経由のEdit、状態ディレクトリを許可したあとのWriteが拒否される場合を足し、失敗を確認する
 - [x] 2.2 `lib/common.sh` の `path_allowed` から許可ファイルを除き、write-guardに解除できない拒否を足す。2.1が通ることを確認する
-- [ ] 2.3 bash-guardのテストに、許可ファイルへのリダイレクトと `cp` が拒否され、`allow-repo.sh` の実行は黙る場合を足し、失敗を確認する
-- [ ] 2.4 bash-guardに許可ファイルの文字列の照合と、書き込み先の解決による拒否を足す。2.3が通ることを確認する
+- [x] 2.3 bash-guardのテストに、許可ファイルへのリダイレクトと `cp` が拒否され、`allow-repo.sh` の実行は黙る場合を足し、失敗を確認する
+- [x] 2.4 bash-guardに許可ファイルの文字列の照合と、書き込み先の解決による拒否を足す。2.3が通ることを確認する
 
 ## 3. bash-guardの解析
 
-- [ ] 3.1 bash-guardのテストに、報告された取りこぼしを足す。引用符付きの `-C` と `cd`、`git -c k=v -C`、`--git-dir`、`GIT_DIR=`、`pushd`、引用符付きのリダイレクト。失敗を確認する
-- [ ] 3.2 bash-guardのテストに、報告された誤検知を足す。`git -C <外> log --grep reset`、`sed -i -n '/,$p'`、heredocの本文、外からの `cp`。失敗を確認する
-- [ ] 3.3 bash-guardをawkの字句解析と単純コマンドごとの判定に書き換える。3.1、3.2、既存のテスト、shellcheckが通ることを確認する
-- [ ] 3.4 chezmoiのテストに3つの場合を足し、失敗を確認する。`chezmoi -v apply` の拒否。source directoryを許可したあとの解除（`chezmoi source-path` の偽物と、`~/.local/share/chezmoi` への後退）。理由に入る `/allow-repo <source directory>`
-- [ ] 3.5 chezmoiの下位コマンドの判定と解除を実装する。3.4が通ることを確認する
+- [x] 3.1 bash-guardのテストに、報告された取りこぼしを足す。引用符付きの `-C` と `cd`、`git -c k=v -C`、`--git-dir`、`GIT_DIR=`、`pushd`、引用符付きのリダイレクト。失敗を確認する
+- [x] 3.2 bash-guardのテストに、報告された誤検知を足す。`git -C <外> log --grep reset`、`sed -i -n '/,$p'`、heredocの本文、外からの `cp`。失敗を確認する
+- [x] 3.3 bash-guardをawkの字句解析と単純コマンドごとの判定に書き換える。3.1、3.2、既存のテスト、shellcheckが通ることを確認する
+- [x] 3.4 chezmoiのテストに3つの場合を足し、失敗を確認する。`chezmoi -v apply` の拒否。source directoryを許可したあとの解除（`chezmoi source-path` の偽物と、`~/.local/share/chezmoi` への後退）。理由に入る `/allow-repo <source directory>`
+- [x] 3.5 chezmoiの下位コマンドの判定と解除を実装する。3.4が通ることを確認する
 
 ## 4. terms-check
 
