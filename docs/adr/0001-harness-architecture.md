@@ -70,6 +70,8 @@ schemaはuser-levelの `~/.local/share/openspec/schemas/uskn/` に置く。
 | Stop | 作業ツリーに変更があれば verify。journal の決定的な部分を生成・更新し、決定欄が空なら 1 回だけ追記を促す。緊急回避は環境変数 1 つ |
 | SessionEnd | journal を最終更新し、sessions リポジトリに commit して push する |
 
+journalに関わる行（SessionStartの直近要約、許可リストの `~/.ai-sessions`、Stopのjournal、SessionEnd）はADR-0004で差し替えた。
+
 ### 8. 既存スキルの移管
 gitワークフロー系のスキルをハーネスへ移す。
 対象はcommit、push、pr / mr、mr-main、mr-qa、rebase、merge-develop、switch-develop-branch。
@@ -94,6 +96,8 @@ mattpocock/skillsのgrilling、grill-me、handoff、writing-for-agentsは参照�
 humanizer、agent-style、Impeccable、expo/skillsも同じ扱いにする。
 
 ### 10. 履歴
+ADR-0004で廃止した。以下は当時の決定の記録として残す。
+
 要約はsessionsリポジトリ（`~/.ai-sessions`）にcommitする。sessionsリポジトリは各端末のローカルgitだけで扱い、pushしない。
 journalは端末ごとに閉じた記録で、他の端末のjournalは `recall` に出ない（change `journal-local-only`、2026-09-14）。
 ファイル名は `<project>/<日付>-<slug>.md`。

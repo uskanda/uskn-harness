@@ -36,4 +36,4 @@
 
 - A `<repo-context>` block is injected at session start with hosting (GitHub / GitLab) and the branch model (default / integration / qa, and the protected branches when `AGENTS.md` declares them). Skills use it; do not re-detect.
 - Git workflow skills: commit, push, pr, sync-base, switch-base, rebase, cleanup-merged, pre-merge, fix-ci, release.
-- Each session has a journal in `~/.ai-sessions`; a hook keeps the facts, you write Decisions / Open / Next with the `journal` skill when asked. `recall <keywords|sid8>` looks up earlier sessions before re-deciding something.
+- Earlier decisions live in `openspec/changes/archive/` (`grilling.md`, `design.md`), `docs/adr/`, and commit messages; search them before re-deciding something.

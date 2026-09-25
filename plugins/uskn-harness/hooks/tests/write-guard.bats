@@ -25,11 +25,16 @@ denied() { echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "de
   run call "$OTHER/n.ipynb" NotebookEdit; denied
 }
 
-@test "allowlist: scratch dirs, ~/.ai-sessions, memory dir, state dir are silent" {
+@test "allowlist: scratch dirs, memory dir, state dir are silent" {
   run call "$SCRATCH/x/scratchpad/f"; [ -z "$output" ]
-  run call "$HOME/.ai-sessions/x/j.md"; [ -z "$output" ]
   run call "$HOME/.claude/projects/p/memory/m.md"; [ -z "$output" ]
   run call "$USKN_STATE_DIR/sessions/sid12345678/notes"; [ -z "$output" ]
+}
+
+@test "~/.ai-sessions, where journals used to go, is outside the allowlist: denied like any other path" {
+  run call "$HOME/.ai-sessions/x/j.md"
+  [ "$status" -eq 0 ]
+  denied
 }
 
 @test "the session allow file is denied: directly, through a symlink, and even with the state dir allowed" {

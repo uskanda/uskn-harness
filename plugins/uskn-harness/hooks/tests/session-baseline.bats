@@ -8,12 +8,11 @@ setup() {
 }
 fire() { printf '{"session_id":"%s","cwd":"%s","hook_event_name":"SessionStart","source":"%s"}' "$1" "$2" "${3:-startup}" | "$SCRIPT"; }
 
-@test "records baseline, project, started for a git repo; prints nothing" {
+@test "records only baseline for a git repo; prints nothing" {
   run fire sid1 "$R"
   [ "$status" -eq 0 ]; [ -z "$output" ]
   [ -s "$USKN_STATE_DIR/sessions/sid1/baseline" ]
-  [ "$(cat "$USKN_STATE_DIR/sessions/sid1/project")" = "$(cd "$R" && pwd -P)" ]
-  grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T' "$USKN_STATE_DIR/sessions/sid1/started"
+  [ "$(ls -A "$USKN_STATE_DIR/sessions/sid1")" = baseline ]
 }
 
 @test "outside git: nothing is created" {

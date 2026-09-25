@@ -22,7 +22,6 @@
 | 仕様づくり | `skills/spec/` がgrillingを回し、schema `uskn` がgrillingをproposalの前提にする。簡単な改修はユーザーの指示で `skills/no-grilling/` が省略を記録する。提案は `skills/ok/` で承諾し、違う点だけを書き添える。終えた変更は `skills/archive-push/` がarchiveからpushまで1回で進める | PreToolUse hook `grilling-guard` |
 | 実装と検証 | `skills/verify/`、obra/superpowersからforkした方法論スキル4件（TDD、系統的デバッグ、完了前検証、worktree） | Stop hook `verify-gate`、`make verify`、CI |
 | git運用 | ワークフローのスキル11個（commit、push、pr、rebase、releaseほか）。旧名は1行のエイリアスで残す | SessionStart hookが `<repo-context>` を注入する |
-| 記録 | セッションjournalを各端末のローカルgit（`~/.ai-sessions`）に貯め、pushしない。`skills/journal/` と `skills/recall/` | Stop hookが事実を書き、決定欄が空なら1度だけ促す |
 | 安全 | `skills/allow-repo/`。ルート外への書き込み、`chezmoi apply`、他リポジトリへのgit操作を止める | PreToolUse hook `write-guard` と `bash-guard` |
 | 文章 | `skills/ja-writing/`（JTF準拠の表記、成果物ごとの文体）、`skills/en-writing/`（agent-styleとhumanizer） | PostToolUse hook `textlint-check`、`make verify` |
 | 用語 | 用語集 `openspec/glossary.yml`。名前の出所を3つに限る。`skills/audit-writing/` が既存リポジトリを一括で直す | PostToolUse hook `terms-check`、`make verify` |
@@ -30,8 +29,8 @@
 
 使ううえでの要点は3つ。
 
-- センサーの回避はその場限りにする。`USKN_SKIP_VERIFY`、`USKN_SKIP_TEXTLINT`、`USKN_SKIP_TERMS`、`USKN_SKIP_JOURNAL` を1にすると、それぞれの検査を飛ばせる
-- コミットには `Session: <sid8>` トレーラが付く。`recall <sid8>` で当時の決定に戻れる
+- センサーの回避はその場限りにする。`USKN_SKIP_VERIFY`、`USKN_SKIP_TEXTLINT`、`USKN_SKIP_TERMS` を1にすると、それぞれの検査を飛ばせる
+- 決定は変更の `grilling.md` と `design.md`、ADR、コミットに残す。セッションごとの記録は持たない。好みの記録はClaude Codeのauto memoryに任せる
 - プロダクトリポジトリへの変更は、別クローンから出すpull requestで渡す。作業ツリーは直接触らない
 
 ## 状態
@@ -44,13 +43,12 @@ monolithへの導入はマージ済み。uskn75-kbはpull requestが開いたま
 ## hook の発火を確かめる
 
 Stop hookは応答が正常に終わったときだけ走る。利用上限で切れたターンや、ユーザーが中断したターンでは走らない。
-SessionEndはアプリがセッションを閉じたときに走る。デスクトップアプリではセッションが数時間開いたままになる。
 走ったかどうかは2か所で分かる。
 
-- 状態ディレクトリ `~/.local/state/uskn-harness/sessions/<session_id>/`。SessionStartが `baseline` を、Stopが `transcript` と `journal` を、verify gateが `verify.log` を書く
+- 状態ディレクトリ `~/.local/state/uskn-harness/sessions/<session_id>/`。SessionStartが `baseline` を書く。作業ツリーが変わったセッションでは、Stopのverify gateが `verify.log` を書く
 - トランスクリプト `~/.claude/projects/<cwd>/<session_id>.jsonl` の `stop_hook_summary` 行。Stop hookが走るたびに1行増える
 
-まだ1ターンも終わっていないセッションでjournalが要るときは、`journal-update.sh --session <sid8> --ensure` で先に作れる。
+30日より長く更新されていないセッションのディレクトリは、`uskn-harness sync` が消す。
 
 ## 読む順番
 

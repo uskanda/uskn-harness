@@ -195,11 +195,15 @@ MD
   [[ "$output" == *"Use these values"* ]]
 }
 
-@test "hook mode prints session: <sid8> and the trailer rule" {
+@test "hook mode prints no session line and no trailer or recall rule (the journal is retired)" {
   make_repo "$BATS_TEST_TMPDIR/r" git@github.com:o/r.git
   run bash -c "printf '{\"session_id\":\"abcdef1234567890-x\",\"cwd\":\"$BATS_TEST_TMPDIR/r\"}' | '$SCRIPT'"
-  [[ "$output" == *"- session: abcdef12"* ]]
-  [[ "$output" == *"Session: abcdef12"* ]]
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"</repo-context>"* ]]
+  [[ "$output" != *"abcdef12"* ]]
+  [[ "$output" != *"session:"* ]]
+  [[ "$output" != *"Session:"* ]]
+  [[ "$output" != *"recall"* ]]
 }
 
 @test "works without jq on PATH (stdin cwd still parsed)" {

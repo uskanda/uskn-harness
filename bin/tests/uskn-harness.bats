@@ -11,6 +11,8 @@ setup() {
   export USKN_HARNESS_DIR="$REPO"
   export USKN_HARNESS_STUB_NET=1
   export USKN_HARNESS_STUB_LOG="$BATS_TEST_TMPDIR/net.log"
+  # The session state sync prunes lives under the fake HOME, never the real ~/.local/state.
+  export XDG_STATE_HOME="$HOME/.local/state"; unset USKN_STATE_DIR
   mkdir -p "$HOME/.local/bin" "$CLAUDE_CONFIG_DIR/skills"
   : > "$USKN_HARNESS_STUB_LOG"
   SKILLS="$CLAUDE_CONFIG_DIR/skills"
@@ -18,6 +20,8 @@ setup() {
 }
 
 snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
+# age <days> <path>...: move the modification time of each path <days> days into the past
+age() { local d="$1"; shift; perl -e 'my $t = time - shift(@ARGV) * 86400; utime($t, $t, @ARGV) == @ARGV or die "utime failed\n"' "$d" "$@"; }
 # refute <command...>: fails when the command succeeds. A bare `! cmd` that is not the last line of a test never
 # fails it (errexit ignores negated commands); the non-zero return of a function does.
 refute() { ! "$@"; }
@@ -64,8 +68,8 @@ refute() { ! "$@"; }
   grep -q "mise use -g node@24" "$USKN_HARNESS_STUB_LOG"
   grep -q "openspec@1.12.0" "$USKN_HARNESS_STUB_LOG"
   grep -q "skills@latest add mattpocock/skills --skill grilling" "$USKN_HARNESS_STUB_LOG"
-  [ -d "$HOME/.ai-sessions/.git" ]
-  [ -z "$(git -C "$HOME/.ai-sessions" remote)" ]
+  [ ! -e "$HOME/.ai-sessions" ]
+  [[ "$output" != *"sessions repo"* ]]
   [[ "$output" == *"created"* ]]
   run grep -q "git clone" "$USKN_HARNESS_STUB_LOG"; [ "$status" -ne 0 ]
 }
@@ -209,11 +213,78 @@ refute() { ! "$@"; }
   [ ! -e "$CLAUDE_CONFIG_DIR/CLAUDE.md" ]
 }
 
-@test "existing ~/.ai-sessions git repo is left alone and reported ok" {
-  mkdir -p "$HOME/.ai-sessions/.git"
+@test "an existing ~/.ai-sessions is left untouched and never mentioned by sync or doctor" {
+  mkdir -p "$HOME/.ai-sessions/.git" "$HOME/.ai-sessions/o__r"
+  echo journal > "$HOME/.ai-sessions/o__r/2026-09-01-0900-abcdef12.md"
+  before="$( cd "$HOME/.ai-sessions" && find . -printf '%p %y %s %T@\n' | sort )"
   run "$CLI" sync
-  [[ "$output" == *"ok"*"sessions repo"* ]]
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"ai-sessions"* ]]
+  [[ "$output" != *"sessions repo"* ]]
   refute grep -q "ai-sessions" "$USKN_HARNESS_STUB_LOG"
+  run "$CLI" doctor
+  [[ "$output" != *"ai-sessions"* ]]
+  [[ "$output" != *"sessions repo"* ]]
+  [ "$( cd "$HOME/.ai-sessions" && find . -printf '%p %y %s %T@\n' | sort )" = "$before" ]
+}
+
+@test "doctor does not ask for a sessions repo when ~/.ai-sessions is missing" {
+  "$CLI" sync >/dev/null
+  run "$CLI" doctor
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"sessions repo"* ]]
+  [ ! -e "$HOME/.ai-sessions" ]
+}
+
+@test "sync removes session state untouched for 30 days and keeps the rest; --dry-run and --tools remove nothing" {
+  st="$HOME/.local/state/uskn-harness/sessions"
+  mkdir -p "$st/old" "$st/recent" "$st/old-dir-new-file"
+  echo x > "$st/old/baseline"; echo x > "$st/recent/baseline"; echo x > "$st/old-dir-new-file/verify.log"
+  age 40 "$st/old/baseline" "$st/old" "$st/old-dir-new-file"
+  age 1 "$st/recent/baseline" "$st/recent" "$st/old-dir-new-file/verify.log"
+  run "$CLI" sync --dry-run
+  [ "$status" -eq 0 ]
+  [ -d "$st/old" ]
+  [[ "$output" == *"plan"*"$st/old"* ]]
+  [[ "$output" != *"$st/old-dir-new-file"* ]]
+  [[ "$output" != *"$st/recent"* ]]
+  run "$CLI" sync --tools
+  [ "$status" -eq 0 ]
+  [ -d "$st/old" ]
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+  [ ! -e "$st/old" ]
+  [ -d "$st/recent" ]
+  [ -d "$st/old-dir-new-file" ]
+  [[ "$output" == *"removed"*"session state"* ]]
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"removed"* ]]
+}
+
+@test "session state pruning follows USKN_STATE_DIR and touches nothing outside sessions/" {
+  export USKN_STATE_DIR="$BATS_TEST_TMPDIR/state"
+  mkdir -p "$USKN_STATE_DIR/sessions/old" "$USKN_STATE_DIR/other"
+  age 40 "$USKN_STATE_DIR/sessions/old" "$USKN_STATE_DIR/other"
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+  [ ! -e "$USKN_STATE_DIR/sessions/old" ]
+  [ -d "$USKN_STATE_DIR/other" ]
+}
+
+@test "sync removes a skill symlink whose target inside the harness is gone; a dangling link elsewhere stays" {
+  ln -s "$REPO/skills/retired-skill" "$SKILLS/retired-skill"
+  ln -s "$BATS_TEST_TMPDIR/nowhere/mine" "$SKILLS/mine"
+  run "$CLI" sync --dry-run
+  [ "$status" -eq 0 ]
+  [ -L "$SKILLS/retired-skill" ]
+  [[ "$output" == *"plan"*"$SKILLS/retired-skill"* ]]
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+  [ ! -L "$SKILLS/retired-skill" ]
+  [[ "$output" == *"removed"*"retired-skill"* ]]
+  [ -L "$SKILLS/mine" ]
+  [[ "$output" != *"retired skill link mine "* ]]
 }
 
 @test "doctor after sync exits 0 and writes nothing" {

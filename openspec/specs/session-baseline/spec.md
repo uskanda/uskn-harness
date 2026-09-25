@@ -1,7 +1,7 @@
 # session-baseline Specification
 
 ## Purpose
-セッション開始時点の作業ツリーの状態を記録し、後続のhook（verify gate、journal）が「このセッションで何が変わったか」を判定できるようにする。
+セッション開始時点の作業ツリーの状態を記録し、後続のverify gateが「このセッションで何が変わったか」を判定できるようにする。
 
 ## Requirements
 

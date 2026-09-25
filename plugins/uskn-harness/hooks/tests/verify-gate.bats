@@ -94,4 +94,6 @@ path_without() {
 @test "missing baseline: records it and does not verify this time" {
   rm -rf "$USKN_STATE_DIR"; touch "$R/FAIL"
   run stop; [ -z "$output" ]; [ "$(runs)" -eq 0 ]; [ -s "$USKN_STATE_DIR/sessions/sid/baseline" ]
+  [ ! -e "$USKN_STATE_DIR/sessions/sid/project" ]
+  [ ! -e "$USKN_STATE_DIR/sessions/sid/started" ]
 }
