@@ -4,8 +4,9 @@ Loaded as a skills-directory plugin: `uskn-harness sync` symlinks this directory
 `~/.claude/skills/uskn-harness`. It carries hooks only; skills are symlinked individually.
 
 - `hooks/hooks.json`: SessionStart (`session-start.sh`, `session-baseline.sh`, `journal-recent.sh`), PreToolUse
-  (`grilling-guard.sh`, `write-guard.sh` on Write/Edit; `bash-guard.sh` on Bash), PostToolUse (`textlint-check.sh`
-  on Write/Edit), Stop (`verify-gate.sh`, `journal-update.sh`), SessionEnd (`journal-end.sh`)
+  (`grilling-guard.sh`, `write-guard.sh` on Write/Edit/NotebookEdit; `bash-guard.sh` on Bash), PostToolUse
+  (`textlint-check.sh`, `terms-check.sh` on Write/Edit), Stop (`verify-gate.sh`, `journal-update.sh`), SessionEnd
+  (`journal-end.sh`)
 - `hooks/scripts/`: canonical hook bodies (bash + jq). Another tool would call the same scripts through
   `~/.local/share/uskn-harness`; no such adapter exists yet.
 - `hooks/tests/`: bats tests, run by `make verify`.

@@ -10,7 +10,7 @@ fire() { printf '{"session_id":"%s","cwd":"%s","hook_event_name":"SessionStart",
 
 @test "records baseline, project, started for a git repo; prints nothing" {
   run fire sid1 "$R"
-  [ "$status" -eq 0 ] && [ -z "$output" ]
+  [ "$status" -eq 0 ]; [ -z "$output" ]
   [ -s "$USKN_STATE_DIR/sessions/sid1/baseline" ]
   [ "$(cat "$USKN_STATE_DIR/sessions/sid1/project")" = "$(cd "$R" && pwd -P)" ]
   grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T' "$USKN_STATE_DIR/sessions/sid1/started"
@@ -19,7 +19,7 @@ fire() { printf '{"session_id":"%s","cwd":"%s","hook_event_name":"SessionStart",
 @test "outside git: nothing is created" {
   mkdir -p "$BATS_TEST_TMPDIR/plain"
   run fire sid2 "$BATS_TEST_TMPDIR/plain"
-  [ "$status" -eq 0 ] && [ -z "$output" ]
+  [ "$status" -eq 0 ]; [ -z "$output" ]
   [ ! -e "$USKN_STATE_DIR/sessions/sid2" ]
 }
 

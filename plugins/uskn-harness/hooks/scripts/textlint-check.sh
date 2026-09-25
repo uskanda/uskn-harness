@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# textlint-check.sh: PostToolUse hook (Write | Edit | MultiEdit). When the written file is Markdown written in
+# textlint-check.sh: PostToolUse hook (Write | Edit). When the written file is Markdown written in
 # Japanese (kana at or above a share of the file), run textlint on it and return the findings as additionalContext. This is the
 # sensor for the ja-writing skill. Config: the repository's own .textlintrc* when present, else
 # skills/ja-writing/textlintrc.json in the harness checkout.
 # Contract (openspec: textlint-hook): never blocks; exit 0 always; silent unless textlint reports problems;
 # nothing when textlint is missing, the file is not Japanese Markdown, or USKN_SKIP_TEXTLINT=1.
+# textlint is capped at USKN_TEXTLINT_TIMEOUT seconds (default 25, inside the hook's 30) through with_timeout.
 set -u
 export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
 # shellcheck source=lib/common.sh
@@ -25,14 +26,16 @@ BYTES="$(wc -c < "$ABS" 2>/dev/null || echo 0)"
 [ $((KANA * 100 / BYTES)) -ge "${USKN_TEXTLINT_MIN_JA:-6}" ] || exit 0
 have textlint || exit 0
 ROOT="$(project_root "${CWD:-$PWD}")"
-CONF=""
-if ! ls "$ROOT"/.textlintrc "$ROOT"/.textlintrc.* >/dev/null 2>&1; then
+CONF="" LOCAL_RC=""
+for f in "$ROOT"/.textlintrc "$ROOT"/.textlintrc.*; do [ -f "$f" ] && LOCAL_RC="$f"; done
+if [ -z "$LOCAL_RC" ]; then
   CONF="$(harness_dir)/skills/ja-writing/textlintrc.json"; [ -f "$CONF" ] || exit 0
 fi
 MAX=20
-if have timeout; then OUT="$(cd "$ROOT" && timeout 25 textlint ${CONF:+--config "$CONF"} --format compact "$ABS" 2>&1)"; RC=$?
-else OUT="$(cd "$ROOT" && textlint ${CONF:+--config "$CONF"} --format compact "$ABS" 2>&1)"; RC=$?; fi
+LIMIT="${USKN_TEXTLINT_TIMEOUT:-25}"
+OUT="$(cd "$ROOT" && with_timeout "$LIMIT" textlint ${CONF:+--config "$CONF"} --format compact "$ABS" 2>&1)"; RC=$?
 [ "$RC" -ne 0 ] || exit 0
+[ "$RC" -eq 124 ] && OUT="textlint timed out after ${LIMIT}s. $OUT"
 REL="${ABS#"$ROOT"/}"
 FINDINGS="$(printf '%s\n' "$OUT" | grep -E ': line [0-9]+, col [0-9]+,' | sed "s#^$ABS#$REL#")"
 N="$(printf '%s\n' "$FINDINGS" | grep -c .)"

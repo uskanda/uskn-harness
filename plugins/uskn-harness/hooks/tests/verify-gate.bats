@@ -14,14 +14,23 @@ setup() {
 }
 stop() { printf '{"session_id":"sid","cwd":"%s","hook_event_name":"Stop","stop_hook_active":%s%s}' "$R" "${1:-false}" "${2:-}" | "$SCRIPT"; }
 runs() { [ -f "$R/runs.log" ] && wc -l < "$R/runs.log" || echo 0; }
+# path_without <cmd>...: a directory of links to everything on PATH except the named commands (first match wins)
+path_without() {
+  local farm="$BATS_TEST_TMPDIR/farm" d x
+  mkdir -p "$farm"
+  local IFS=:
+  for d in $PATH; do [ -d "$d" ] && ln -s "$d"/* "$farm"/ 2>/dev/null; done
+  for x in "$@"; do rm -f "$farm/$x"; done
+  printf '%s' "$farm"
+}
 
 @test "no change since baseline: silent, verify not run" {
-  run stop; [ "$status" -eq 0 ] && [ -z "$output" ]; [ "$(runs)" -eq 0 ]
+  run stop; [ "$status" -eq 0 ]; [ -z "$output" ]; [ "$(runs)" -eq 0 ]
 }
 
 @test "change + passing verify: silent, verified fingerprint recorded, no rerun without further change" {
   echo x > "$R/new.txt"
-  run stop; [ "$status" -eq 0 ] && [ -z "$output" ]; [ "$(runs)" -eq 1 ]
+  run stop; [ "$status" -eq 0 ]; [ -z "$output" ]; [ "$(runs)" -eq 1 ]
   [ -s "$USKN_STATE_DIR/sessions/sid/verified" ]
   run stop; [ -z "$output" ]; [ "$(runs)" -eq 1 ]
   echo y > "$R/new.txt"
@@ -31,11 +40,23 @@ runs() { [ -f "$R/runs.log" ] && wc -l < "$R/runs.log" || echo 0; }
 @test "change + failing verify: block with reason naming the command and the failure" {
   touch "$R/FAIL"
   run stop; [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.decision == "block" and .hookSpecificOutput.decision == "block"' >/dev/null
+  echo "$output" | jq -e '.decision == "block"' >/dev/null
+  echo "$output" | jq -e 'keys == ["decision", "reason"]' >/dev/null   # the Stop schema has no hookSpecificOutput decision
   echo "$output" | jq -r '.reason' | grep -q "make verify"
   echo "$output" | jq -r '.reason' | grep -q "expected 2 got 3"
   echo "$output" | jq -r '.reason' | grep -q "USKN_SKIP_VERIFY"
   [ ! -e "$USKN_STATE_DIR/sessions/sid/verified" ]
+}
+
+@test "without timeout and gtimeout, a verify that runs past the cap is stopped and blocks as timed out" {
+  printf 'verify:\n\t@sleep 30\n' > "$R/Makefile"
+  P="$(path_without timeout gtimeout)"
+  start="$(date +%s)"
+  HOME="$BATS_TEST_TMPDIR/h" USKN_VERIFY_TIMEOUT=1 PATH="$P" run stop
+  [ "$status" -eq 0 ]
+  [ $(( $(date +%s) - start )) -lt 15 ]
+  echo "$output" | jq -e '.decision == "block"' >/dev/null
+  echo "$output" | jq -r '.reason' | grep -q "timed out after 1s"
 }
 
 @test "stop_hook_active: silent even when failing" {
@@ -58,7 +79,7 @@ runs() { [ -f "$R/runs.log" ] && wc -l < "$R/runs.log" || echo 0; }
 @test "outside git: silent" {
   mkdir -p "$BATS_TEST_TMPDIR/plain"
   run bash -c "printf '{\"session_id\":\"s9\",\"cwd\":\"$BATS_TEST_TMPDIR/plain\",\"stop_hook_active\":false}' | '$SCRIPT'"
-  [ "$status" -eq 0 ] && [ -z "$output" ]
+  [ "$status" -eq 0 ]; [ -z "$output" ]
 }
 
 @test "package.json with scripts.verify and pnpm-lock.yaml uses pnpm run verify" {

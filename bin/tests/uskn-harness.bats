@@ -18,11 +18,15 @@ setup() {
 }
 
 snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
+# refute <command...>: fails when the command succeeds. A bare `! cmd` that is not the last line of a test never
+# fails it (errexit ignores negated commands); the non-zero return of a function does.
+refute() { ! "$@"; }
 
 @test "--help prints usage and exits 0" {
   run "$CLI" --help
   [ "$status" -eq 0 ]
-  [[ "$output" == *"sync"* ]] && [[ "$output" == *"doctor"* ]]
+  [[ "$output" == *"sync"* ]]
+  [[ "$output" == *"doctor"* ]]
 }
 
 @test "unknown command exits 2" {
@@ -43,13 +47,20 @@ snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
 @test "sync on a fresh machine links everything and records network steps" {
   run "$CLI" sync
   [ "$status" -eq 0 ]
-  [ -L "$STABLE" ] && [ "$(readlink -f "$STABLE")" = "$REPO" ]
-  [ -L "$HOME/.local/bin/uskn-harness" ] && [ "$(readlink -f "$HOME/.local/bin/uskn-harness")" = "$REPO/bin/uskn-harness" ]
-  [ -L "$SKILLS/commit" ] && [ "$(readlink -f "$SKILLS/commit")" = "$REPO/skills/git/commit" ]
-  [ -L "$SKILLS/pr" ] && [ -L "$SKILLS/mr-qa" ]
-  [ -L "$SKILLS/uskn-harness" ] && [ "$(readlink -f "$SKILLS/uskn-harness")" = "$REPO/plugins/uskn-harness" ]
-  [ -L "$HOME/.local/share/openspec/schemas/uskn" ] && [ "$(readlink -f "$HOME/.local/share/openspec/schemas/uskn")" = "$REPO/schemas/uskn" ]
-  [ -f "$CLAUDE_CONFIG_DIR/CLAUDE.md" ] && head -1 "$CLAUDE_CONFIG_DIR/CLAUDE.md" | grep -q "managed by uskn-harness"
+  [ -L "$STABLE" ]
+  [ "$(readlink -f "$STABLE")" = "$REPO" ]
+  [ -L "$HOME/.local/bin/uskn-harness" ]
+  [ "$(readlink -f "$HOME/.local/bin/uskn-harness")" = "$REPO/bin/uskn-harness" ]
+  [ -L "$SKILLS/commit" ]
+  [ "$(readlink -f "$SKILLS/commit")" = "$REPO/skills/git/commit" ]
+  [ -L "$SKILLS/pr" ]
+  [ -L "$SKILLS/mr-qa" ]
+  [ -L "$SKILLS/uskn-harness" ]
+  [ "$(readlink -f "$SKILLS/uskn-harness")" = "$REPO/plugins/uskn-harness" ]
+  [ -L "$HOME/.local/share/openspec/schemas/uskn" ]
+  [ "$(readlink -f "$HOME/.local/share/openspec/schemas/uskn")" = "$REPO/schemas/uskn" ]
+  [ -f "$CLAUDE_CONFIG_DIR/CLAUDE.md" ]
+  head -1 "$CLAUDE_CONFIG_DIR/CLAUDE.md" | grep -q "managed by uskn-harness"
   grep -q "mise use -g node@24" "$USKN_HARNESS_STUB_LOG"
   grep -q "openspec@1.12.0" "$USKN_HARNESS_STUB_LOG"
   grep -q "skills@latest add mattpocock/skills --skill grilling" "$USKN_HARNESS_STUB_LOG"
@@ -64,10 +75,17 @@ snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
   [ "$status" -eq 0 ]
   grep -q "mise use -g node@24" "$USKN_HARNESS_STUB_LOG"
   grep -q "openspec@1.12.0" "$USKN_HARNESS_STUB_LOG"
-  [ -L "$HOME/.local/share/openspec/schemas/uskn" ] && [ "$(readlink -f "$HOME/.local/share/openspec/schemas/uskn")" = "$REPO/schemas/uskn" ]
-  [ ! -e "$STABLE" ] && [ ! -e "$HOME/.local/bin/uskn-harness" ]
-  [ ! -e "$SKILLS/commit" ] && [ ! -e "$SKILLS/uskn-harness" ] && [ ! -e "$CLAUDE_CONFIG_DIR/CLAUDE.md" ] && [ ! -e "$HOME/.ai-sessions" ]
-  ! grep -q "git clone" "$USKN_HARNESS_STUB_LOG"; ! grep -q "skills@latest add" "$USKN_HARNESS_STUB_LOG"; ! grep -q "openspec-user-layer" "$USKN_HARNESS_STUB_LOG"
+  [ -L "$HOME/.local/share/openspec/schemas/uskn" ]
+  [ "$(readlink -f "$HOME/.local/share/openspec/schemas/uskn")" = "$REPO/schemas/uskn" ]
+  [ ! -e "$STABLE" ]
+  [ ! -e "$HOME/.local/bin/uskn-harness" ]
+  [ ! -e "$SKILLS/commit" ]
+  [ ! -e "$SKILLS/uskn-harness" ]
+  [ ! -e "$CLAUDE_CONFIG_DIR/CLAUDE.md" ]
+  [ ! -e "$HOME/.ai-sessions" ]
+  refute grep -q "git clone" "$USKN_HARNESS_STUB_LOG"
+  refute grep -q "skills@latest add" "$USKN_HARNESS_STUB_LOG"
+  refute grep -q "openspec-user-layer" "$USKN_HARNESS_STUB_LOG"
   run "$CLI" sync --tools; [ "$status" -eq 0 ]; [[ "$output" == *"ok"*"openspec schema uskn"* ]]
   run "$CLI" sync --tools --remove; [ "$status" -eq 2 ]
 }
@@ -87,7 +105,8 @@ snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
   run "$CLI" sync
   [ "$status" -eq 0 ]
   [[ "$output" == *"conflict"*"commit"* ]]
-  [ ! -L "$SKILLS/commit" ] && [ "$(cat "$SKILLS/commit/SKILL.md")" = old ]
+  [ ! -L "$SKILLS/commit" ]
+  [ "$(cat "$SKILLS/commit/SKILL.md")" = old ]
   [ -L "$SKILLS/pr" ]
 }
 
@@ -118,6 +137,42 @@ snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
   [ "$(snapshot)" = "$before" ]
 }
 
+@test "the reserved skill name uskn-harness aborts with exit 2 before any write" {
+  fx="$BATS_TEST_TMPDIR/fx"; mkdir -p "$fx/skills/a/uskn-harness" "$fx/skills/b/fine" "$fx/plugins/uskn-harness" "$fx/templates/user" "$fx/bin"
+  printf -- '---\nname: uskn-harness\ndescription: x\n---\n' > "$fx/skills/a/uskn-harness/SKILL.md"
+  printf -- '---\nname: fine\ndescription: x\n---\n' > "$fx/skills/b/fine/SKILL.md"
+  cp "$REPO/deps.json" "$fx/deps.json"; cp "$CLI" "$fx/bin/uskn-harness"; echo '<!-- managed by uskn-harness -->' > "$fx/templates/user/CLAUDE.md"
+  before="$(snapshot)"
+  USKN_HARNESS_DIR="$fx" run "$CLI" sync
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"reserved"* ]]
+  [ "$(snapshot)" = "$before" ]
+}
+
+@test "a failed step: sync finishes the other steps, reports on stderr, and exits 1" {
+  USKN_HARNESS_STUB_FAIL='npm global textlint' run "$CLI" sync
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"fail"*"npm global textlint"* ]]
+  [[ "$output" == *"run 'uskn-harness sync' again"* ]]
+  [ -L "$SKILLS/commit" ]
+  [ -f "$CLAUDE_CONFIG_DIR/CLAUDE.md" ]
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+}
+
+@test "sync --tools exits 1 when a pinned CLI fails to install" {
+  USKN_HARNESS_STUB_FAIL='npm global *' run "$CLI" sync --tools
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"fail"*"npm global"* ]]
+}
+
+@test "a failed checkout update is a warning: sync still exits 0" {
+  make_checkout; advance_origin one
+  USKN_HARNESS_DIR="$WORK" USKN_HARNESS_STUB_FAIL='harness pull*' run "$CLI" sync
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"warn"*"harness pull"* ]]
+}
+
 @test "a hand-written ~/.claude/CLAUDE.md is preserved and reported as conflict" {
   echo "# mine" > "$CLAUDE_CONFIG_DIR/CLAUDE.md"
   run "$CLI" sync
@@ -137,7 +192,7 @@ snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
 @test "third-party skill already present is not reinstalled" {
   mkdir -p "$SKILLS/grilling" && touch "$SKILLS/grilling/SKILL.md"
   run "$CLI" sync
-  ! grep -q "grilling" "$USKN_HARNESS_STUB_LOG"
+  refute grep -q "grilling" "$USKN_HARNESS_STUB_LOG"
 }
 
 @test "sync --remove deletes harness symlinks only" {
@@ -145,7 +200,11 @@ snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
   mkdir -p "$SKILLS/keepme" && echo "# mine" > "$SKILLS/keepme/SKILL.md"
   run "$CLI" sync --remove
   [ "$status" -eq 0 ]
-  [ ! -e "$SKILLS/commit" ] && [ ! -e "$SKILLS/uskn-harness" ] && [ ! -e "$HOME/.local/bin/uskn-harness" ] && [ ! -e "$STABLE" ] && [ ! -e "$HOME/.local/share/openspec/schemas/uskn" ]
+  [ ! -e "$SKILLS/commit" ]
+  [ ! -e "$SKILLS/uskn-harness" ]
+  [ ! -e "$HOME/.local/bin/uskn-harness" ]
+  [ ! -e "$STABLE" ]
+  [ ! -e "$HOME/.local/share/openspec/schemas/uskn" ]
   [ -d "$SKILLS/keepme" ]
   [ ! -e "$CLAUDE_CONFIG_DIR/CLAUDE.md" ]
 }
@@ -154,7 +213,7 @@ snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
   mkdir -p "$HOME/.ai-sessions/.git"
   run "$CLI" sync
   [[ "$output" == *"ok"*"sessions repo"* ]]
-  ! grep -q "ai-sessions" "$USKN_HARNESS_STUB_LOG"
+  refute grep -q "ai-sessions" "$USKN_HARNESS_STUB_LOG"
 }
 
 @test "doctor after sync exits 0 and writes nothing" {
@@ -204,7 +263,8 @@ snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
   grep -q "impeccable@4.0.1 install" "$USKN_HARNESS_STUB_LOG"
   grep -q "skills@latest add anthropics/claude-plugins-official --skill frontend-design" "$USKN_HARNESS_STUB_LOG"
   for s in ja-writing en-writing ui-guidelines test-driven-development systematic-debugging verification-before-completion using-git-worktrees; do
-    [ -L "$SKILLS/$s" ] && [ "$(readlink -f "$SKILLS/$s")" = "$REPO/skills/$s" ]
+    [ -L "$SKILLS/$s" ]
+    [ "$(readlink -f "$SKILLS/$s")" = "$REPO/skills/$s" ]
   done
 }
 
@@ -216,8 +276,8 @@ snapshot() { ( cd "$HOME" && find . -printf '%p %y %l\n' | sort ); }
   done
   run "$CLI" sync
   [ "$status" -eq 0 ]
-  ! grep -q "textlint@15.8.0" "$USKN_HARNESS_STUB_LOG"
-  ! grep -q "agent-style@0.4.2" "$USKN_HARNESS_STUB_LOG"
+  refute grep -q "textlint@15.8.0" "$USKN_HARNESS_STUB_LOG"
+  refute grep -q "agent-style@0.4.2" "$USKN_HARNESS_STUB_LOG"
   grep -q "@google/design.md@0.4.0" "$USKN_HARNESS_STUB_LOG"
   [[ "$output" == *"ok"*"textlint 15.8.0"* ]]
 }
@@ -257,7 +317,7 @@ onboarded_repo() { # <dir> -- everything onboard-harness would place, with a UI 
   [[ "$output" == *"warn"*"verify"* ]]
   [[ "$output" == *"warn"*"DESIGN.md"* ]]
   [[ "$output" == *"warn"*"PRODUCT.md"* ]]
-  [[ "$output" != *"ok "* ]] || true
+  refute grep -q '^ok ' <<<"$output"
 }
 
 @test "onboard-check on an onboarded repo reports ok for every item" {
@@ -372,10 +432,11 @@ update() { run env USKN_HARNESS_STUB_NET=0 bash -c "USKN_HARNESS_SOURCED=1 . '$C
   for opt in --tools --remove --no-pull; do
     : > "$USKN_HARNESS_STUB_LOG"
     USKN_HARNESS_DIR="$WORK" run "$CLI" sync "$opt"
-    [ "$status" -eq 0 ]; ! grep -q "pull --ff-only" "$USKN_HARNESS_STUB_LOG"
+    [ "$status" -eq 0 ]
+    refute grep -q "pull --ff-only" "$USKN_HARNESS_STUB_LOG"
   done
   : > "$USKN_HARNESS_STUB_LOG"
   USKN_HARNESS_DIR="$WORK" run "$CLI" sync --dry-run
   [ "$status" -eq 0 ]; [[ "$output" == *"plan"* ]]; [[ "$output" == *"pull --ff-only"* ]]
-  ! grep -q "pull --ff-only" "$USKN_HARNESS_STUB_LOG"
+  refute grep -q "pull --ff-only" "$USKN_HARNESS_STUB_LOG"
 }

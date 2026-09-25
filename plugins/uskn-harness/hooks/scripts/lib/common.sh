@@ -25,6 +25,28 @@ tree_fingerprint() {
   } | sha
 }
 now_iso() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+# with_timeout <seconds> <command...>: run an external command under a time cap; exit 124 when the cap was hit.
+# GNU timeout, else gtimeout (Homebrew coreutils on macOS), else perl: the command runs in a process group of its
+# own, which gets TERM and a second later KILL, so what it started (make -> bats) stops too. No perl: no cap.
+with_timeout() {
+  local t="$1"; shift
+  if have timeout; then timeout "$t" "$@"
+  elif have gtimeout; then gtimeout "$t" "$@"
+  elif have perl; then
+    # shellcheck disable=SC2016  # perl code, not shell
+    perl -e '
+      my $t = shift @ARGV;
+      my $pid = fork();
+      die "with_timeout: fork failed: $!\n" unless defined $pid;
+      if ($pid == 0) { setpgrp(0, 0); exec { $ARGV[0] } @ARGV or exit 127; }
+      $SIG{ALRM} = sub { kill "TERM", -$pid; sleep 1; kill "KILL", -$pid; waitpid($pid, 0); exit 124; };
+      alarm $t;
+      waitpid($pid, 0);
+      alarm 0;
+      exit(($? & 127) ? 128 + ($? & 127) : $? >> 8);
+    ' "$t" "$@"
+  else "$@"; fi
+}
 # ---- session journals
 USKN_SESSIONS="${USKN_SESSIONS_DIR:-$HOME/.ai-sessions}"
 sid8() { printf '%s' "${1:0:8}"; }
@@ -46,7 +68,6 @@ session_dir_for_prefix() {
 to_local_stamp() {
   date -d "$1" +%Y-%m-%d-%H%M 2>/dev/null || date -j -u -f '%Y-%m-%dT%H:%M:%SZ' "$1" +%Y-%m-%d-%H%M 2>/dev/null || date +%Y-%m-%d-%H%M
 }
-# json_out <jq-program> [--arg k v ...]: emit JSON with jq when present (callers keep a printf fallback)
 # ---- paths and the project boundary
 realpath_m() { # resolve symlinks in the existing part of a path that may not exist yet
   if realpath -m / >/dev/null 2>&1; then realpath -m "$1"
@@ -65,10 +86,20 @@ project_root() {
   [ -n "$r" ] || r="${1:-$PWD}"
   realpath_m "$r"
 }
+# is_allow_file <abs-path>: the path (symlinks resolved) is a session allow file, sessions/<id>/allow in the state
+# dir. Only allow-repo.sh writes those; the guards deny every other write, whatever the allow files say.
+is_allow_file() {
+  local p st
+  p="$(realpath_m "$1")"; st="$(realpath_m "$USKN_STATE")"
+  case "$p" in "$st"/sessions/*/allow) return 0 ;; esac
+  return 1
+}
 # path_allowed <abs-path> <root> <session_id>: inside the root, the fixed allowlist, or the session's allow file
 # The scratch/tmp part of the allowlist is USKN_GUARD_ALLOW_DIRS (colon-separated; default /tmp and $TMPDIR).
+# A session allow file is never allowed (is_allow_file), even though the state dir is on the list.
 path_allowed() {
   local p="$1" root="$2" sid="$3" a dirs
+  is_allow_file "$p" && return 1
   under "$p" "$root" && return 0
   case "$p" in /dev/*) return 0 ;; esac   # /dev/null and friends are not a repository
   dirs="${USKN_GUARD_ALLOW_DIRS-/tmp:${TMPDIR:-}}"

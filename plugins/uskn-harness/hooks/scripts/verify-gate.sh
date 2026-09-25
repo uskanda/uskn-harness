@@ -3,6 +3,8 @@
 # convention (make verify -> pnpm run verify / npm run verify) and refuse to stop while it fails.
 # Contract (openspec: verify-gate): silent unless blocking; exit 0 always; never runs for subagents,
 # when stop_hook_active is true, when USKN_SKIP_VERIFY=1, outside git, or without a convention.
+# The run is capped at USKN_VERIFY_TIMEOUT seconds (default 570, inside the hook's 600) through with_timeout, which
+# works without GNU timeout too. A block is {decision, reason} only: the Stop schema has nothing else for it.
 set -u
 export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
 # shellcheck source=lib/common.sh
@@ -35,20 +37,20 @@ fi
 [ -n "$CMD" ] || exit 0
 
 LOG="$DIR/verify.log"
-if have timeout; then ( cd "$TOP" && timeout 570 bash -c "$CMD" ) >"$LOG" 2>&1; RC=$?
-else ( cd "$TOP" && bash -c "$CMD" ) >"$LOG" 2>&1; RC=$?; fi
+LIMIT="${USKN_VERIFY_TIMEOUT:-570}"
+( cd "$TOP" && with_timeout "$LIMIT" bash -c "$CMD" ) >"$LOG" 2>&1; RC=$?
 # Record the tree as it is after the run: a verify that writes files (logs, lockfiles) must not trigger itself again.
 if [ "$RC" -eq 0 ]; then tree_fingerprint "$TOP" > "$DIR/verified"; exit 0; fi
 
-NOTE=""; [ "$RC" -eq 124 ] && NOTE=" (timed out after 570s)"
+NOTE=""; [ "$RC" -eq 124 ] && NOTE=" (timed out after ${LIMIT}s)"
 REASON="uskn-harness verify gate: \`$CMD\` failed with exit $RC$NOTE in $TOP. Fix the failures and finish again; do not report the work as done until it passes. Full log: $LOG. To bypass deliberately, set USKN_SKIP_VERIFY=1.
 
 Last lines:
 $(tail -n 40 "$LOG")"
 if have jq; then
-  jq -c -n --arg r "$REASON" '{decision:"block", reason:$r, hookSpecificOutput:{hookEventName:"Stop", decision:"block", reason:$r}}'
+  jq -c -n --arg r "$REASON" '{decision:"block", reason:$r}'
 else
   esc="$(printf '%s' "$REASON" | sed 's/\\/\\\\/g; s/"/\\"/g' | awk '{printf "%s\\n", $0}')"
-  printf '{"decision":"block","reason":"%s","hookSpecificOutput":{"hookEventName":"Stop","decision":"block","reason":"%s"}}\n' "$esc" "$esc"
+  printf '{"decision":"block","reason":"%s"}\n' "$esc"
 fi
 exit 0

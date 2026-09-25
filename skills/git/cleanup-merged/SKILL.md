@@ -1,6 +1,6 @@
 ---
 name: cleanup-merged
-description: List local branches already merged into the remote integration branch and delete them after confirmation. Use for periodic branch cleanup. Optional argument: a different base branch to compare against.
+description: List local branches already merged into the remote integration branch and delete them after confirmation. Use for periodic branch cleanup. Optional argument - a different base branch to compare against.
 allowed-tools: Bash, AskUserQuestion
 ---
 

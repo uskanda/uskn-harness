@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# grilling-guard.sh: PreToolUse hook (Write | Edit | MultiEdit | NotebookEdit).
+# grilling-guard.sh: PreToolUse hook (Write | Edit | NotebookEdit).
 #
 # Denies a write to an OpenSpec change's proposal.md, design.md, tasks.md, or specs/** when that change
 # has no grilling.md yet. Prints nothing otherwise, so the normal permission flow applies.

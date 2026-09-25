@@ -1,6 +1,6 @@
 ---
 name: switch-base
-description: Switch to the integration branch and update it to the latest remote state. Use when the user wants to go back to the base branch before starting new work. Optional argument: a different branch to switch to.
+description: Switch to the integration branch and update it to the latest remote state. Use when the user wants to go back to the base branch before starting new work. Optional argument - a different branch to switch to.
 allowed-tools: Bash
 ---
 

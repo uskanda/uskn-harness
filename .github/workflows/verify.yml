@@ -1,7 +1,8 @@
 # Runs the repository's verify convention on every push to main, on pull requests, and by hand.
 # Tools come from the same pins as a developer machine: mise.toml (node, bats, shellcheck) via mise-action,
-# deps.json (openspec, textlint, designmd, agent-style) via `uskn-harness sync --tools`. VERIFY_STRICT=1 turns a
-# missing tool into a failure so the run cannot go green while checking nothing.
+# deps.json (openspec, textlint, designmd, agent-style) via `uskn-harness sync --tools`, and python3's PyYAML from
+# the OS packages when the runner lacks it. VERIFY_STRICT=1 turns a missing tool into a failure so the run cannot go
+# green while checking nothing.
 name: verify
 
 on:
@@ -35,6 +36,9 @@ jobs:
           mise exec -- npm install -g @anthropic-ai/claude-code
           mise reshim
           claude --version
+
+      - name: PyYAML for the SKILL.md frontmatter check, from the OS packages when the runner lacks it
+        run: python3 -c 'import yaml' 2>/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq python3-yaml; }
 
       - name: make verify (strict)
         run: make verify VERIFY_STRICT=1
