@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# write-guard.sh: PreToolUse hook (Write | Edit | MultiEdit | NotebookEdit). Denies writes outside the project root
+# write-guard.sh: PreToolUse hook (Write | Edit | NotebookEdit). Denies writes outside the project root
 # unless the path is on the fixed allowlist (scratchpad / tmp, ~/.ai-sessions, auto-memory, harness state) or the
 # session's allow file (/allow-repo). Silent otherwise. Contract (openspec: write-guard): exit 0 always.
 set -u
