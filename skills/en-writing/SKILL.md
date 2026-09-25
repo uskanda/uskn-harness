@@ -62,5 +62,6 @@ when the audit reports no mechanical violations, or each remaining one has a rea
 ## Final pass
 
 Run the Skill tool with `humanizer` on the finished text. It removes AI
-patterns without changing claims. Read its output against the audit once more; humanizer may reintroduce a dash
-or a bullet.
+patterns without changing claims. Tell it the text is part of another task: humanizer then answers in its embedded
+mode, with only the final text instead of a draft and a list of remaining patterns. Read its output against the
+audit once more; humanizer may reintroduce a dash or a bullet.

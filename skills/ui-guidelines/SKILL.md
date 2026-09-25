@@ -1,7 +1,7 @@
 ---
 name: ui-guidelines
 description: Entry point for building, changing, or reviewing any user interface (web, React Native / Expo). Use before writing UI code, when asked to design or critique screens, and when DESIGN.md or PRODUCT.md needs creating or changing. Routes to Impeccable commands, Expo skills, and frontend-design.
-allowed-tools: Bash(designmd:*), Bash(npx:*), Read, Write, Edit, Glob, Grep, Skill
+allowed-tools: Bash(designmd:*), Bash(npx:*), Bash(git status:*), Bash(git restore:*), Read, Write, Edit, Glob, Grep, Skill
 ---
 
 # ui-guidelines: DESIGN.md and PRODUCT.md first
@@ -29,7 +29,7 @@ allowed-tools: Bash(designmd:*), Bash(npx:*), Read, Write, Edit, Glob, Grep, Ski
    (hierarchy, clarity), `polish` before shipping, `harden` (errors, i18n, overflow), `adapt` (devices),
    `clarify` (copy), `layout`, `typeset`, `bolder` / `quieter`. Its `context` step reads PRODUCT.md and
    DESIGN.md. The commands that write those files in Impeccable's own format stay unused: `init`, `document`,
-   `extract`, `doctor`. A "DESIGN.md stale / missing sidecar" report from Impeccable is noted, not acted on.
+   `extract`, `doctor`. What Impeccable writes anyway is undone (next section).
 3. React Native / Expo (`app.json` with `expo`): the Expo official skills are installed per project
    (`npx skills add expo/skills -y` from the repository root; look for `skills-lock.json` or `.claude/skills/`).
    Native specifics (safe areas, platform type scales, haptics, navigation idioms) live in DESIGN.md prose; the
@@ -37,8 +37,30 @@ allowed-tools: Bash(designmd:*), Bash(npx:*), Read, Write, Edit, Glob, Grep, Ski
 4. A new web surface with no DESIGN.md yet, where the user wants a visual direction explored: run the Skill tool
    with `frontend-design`, then record the choices it made as DESIGN.md tokens and prose before continuing.
 
+## What Impeccable writes on its own
+
+Impeccable's build of a new surface (skill 4.2.3 and later) ends with its documenter, which writes DESIGN.md in
+Impeccable's schema plus a sidecar, `.impeccable/design.json`. Neither is adopted: the repository's DESIGN.md stays
+the source of truth.
+
+1. After every Impeccable command, run `git status --short -- DESIGN.md .impeccable`.
+2. Undo Impeccable's writes. A tracked DESIGN.md: `git restore DESIGN.md`. A DESIGN.md it created: delete it and
+   start from the template (Sources of truth). Delete `.impeccable/design.json`.
+3. A decision worth keeping goes into DESIGN.md by hand, as tokens and prose in the Google format, then
+   `designmd lint DESIGN.md`.
+
+Its staleness check ("DESIGN.md is stale", "sidecar missing") is switched off by `IMPECCABLE_NO_STALENESS_CHECK=1`
+in the `env` of the user's `~/.claude/settings.json`, which the dotfiles manage; `uskn-harness doctor` warns while it
+is unset. Never add `.impeccable/config.json` to a product repository to silence it. Where the variable is unset,
+note the warning in the report and go on; do not run `/impeccable doctor` or `document` over it.
+
+Example: an Impeccable build of a new settings screen, in a repository whose DESIGN.md is tracked. `git status` shows
+` M DESIGN.md` and `?? .impeccable/`. Run `git restore DESIGN.md`, delete `.impeccable/design.json`, add the one new
+spacing token the screen needed to DESIGN.md with a sentence of prose, and lint.
+
 ## Done when
 
 - `designmd lint DESIGN.md` has 0 errors and the touched UI uses tokens, not literals.
+- `git status --short -- DESIGN.md .impeccable` shows nothing Impeccable wrote.
 - For a surface that ships: `/impeccable audit` run on it, findings fixed or listed in the report.
 - PRODUCT.md still describes the product; a change of platform or audience updates it in the same change.
