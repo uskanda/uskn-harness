@@ -412,6 +412,40 @@ check_opsx_commands() { # doctor: ~/.claude/commands/opsx with the marker and ev
   else note warn "openspec commands opsx: missing $missing (run sync)"; fi
 }
 
+# ------------------------------------------------------ Claude Code minimum
+# The floor in deps.json (runtimes.claude-code.min_version) is where Claude Code starts reading AGENTS.md in a
+# repository without CLAUDE.md. It is a floor only: anything newer is ok, and sync never installs Claude Code.
+# Each install is its own line, because the CLI on PATH and a VS Code extension update separately.
+is_version() { [[ "$1" =~ ^[0-9]+(\.[0-9]+)+$ ]]; }
+version_ge() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n 1)" = "$2" ]; } # <have> <min>
+check_claude_install() { # <what> <version> <min> <how to update>
+  if version_ge "$2" "$3"; then note ok "Claude Code: $1 is $2 (minimum $3)"
+  else note warn "Claude Code: $1 is $2, older than the deps.json minimum $3; $4 (until then, a repository without CLAUDE.md does not get its AGENTS.md read)"; fi
+}
+check_claude_code() { # doctor: the claude CLI on PATH and the newest VS Code extension in each extensions dir
+  have jq || return 0
+  local min cli out v dir d best
+  min="$(jq -r '.runtimes["claude-code"].min_version // empty' "$HARNESS/deps.json" 2>/dev/null)"
+  [ -n "$min" ] || return 0
+  if cli="$(command -v claude)"; then
+    out="$(claude --version </dev/null 2>&1 | head -n 1)"
+    v="${out%% *}"
+    if is_version "$v"; then check_claude_install "claude CLI $cli" "$v" "$min" "run claude update"
+    else note warn "Claude Code: claude CLI $cli has no readable version; claude --version printed '$out'"; fi
+  fi
+  for dir in "$HOME/.vscode/extensions" "$HOME/.vscode-server/extensions"; do
+    best=""
+    for d in "$dir"/anthropic.claude-code-*; do
+      [ -d "$d" ] || continue
+      v="${d##*/anthropic.claude-code-}"; v="${v%%-*}"
+      is_version "$v" || continue
+      if [ -z "$best" ] || version_ge "$v" "${best%%$'\t'*}"; then best="$v"$'\t'"$d"; fi
+    done
+    [ -n "$best" ] && check_claude_install "VS Code extension ${best#*$'\t'}" "${best%%$'\t'*}" "$min" "update the extension in VS Code"
+  done
+  return 0
+}
+
 cmd_doctor() {
   local d name mise
   say info "harness: $HARNESS"
@@ -432,6 +466,7 @@ cmd_doctor() {
   done < <(stale_skill_links)
   check_link "$SKILLS_DIR/uskn-harness" "$HARNESS/plugins/uskn-harness" "plugin uskn-harness"
   check_link "$SCHEMA_LINK" "$HARNESS/schemas/uskn" "openspec schema uskn"
+  check_claude_code
   if have claude && ! stub; then
     if claude plugin validate "$HARNESS/plugins/uskn-harness" >/dev/null 2>&1; then note ok "plugin validate"; else note fail "plugin validate (claude plugin validate $HARNESS/plugins/uskn-harness)"; fi
   fi
@@ -471,6 +506,22 @@ has_verify() { # <dir>: the verify convention, printed when found
   fi
   return 1
 }
+# check_claude_md: Claude Code reads AGENTS.md only while none of CLAUDE.md, .claude/CLAUDE.md and CLAUDE.local.md
+# exists. A repository needs none of them; one that has CLAUDE.md or .claude/CLAUDE.md must import @AGENTS.md.
+check_claude_md() { # <dir>
+  local d="$1" rel found="" bad=0
+  for rel in CLAUDE.md .claude/CLAUDE.md; do
+    [ -f "$d/$rel" ] || continue
+    found="${found:+$found, }$rel"
+    grep -qF '@AGENTS.md' "$d/$rel" && continue
+    note warn "$rel does not import @AGENTS.md, and while it exists AGENTS.md is not read (move its content to AGENTS.md, then delete it)"; bad=1
+  done
+  if [ -z "$found" ] && [ -f "$d/CLAUDE.local.md" ]; then
+    note warn "CLAUDE.local.md stops Claude Code from reading AGENTS.md here (delete CLAUDE.local.md, or set Project instructions in /config to claude-md-and-agents-md)"; bad=1
+  fi
+  [ "$bad" = 0 ] || return 0
+  if [ -n "$found" ]; then note ok "$found -> @AGENTS.md"; else note ok "no CLAUDE.md: AGENTS.md only"; fi
+}
 cmd_onboard_check() { # <dir>
   local d name cmd n
   d="$(realpath_f "${1:-.}" 2>/dev/null || printf '%s' "${1:-.}")"
@@ -478,9 +529,7 @@ cmd_onboard_check() { # <dir>
   say info "repo: $d"
   if [ -f "$d/AGENTS.md" ]; then note ok "AGENTS.md ($(wc -l < "$d/AGENTS.md") lines)"
   else note warn "AGENTS.md missing (the entry point for agents)"; fi
-  if [ ! -f "$d/CLAUDE.md" ]; then note warn "CLAUDE.md missing (should be @AGENTS.md plus Claude-specific lines)"
-  elif grep -q '@AGENTS.md' "$d/CLAUDE.md"; then note ok "CLAUDE.md -> @AGENTS.md"
-  else note warn "CLAUDE.md does not reference @AGENTS.md (move the content to AGENTS.md)"; fi
+  check_claude_md "$d"
   if [ ! -f "$d/openspec/config.yaml" ]; then note warn "openspec/ missing (run openspec init, then set schema: uskn)"
   elif grep -qE '^schema:[[:space:]]*uskn' "$d/openspec/config.yaml"; then note ok "openspec schema: uskn"
   else note warn "openspec/config.yaml does not set schema: uskn"; fi

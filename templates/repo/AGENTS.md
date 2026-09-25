@@ -48,3 +48,12 @@ protected: main, develop
 
 - <"never do X" items, with the reason>
 - <conventions a linter cannot enforce>
+
+## Claude Code
+
+<!-- Optional, and usually deleted: keep it only for what applies to Claude alone in this repository. Claude Code
+     reads this file itself, but only while the repository has no CLAUDE.md, .claude/CLAUDE.md, or CLAUDE.local.md,
+     so do not create one. How to work (language, spec workflow, verification, git) comes from the user layer and
+     the harness skills, installed by `uskn-harness sync`. -->
+
+- <an MCP server Claude needs here, a command that must not run here>
