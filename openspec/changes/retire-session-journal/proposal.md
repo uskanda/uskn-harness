@@ -15,7 +15,7 @@
 - SessionStartとverify gateは、状態ディレクトリにjournal専用のファイル（`project`、`started`、`baseline-head`）を書かない
 - `uskn-harness sync` は `~/.ai-sessions` を作らない。`doctor` は検査しない。write-guardとbash-guardの許可リストからも外す。既存のデータには触れない
 - `sync` は、30日より古いセッションの状態ディレクトリを消す
-- `sync` は、削除したスキルを指したまま先の無くなったsymlinkを `~/.claude/skills` から取り除く。`journal` と `recall` を各端末から外すため
+- `sync` は、削除したスキルを指したまま先の無くなったsymlinkを `~/.claude/skills` から取り除く。`journal` と `recall` を各端末から外すため（`retire-obsolete-skills` の仕組みに一本化した）
 - ADR-0004を足し、ADR-0001 §10（履歴）と §7のjournal関連の行を置き換える
 - README、`docs/setup-new-machine.md`、ユーザー層の `CLAUDE.md`、プラグインのREADME、用語集からjournalの記述を外す
 

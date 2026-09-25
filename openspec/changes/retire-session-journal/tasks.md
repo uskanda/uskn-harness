@@ -21,7 +21,7 @@
 
 - [x] 3.1 `bin/tests/uskn-harness.bats` の `setup` で、状態ディレクトリを偽の場所に向ける（`XDG_STATE_HOME` と `USKN_STATE_DIR`）。`~/.ai-sessions` を前提にした判定を、作られないことと既存のものが変わらないことの判定に置き換える
 - [x] 3.2 `uskn-harness.bats` に、古いセッションの状態の削除のテストを足す。40日前のものだけが消え、中に新しいファイルがあるものと昨日のものは残り、`--dry-run` と `--tools` では消えないこと。変更前のスクリプトで失敗することを確かめる
-- [x] 3.3 `uskn-harness.bats` に、削除したスキルのsymlinkの除去のテストを足す。ハーネスの中を指す先の無いsymlinkだけが消え、ハーネスの外を指すものは残ること。変更前のスクリプトで失敗することを確かめる
+- [x] 3.3 `uskn-harness.bats` に、削除したスキルのsymlinkの除去のテストを足す。ハーネスの中を指す先の無いsymlinkだけが消え、ハーネスの外を指すものは残ること。変更前のスクリプトで失敗することを確かめる。統合のときに `retire-obsolete-skills` の実装へ一本化し、テストはそちらの関数を通す形で残した
 - [x] 3.4 `doctor` がsessionsリポジトリを報告しないことのテストを足す
 - [x] 3.5 `bin/uskn-harness` から `SESSIONS_DIR`、`ensure_sessions_repo`、`doctor` の検査、usageの6bを外す。古いセッションの状態の削除と、先の無いsymlinkの除去を足す。3.1〜3.4が通ることを確かめる
 

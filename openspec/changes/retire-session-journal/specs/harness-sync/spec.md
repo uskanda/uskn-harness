@@ -18,19 +18,6 @@
 - **WHEN** 古いセッションがある状態で `sync --dry-run` を実行する
 - **THEN** 削除の予定が出力され、ディレクトリは残る
 
-### Requirement: 削除したスキルの symlink の除去
-`sync` は、`~/.claude/skills` の直下にあって、ハーネスのcheckoutの中を指しているのに先が無いsymlinkを取り除かなければならない（MUST）。
-リンク先がハーネスの外のsymlinkと、実ディレクトリには触れてはならない（MUST NOT）。
-取り除いたものは `removed` として報告する。`--dry-run` では予定を出力するだけにする。
-
-#### Scenario: ハーネスからスキルを削除したあと
-- **WHEN** `~/.claude/skills/journal` が、削除済みの `<harness>/skills/journal` を指している状態で `sync` を実行する
-- **THEN** そのsymlinkは取り除かれ、`removed` と報告される
-
-#### Scenario: ハーネスの外を指す先の無い symlink
-- **WHEN** `~/.claude/skills/mine` が、ハーネスの外にある存在しないパスを指している
-- **THEN** そのsymlinkは残る
-
 ### Requirement: journal の置き場に触れない
 `sync` は `~/.ai-sessions` を作ってはならず、既にあれば中身を変えてはならない（MUST NOT）。
 

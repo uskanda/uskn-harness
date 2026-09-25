@@ -75,10 +75,10 @@ write-guardとbash-guardは `lib/common.sh` の `path_allowed` を共有する�
 
 ### 削除したスキルのsymlinkは `sync` が取り除く
 
-`journal` と `recall` を消すと、各端末の `~/.claude/skills/journal` と `~/.claude/skills/recall` は先の無いsymlinkになる。
-`sync` は、`~/.claude/skills` の直下で、ハーネスの中を指していて先が無いsymlinkを取り除く。
-対象は、リンク先の文字列がハーネスのcheckoutのパスで始まるものに限る。ハーネスの外を指すsymlinkと実ディレクトリには触れない。
-スキルを外すという決定を各端末まで届けるための手順で、新しい判断は含まない。手作業の `rm` を案内する案もあったが、端末ごとに忘れるので採らない。
+`journal` と `recall` を消すと、各端末の `~/.claude/skills` に先の無いsymlinkが残る。
+並行して進めた変更 `retire-obsolete-skills` も、同じ仕組みとdoctorの検査を持つ。
+統合のときにそちらの `prune_stale_skill_links` へ一本化した（2026-09-25）。
+この変更の実装と要件からは外した。
 
 ### Co-Authored-Byは `commit` の本文で付ける
 
