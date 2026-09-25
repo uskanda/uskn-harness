@@ -252,6 +252,12 @@ refute() { ! "$@"; }
   head -1 "$REPO/templates/user/CLAUDE.md" | grep -q "managed by uskn-harness"
 }
 
+@test "templates/user/CLAUDE.md names no skill the harness has retired" {
+  for s in verification-before-completion using-git-worktrees pre-merge nessun-dorma; do
+    refute grep -q -- "$s" "$REPO/templates/user/CLAUDE.md"
+  done
+}
+
 # ---- phase 3: pinned npm CLIs (textlint, agent-style, design.md) and UI skills (spec: harness-sync, harness-doctor)
 
 @test "sync installs the pinned npm CLIs with their bundles and the UI / writing skills from deps.json" {
@@ -262,7 +268,7 @@ refute() { ! "$@"; }
   grep -q "npm install -g @google/design.md@0.4.0" "$USKN_HARNESS_STUB_LOG"
   grep -q "impeccable@4.0.1 install" "$USKN_HARNESS_STUB_LOG"
   grep -q "skills@latest add anthropics/claude-plugins-official --skill frontend-design" "$USKN_HARNESS_STUB_LOG"
-  for s in ja-writing en-writing ui-guidelines test-driven-development systematic-debugging verification-before-completion using-git-worktrees; do
+  for s in ja-writing en-writing ui-guidelines test-driven-development systematic-debugging verify; do
     [ -L "$SKILLS/$s" ]
     [ "$(readlink -f "$SKILLS/$s")" = "$REPO/skills/$s" ]
   done

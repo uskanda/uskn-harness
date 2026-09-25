@@ -20,8 +20,8 @@
 
 ## Verification
 
-- Before calling work done, run the repository's verify convention: `make verify` if a Makefile has that target, otherwise `pnpm run verify` / `npm run verify`. If none exists, say so instead of claiming verification. The `verification-before-completion` skill is the checklist; a Stop hook runs the same command.
-- When adding behavior to scripts or code, write the failing test first: follow the `test-driven-development` skill. A bug or failing test you do not yet understand goes through `systematic-debugging` before any fix. An isolated workspace comes from `using-git-worktrees`.
+- Before calling work done, run the repository's verify convention: `make verify` if a Makefile has that target, otherwise `pnpm run verify` / `npm run verify`. If none exists, say so instead of claiming verification. The `verify` skill runs it and states the command and its result before any claim; a Stop hook runs the same command.
+- When adding behavior to scripts or code, write the failing test first: follow the `test-driven-development` skill. A bug or failing test you do not yet understand goes through `systematic-debugging` before any fix. An isolated workspace comes from the agent's native worktree support, which keeps it inside the project root.
 
 ## Writing
 
@@ -35,5 +35,5 @@
 ## Repository context
 
 - A `<repo-context>` block is injected at session start with hosting (GitHub / GitLab) and the branch model (default / integration / qa, and the protected branches when `AGENTS.md` declares them). Skills use it; do not re-detect.
-- Git workflow skills: commit, push, pr, sync-base, switch-base, rebase, cleanup-merged, pre-merge, fix-ci, release.
+- Git workflow skills: commit, push, pr, sync-base, switch-base, rebase, cleanup-merged, fix-ci, release.
 - Each session has a journal in `~/.ai-sessions`; a hook keeps the facts, you write Decisions / Open / Next with the `journal` skill when asked. `recall <keywords|sid8>` looks up earlier sessions before re-deciding something.

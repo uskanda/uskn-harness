@@ -35,7 +35,7 @@ If the argument is a URL on a different host than the repository, the URL's host
 ## Fixing
 
 1. Identify the root cause (lint, format, types, tests, build, dependencies, CI configuration).
-2. Code problems: fix them and, where possible, rerun the same check locally (the `pre-merge` skill describes how).
+2. Code problems: fix them and, where possible, rerun the same check locally (the `verify` skill describes how).
 3. CI configuration problems: fix the workflow or pipeline file.
 4. Not code-related (infrastructure, network, external service, flaky test): do not guess a fix; report it and suggest a rerun.
 

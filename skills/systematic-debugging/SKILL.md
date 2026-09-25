@@ -7,7 +7,7 @@ license: MIT
 # Systematic Debugging
 
 > Forked from [obra/superpowers](https://github.com/obra/superpowers) v6.3.0 (MIT, see `LICENSE`), pinned in
-> `deps.json` under `forks`. Harness changes: references to `test-driven-development` and `verification-before-completion` use the harness skill names; superpowers' skill-testing files are not vendored.
+> `deps.json` under `forks`. Harness changes: references to `test-driven-development` and `verify` use the harness skill names; superpowers' skill-testing files are not vendored.
 
 ## Overview
 
@@ -190,7 +190,7 @@ You MUST complete each phase before proceeding to the next.
    - Test passes now?
    - No other tests broken?
    - Issue actually resolved?
-   - Use the `verification-before-completion` skill before claiming success
+   - Use the `verify` skill before claiming success
 
 4. **If Fix Doesn't Work**
    - STOP

@@ -171,30 +171,6 @@
         "references use harness skill names",
         "CREATION-LOG.md and test-*.md (skill tests) not vendored"
       ]
-    },
-    "verification-before-completion": {
-      "mode": "vendored",
-      "source": "obra/superpowers",
-      "ref": "v6.3.0",
-      "license": "MIT",
-      "path": "skills/verification-before-completion",
-      "vendored": "2026-09-05",
-      "changes": [
-        "verify convention and the verify-gate Stop hook under Key Patterns",
-        "OpenSpec tasks.md in the requirements check"
-      ]
-    },
-    "using-git-worktrees": {
-      "mode": "vendored",
-      "source": "obra/superpowers",
-      "ref": "v6.3.0",
-      "license": "MIT",
-      "path": "skills/using-git-worktrees",
-      "vendored": "2026-09-05",
-      "changes": [
-        "worktrees stay inside the project root (write guard)",
-        "clean-baseline check uses the verify convention"
-      ]
     }
   }
 }
