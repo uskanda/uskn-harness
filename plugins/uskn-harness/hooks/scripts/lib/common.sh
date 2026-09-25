@@ -68,7 +68,6 @@ session_dir_for_prefix() {
 to_local_stamp() {
   date -d "$1" +%Y-%m-%d-%H%M 2>/dev/null || date -j -u -f '%Y-%m-%dT%H:%M:%SZ' "$1" +%Y-%m-%d-%H%M 2>/dev/null || date +%Y-%m-%d-%H%M
 }
-# json_out <jq-program> [--arg k v ...]: emit JSON with jq when present (callers keep a printf fallback)
 # ---- paths and the project boundary
 realpath_m() { # resolve symlinks in the existing part of a path that may not exist yet
   if realpath -m / >/dev/null 2>&1; then realpath -m "$1"

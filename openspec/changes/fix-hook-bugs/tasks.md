@@ -48,7 +48,7 @@
 
 - [x] 8.1 verify gateのテストで、blockの出力に `hookSpecificOutput` が無いことを確かめ、失敗を確認してから `verify-gate.sh` を直す
 - [x] 8.2 `hooks.json` のmatcher、`grilling-guard.sh`、`textlint-check.sh`、`write-guard.sh` の冒頭のコメントから `MultiEdit` を外す。`claude plugin validate --strict` が通ることを確認する
-- [ ] 8.3 `openspec/glossary.yml` などの、実態と違う記述を直す。用語集の「verify gate」の定義、`plugin.json` の説明、プラグインの `README.md`。
+- [x] 8.3 `openspec/glossary.yml` などの、実態と違う記述を直す。用語集の「verify gate」の定義、`plugin.json` の説明、プラグインの `README.md`。
   `.gitignore` と、`lib/common.sh` の古いコメントも直す。`make verify-terms` が通ることを確認する
 
 ## 9. 検証

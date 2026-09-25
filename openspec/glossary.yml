@@ -19,7 +19,7 @@ terms:
     aliases: []
     en: "managed clone"
   - term: "verify gate"
-    definition: "作業ツリーが変わったセッションで検証規約を走らせ、失敗中は終了させるStop hook。"
+    definition: "作業ツリーが変わったセッションで検証規約を走らせ、失敗している間は終了させないStop hook。"
     aliases: ["検証ゲート"]
     en: "verify gate"
   - term: "検証規約"

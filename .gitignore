@@ -1,8 +1,9 @@
 node_modules/
 *.log
 .DS_Store
-.harness-session/
 .claude/settings.local.json
+# Worktrees that Claude Code agents create for isolated work
+.claude/worktrees/
 CLAUDE.local.md
 # Impeccable runtime state (screenshots, sessions) if it is ever run here
 .impeccable/runtime/
