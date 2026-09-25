@@ -105,7 +105,9 @@ mise、npm globalのCLI、状態ディレクトリは残る。
 
 | doctor の表示 | 意味 | 対処 |
 |---|---|---|
-| `conflict: ... exists without .uskn-harness-managed` | 同名の実ディレクトリがある。chezmoi が以前配ったスキルのコピーなど | dotfiles の run_onchange が旧コピーを消す。残っていれば中身を確認して手で消し、`sync` を再実行 |
+| `conflict: ... exists without .uskn-harness-managed` | 同名の実ディレクトリがある。chezmoi が以前配ったスキルのコピーなど | 中身を確認して手で消し、`sync` を再実行 |
 | `stale symlink` / `missing` | symlink が古いか無い | `uskn-harness sync` |
 | `<cli> (have 'none', want '<ver>')` | npm global の CLI が未導入か版が違う | `uskn-harness sync`。ネットワークを確認 |
 | `openspec schema uskn: missing` | schema の symlink が無い | `uskn-harness sync` |
+| `openspec commands opsx: missing ...` | `~/.claude/commands/opsx/` が無いか、コマンドが欠けている | `uskn-harness sync`。ネットワークを確認 |
+| `stale skill link <name>` | ハーネスから消したスキルの symlink が残っている | `uskn-harness sync` が消す |

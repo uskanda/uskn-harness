@@ -57,7 +57,7 @@ report it; the working tree is as you found it.
 
 1. In `tasks.md`, turn each settled `check` and `confirm` line into `- [x]` and append `（archive-pushで完了とみなした）`
    to the end of the line.
-2. Run the Skill tool with `openspec-archive-change` and the change name. Answer its questions this way:
+2. Run the Skill tool with `opsx:archive` and the change name. Answer its questions this way:
    - delta specs differ from the main specs: sync now.
    - already synced: archive now.
    - a warning about incomplete artifacts or tasks: step 3 missed something. Answer cancel and report it.
