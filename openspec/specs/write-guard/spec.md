@@ -10,7 +10,7 @@
 対象パス（`file_path` または `notebook_path`）の実体がその外にあるとき、hookは `permissionDecision: deny` と理由を返さなければならない（MUST）。
 理由には `/allow-repo <path>` で解除できる旨を書く。
 ルート内と許可リスト内は何も出力しない。
-許可リストは `/tmp`、`$TMPDIR`、`~/.ai-sessions`、`~/.claude/projects/*/memory`、ハーネスの状態ディレクトリ、`$CLAUDE_PLUGIN_DATA`。
+許可リストは `/tmp`、`$TMPDIR`、`~/.claude/projects/*/memory`、ハーネスの状態ディレクトリ、`$CLAUDE_PLUGIN_DATA`。
 状態ディレクトリのうち、セッションの許可ファイル `sessions/<session_id>/allow` は許可リストに含めない。
 
 #### Scenario: 他のリポジトリ
@@ -28,6 +28,10 @@
 #### Scenario: 状態ディレクトリのほかのファイル
 - **WHEN** 状態ディレクトリの `sessions/<session_id>/notes` をWriteする
 - **THEN** 何も出力しない
+
+#### Scenario: journal の置き場だった場所
+- **WHEN** `~/.ai-sessions/x/j.md` をWriteする
+- **THEN** ほかのルート外と同じく拒否される
 
 ### Requirement: セッション限定の解除
 `sessions/<session_id>/allow` に列挙されたパス配下は許可しなければならない（MUST）。他のセッションの解除は効かない。

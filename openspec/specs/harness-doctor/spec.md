@@ -46,13 +46,6 @@
 - **WHEN** symlinkが無い
 - **THEN** `warn` として報告され、`sync` の実行が案内される
 
-### Requirement: sessions リポジトリの検査
-`doctor` は `~/.ai-sessions` がgitリポジトリであることを検査し、無ければ `warn` としなければならない（MUST）。
-
-#### Scenario: 欠落
-- **WHEN** `~/.ai-sessions` が無い
-- **THEN** `warn` と `sync` の案内
-
 ### Requirement: npm global CLI の版の確認
 `doctor` は `deps.json` の `clis` の各項目について、入っている版がピンと一致すれば `ok`、無いか異なれば `warn` を報告しなければならない（MUST）。
 

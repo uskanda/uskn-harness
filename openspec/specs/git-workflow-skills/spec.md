@@ -135,19 +135,6 @@ auto-mergeを設定する前にCIの存在を確認し、CIが現れないとき
 - **WHEN** 1つの目的のための実装、テスト、specが未コミットで残っている
 - **THEN** コミットは1つできる
 
-### Requirement: Session トレーラ
-`commit` は各コミットメッセージの末尾に `Session: <sid8>` トレーラを付けなければならない（MUST）。
-`<sid8>` はセッションIDの先頭8文字で、`${CLAUDE_SESSION_ID}` から得る。
-セッションIDを得られないときだけ、トレーラを付けない。
-
-#### Scenario: セッション内のコミット
-- **WHEN** IDの先頭が `3f2a9c1d` のセッションから `/commit` を実行する
-- **THEN** 各コミットの末尾に `Session: 3f2a9c1d` がある
-
-#### Scenario: 別のスキルから呼んだコミット
-- **WHEN** `push` から呼ばれたforkの `commit` がコミットする
-- **THEN** トレーラの値は、`push` を実行したセッションのIDの先頭8文字になる
-
 ### Requirement: 日本語の成果物の検査
 `commit` と `pr` スキルは、日本語で書いた本文をtextlintで確認しなければならない（MUST）。
 本文はファイルではないため、一時ファイルに書いてから検査する。
@@ -160,3 +147,15 @@ textlintが使えないときは検査を飛ばし、その旨を報告する。
 #### Scenario: textlint が無い
 - **WHEN** textlintがPATHに無い
 - **THEN** 検査は飛ばされ、コミットは続行する
+
+### Requirement: Co-Authored-By トレーラ
+`commit` は各コミットメッセージの末尾に `Co-Authored-By: Claude <noreply@anthropic.com>` トレーラを付けなければならない（MUST）。
+付ける条件は無く、本体のセッションから呼んだときも、forkした先で実行したときも同じ。
+
+#### Scenario: セッション内のコミット
+- **WHEN** `/commit` を実行する
+- **THEN** 各コミットの末尾に `Co-Authored-By: Claude <noreply@anthropic.com>` がある
+
+#### Scenario: 別のスキルから呼んだコミット
+- **WHEN** `push` が未コミットの変更を `commit` でコミットする
+- **THEN** そのコミットにも同じトレーラがある

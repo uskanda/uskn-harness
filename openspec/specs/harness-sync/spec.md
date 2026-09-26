@@ -127,12 +127,12 @@
 
 ### Requirement: 道具だけの導入（--tools）
 `uskn-harness sync --tools` は3つだけを用意しなければならない（MUST）。ランタイム（mise、node、jq）、`deps.json` でピンしたnpm globalのCLI、OpenSpec schemaのsymlink。
-参照点、実行ファイル、スキルとプラグインのsymlink、サードパーティスキル、sessionsリポジトリ、OpenSpecのユーザー層、ユーザー層CLAUDE.mdには触らない。
+参照点、実行ファイル、スキルとプラグインのsymlink、サードパーティスキル、OpenSpecのユーザー層、ユーザー層CLAUDE.mdには触らない。古いセッションの状態も削除しない。
 `--dry-run` と組み合わせられる。`--remove` と組み合わせたときは終了コード2で止まる。
 
 #### Scenario: CI の runner
 - **WHEN** 何も導入されていないマシンで `sync --tools` を実行する
-- **THEN** miseの道具とnpm globalの導入が実行され、schemaのsymlinkが作られる。`~/.claude/skills`、`~/.ai-sessions`、`~/.claude/CLAUDE.md` は作られない
+- **THEN** miseの道具とnpm globalの導入が実行され、schemaのsymlinkが作られる。`~/.claude/skills` と `~/.claude/CLAUDE.md` は作られない
 
 #### Scenario: 2 回目
 - **WHEN** 導入済みの環境で `sync --tools` を再実行する
@@ -180,22 +180,9 @@ mergeとrebaseは行わない（MUST NOT）。fast-forwardできないときは�
 - **WHEN** checkoutが既にupstreamと同じ
 - **THEN** 実行し直さず、そのまま導入を続ける
 
-### Requirement: sessions リポジトリの初期化
-`sync` は `~/.ai-sessions` が無いとき、`git init` で空のgitリポジトリを作らなければならない（MUST）。
-cloneは行わない。既にgitリポジトリがあれば触らず、remoteの有無も問わない。
-gitリポジトリでないものがあれば、触らずに `conflict` と報告する。
-
-#### Scenario: 新しいマシン
-- **WHEN** `~/.ai-sessions` が無い状態で `sync` を実行する
-- **THEN** `~/.ai-sessions` がgitリポジトリとして作られ、`created` と報告される。`git clone` は実行されない
-
-#### Scenario: 既存
-- **WHEN** `~/.ai-sessions` がgitリポジトリとして存在する
-- **THEN** `ok` として報告され、中身とremoteは変わらない
-
 ### Requirement: 失敗の終了コード
 手順のどれかが失敗したとき、`sync` は残りの手順を続けたうえで、終了コード1で終わらなければならない（MUST）。
-失敗とは、miseやnode、jq、npm global、サードパーティスキルの導入と、sessionsリポジトリの `git init` の失敗である。
+失敗とは、miseやnode、jq、npm global、サードパーティスキルの導入の失敗である。
 このとき、失敗した手順の数と `sync` を再実行する旨を標準エラーに出力する。
 `conflict` と警告だけのとき、およびcheckoutの更新の失敗では、終了コードは0のまま。
 `--tools` でも同じ規則に従う。
@@ -211,3 +198,32 @@ gitリポジトリでないものがあれば、触らずに `conflict` と報�
 #### Scenario: conflict だけ
 - **WHEN** 実ディレクトリの同名スキルがあるだけで、他の手順は成功する
 - **THEN** 終了コードは0
+
+### Requirement: 古いセッションの状態の削除
+`sync` は、状態ディレクトリの `sessions/` の下にあるセッションのディレクトリのうち、30日より長く更新されていないものを削除しなければならない（MUST）。
+状態ディレクトリはhookと同じ `${XDG_STATE_HOME:-~/.local/state}/uskn-harness` で、`USKN_STATE_DIR` があればそれを使う。
+更新の有無は、ディレクトリそのものと中のファイルのうち、最も新しい更新時刻で判断する。
+削除したときは数を `removed` として報告し、消せなかったディレクトリは `warn` として報告する。`sessions/` の外には触れない。
+
+#### Scenario: 古いセッションと新しいセッション
+- **WHEN** 40日前から更新の無いセッションと、昨日更新したセッションがある状態で `sync` を実行する
+- **THEN** 前者だけが削除され、`removed` と報告される
+
+#### Scenario: 古いディレクトリの中の新しいファイル
+- **WHEN** ディレクトリの更新時刻は40日前だが、中の `verify.log` は昨日更新されている
+- **THEN** そのディレクトリは削除されない
+
+#### Scenario: dry-run
+- **WHEN** 古いセッションがある状態で `sync --dry-run` を実行する
+- **THEN** 削除の予定が出力され、ディレクトリは残る
+
+### Requirement: journal の置き場に触れない
+`sync` は `~/.ai-sessions` を作ってはならず、既にあれば中身を変えてはならない（MUST NOT）。
+
+#### Scenario: 新しいマシン
+- **WHEN** `~/.ai-sessions` が無い状態で `sync` を実行する
+- **THEN** `~/.ai-sessions` は作られない
+
+#### Scenario: journal を使っていたマシン
+- **WHEN** `~/.ai-sessions` がgitリポジトリとして存在する状態で `sync` を実行する
+- **THEN** 中身は変わらず、`sync` の出力に `~/.ai-sessions` は現れない
