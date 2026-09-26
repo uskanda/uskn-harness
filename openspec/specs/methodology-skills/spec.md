@@ -17,28 +17,12 @@ frontmatterには `license: MIT` を持つ。
 
 ### Requirement: ハーネスのスキル名で参照
 forkしたスキルどうしの参照は `superpowers:` プレフィックスを持ってはならない（MUST NOT）。
-参照はハーネスのスキル名で書く。例は `test-driven-development`、`verification-before-completion`、`writing-for-agents`。
+参照はハーネスのスキル名で書く。例は `test-driven-development`、`systematic-debugging`、`verify`、`writing-for-agents`。
 
 #### Scenario: systematic-debugging から TDD へ
 - **WHEN** systematic-debuggingのPhase 4で失敗するテストを書く
 - **THEN** 参照先は `test-driven-development` スキル
 
-### Requirement: 検証はリポジトリの規約
-`verification-before-completion` は、検証コマンドをリポジトリの規約で見つけることを含まなければならない（MUST）。
-規約は `make verify` → `pnpm run verify` / `npm run verify`。
-Stop hook（verify gate）が同じコマンドを走らせることも書く。
-OpenSpec changeでは `tasks.md` と突き合わせて完了を判断する。
-
-#### Scenario: 完了報告の前
-- **WHEN** エージェントがchangeの実装を終えたと言おうとする
-- **THEN** `make verify` を実行して出力を読み、tasks.mdの各項目を確認してから報告する
-
-### Requirement: worktree はルート内
-`using-git-worktrees` は、worktreeをプロジェクトルート内に置くことを含まなければならない（MUST）。
-置き場はnativeのworktreeツール、または `.worktrees/`。
-ルート外への書き込みはwrite guardが拒否する。`/allow-repo <path>` が要ることも書く。
-baselineの確認はverify規約に従う。
-
-#### Scenario: worktree の作成
-- **WHEN** nativeのworktreeツールが無く、手でworktreeを作る
-- **THEN** `.worktrees/<branch>` を使い、gitignoreを確認してから作る
+#### Scenario: 修正の確認
+- **WHEN** systematic-debuggingのPhase 4で、修正が効いたと言う前に確認する
+- **THEN** 参照先は `verify` スキル
