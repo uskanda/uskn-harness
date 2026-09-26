@@ -27,11 +27,13 @@
 - **THEN** コミットメッセージは日本語
 
 ### Requirement: ブランチ名の固定を持たない
-スキル本文は `develop` `main` `qa` などの具体名を規則として持ってはならない（MUST NOT）。対象ブランチはセッションに注入された `<repo-context>` を使い、無ければ `session-start.sh --plain branches` を実行して得る。
+スキル本文は `develop` `main` `qa` などの具体名を規則として持ってはならない（MUST NOT）。
+対象ブランチはセッションに注入された `<repo-context>` を使う。
+無ければ、プラグインの短いコマンド `uskn-repo-context` を `--json` か `--plain branches` で実行して得る。
 
 #### Scenario: repo-context が無いセッション
 - **WHEN** `<repo-context>` が注入されていないセッションで `sync-base` を実行する
-- **THEN** スキルは `session-start.sh --plain branches` を実行してintegrationを得てから進める
+- **THEN** スキルは `uskn-repo-context --json` を実行してintegrationを得てから進める
 
 ### Requirement: pr の対象と意味論
 `pr` は引数で対象ブランチを受け取る。
