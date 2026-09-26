@@ -1,6 +1,7 @@
 ---
 name: ok
-description: Approve the proposal in your previous reply and go on to the next input it named. Arguments - optional overrides such as `q2はB` or free text, applied to that point only.
+description: Approve the proposal in your previous reply and go on to the next input it named.
+argument-hint: "[overrides such as q2はB]"
 disable-model-invocation: true
 ---
 

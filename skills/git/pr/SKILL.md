@@ -1,6 +1,7 @@
 ---
 name: pr
-description: Create a pull request (GitHub) or merge request (GitLab) from the repository's branch model. No argument targets the integration branch with auto-merge; the default branch as argument makes a release PR from the integration branch; the qa branch as argument makes a QA PR that keeps its source branch. Use for any "open a PR / MR" request.
+description: Create a pull request (GitHub) or merge request (GitLab) from the repository's branch model, including release and QA requests. Use for any request to open a PR or MR.
+argument-hint: "[default-branch | qa-branch | target-branch]"
 allowed-tools: Bash, Read, Grep, Glob
 ---
 

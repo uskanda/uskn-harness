@@ -7,70 +7,30 @@ license: MIT
 # Test-Driven Development (TDD)
 
 > Forked from [obra/superpowers](https://github.com/obra/superpowers) v6.3.0 (MIT, see `LICENSE`), pinned in
-> `deps.json` under `forks`. Harness changes: skill references renamed; the verify convention (`make verify`) named as the GREEN command; a Harness notes section.
+> `deps.json` under `forks`. Harness changes: skill references renamed; the prose rewritten for Opus 5.x as positive
+> instructions, without the absolute rules, the excuse table, the warning list, or the completion checklist; a
+> Harness notes section. The fork has diverged from upstream and is not re-vendored.
 
 ## Overview
 
-Write the test first. Watch it fail. Write minimal code to pass.
-
-**Core principle:** If you didn't watch the test fail, you don't know if it tests the right thing.
-
-**Violating the letter of the rules is violating the spirit of the rules.**
+Write the test first. Watch it fail. Write the least code that makes it pass. A test you watched fail for the
+expected reason can catch the break it names; a test written after the code has never shown that it can fail.
 
 ## When to Use
 
-**Always:**
-- New features
-- Bug fixes
-- Refactoring
-- Behavior changes
+New features, bug fixes, refactoring, and behavior changes. Throwaway prototypes, generated code, and
+configuration files are the exceptions; agree them with the user.
 
-**Exceptions (ask your human partner):**
-- Throwaway prototypes
-- Generated code
-- Configuration files
-
-Thinking "skip TDD just this once"? Stop. That's rationalization.
-
-## The Iron Law
-
-```
-NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
-```
-
-Write code before the test? Delete it. Start over.
-
-**No exceptions:**
-- Don't keep it as "reference"
-- Don't "adapt" it while writing tests
-- Don't look at it
-- Delete means delete
-
-Implement fresh from tests. Period.
+Code that already exists without its test (an exploration, a spike) is a sketch. Set it aside, write the test, watch
+it fail, then implement from the test. The sketch is a source of ideas, and the test decides what ships.
 
 ## Red-Green-Refactor
 
-```dot
-digraph tdd_cycle {
-    rankdir=LR;
-    red [label="RED\nWrite failing test", shape=box, style=filled, fillcolor="#ffcccc"];
-    verify_red [label="Verify fails\ncorrectly", shape=diamond];
-    green [label="GREEN\nMinimal code", shape=box, style=filled, fillcolor="#ccffcc"];
-    verify_green [label="Verify passes\nAll green", shape=diamond];
-    refactor [label="REFACTOR\nClean up", shape=box, style=filled, fillcolor="#ccccff"];
-    next [label="Next", shape=ellipse];
-
-    red -> verify_red;
-    verify_red -> green [label="yes"];
-    verify_red -> red [label="wrong\nfailure"];
-    green -> verify_green;
-    verify_green -> refactor [label="yes"];
-    verify_green -> green [label="no"];
-    refactor -> verify_green [label="stay\ngreen"];
-    verify_green -> next;
-    next -> red;
-}
-```
+1. **RED**: write one failing test.
+2. **Verify RED**: run it and see it fail for the expected reason. A wrong failure sends you back to step 1.
+3. **GREEN**: write the least code that passes.
+4. **Verify GREEN**: run it and see it pass, with the other tests still passing.
+5. **REFACTOR**: clean up while staying green, then start the next behavior at step 1.
 
 ### RED - Write Failing Test
 
@@ -109,31 +69,24 @@ test('retry works', async () => {
 Vague name, tests mock not code
 </Bad>
 
-**Requirements:**
-- One behavior
-- Clear name
-- Real code (no mocks unless unavoidable)
+The test covers one behavior, its name says which, and it runs real code (a mock only where the real dependency is
+slow or external).
 
 ### Verify RED - Watch It Fail
-
-**MANDATORY. Never skip.**
 
 ```bash
 npm test path/to/test.test.ts
 ```
 
-Confirm:
-- Test fails (not errors)
-- Failure message is expected
-- Fails because feature missing (not typos)
+The test fails rather than errors, the failure message is the one you expect, and it fails because the feature is
+missing rather than because of a typo.
 
-**Test passes?** You're testing existing behavior. Fix test.
-
-**Test errors?** Fix error, re-run until it fails correctly.
+- The test passes already: it tests existing behavior. Change the test until it pins the new behavior.
+- The test errors: fix the error and run it again until it fails for the right reason.
 
 ### GREEN - Minimal Code
 
-Write simplest code to pass the test.
+Write the simplest code that passes the test.
 
 <Good>
 ```typescript
@@ -167,37 +120,20 @@ async function retryOperation<T>(
 Over-engineered
 </Bad>
 
-Don't add features, refactor other code, or "improve" beyond the test.
+Features the test does not ask for, refactors of other code, and improvements each wait for their own test.
 
 ### Verify GREEN - Watch It Pass
 
-**MANDATORY.**
+Run the test file again: the new test passes, the tests around it still pass, and the output is clean (no errors or
+warnings).
 
-```bash
-npm test path/to/test.test.ts
-```
-
-Confirm:
-- Test passes
-- Other tests still pass
-- Output pristine (no errors, warnings)
-
-**Test fails?** Fix code, not test.
-
-**Other tests fail?** Fix now.
+- The new test fails: change the code, and keep the test as written.
+- Other tests fail: fix them now, while the change is small.
 
 ### REFACTOR - Clean Up
 
-After green only:
-- Remove duplication
-- Improve names
-- Extract helpers
-
-Keep tests green. Don't add behavior.
-
-### Repeat
-
-Next failing test for next feature.
+Once green: remove duplication, improve names, extract helpers. Behavior stays the same and the tests stay green.
+The next behavior starts with its own failing test.
 
 ## Good Tests
 
@@ -206,46 +142,13 @@ Next failing test for next feature.
 | **Minimal** | One thing. "and" in name? Split it. | `test('validates email and domain and whitespace')` |
 | **Clear** | Name describes behavior | `test('test1')` |
 | **Shows intent** | Demonstrates desired API | Obscures what code should do |
+| **Complete** | Edge cases and error paths have their own tests | Only the happy path |
 
 When writing or changing any test, read [writing-good-tests.md](writing-good-tests.md) for the rules that keep tests honest:
 - Name the production change that would make the test fail — before writing it
 - Assert on real behavior, never on mock behavior
 - Keep test-only code in test utilities, out of production classes
 - Understand a dependency's side effects before mocking it
-
-## Common Rationalizations
-
-| Excuse | Reality |
-|--------|---------|
-| "Too simple to test" | Simple code breaks. Test takes 30 seconds. |
-| "I'll test after" | Tests written after pass immediately — which proves nothing. They may test the wrong thing, test the implementation instead of the behavior, or miss the edge case you forgot. You never watched it fail, so you never proved it can catch the bug. Test-first forces that failure. |
-| "Tests after achieve same goals (spirit not ritual)" | Tests-after answer "what does this do?"; tests-first answer "what should this do?" Tests written after are biased by the code you already wrote — you verify the cases you remembered, not the ones you'd have discovered. Coverage without proof the tests work. |
-| "Already manually tested" | Manual testing is ad-hoc: no record of what you covered, no way to re-run it when the code changes, easy to forget cases under pressure. "Worked when I tried it" ≠ comprehensive. Automated tests run the same way every time. |
-| "Deleting X hours is wasteful" | Sunk cost fallacy — that time is already spent either way. The real choice: rewrite with TDD (high confidence) vs. keep it and bolt tests on after (low confidence, likely bugs). Keeping code you can't trust is the waste. |
-| "Keep as reference, write tests first" | You'll adapt it. That's testing after. Delete means delete. |
-| "Need to explore first" | Fine. Throw away exploration, start with TDD. |
-| "Test hard = design unclear" | Listen to test. Hard to test = hard to use. |
-| "TDD will slow me down" | TDD IS the pragmatic path: catches bugs before commit, prevents regressions, lets you refactor without fear. "Pragmatic" shortcuts mean debugging in production — slower, not faster. |
-| "Manual test faster" | Manual doesn't prove edge cases. You'll re-test every change. |
-| "Existing code has no tests" | You're improving it. Add tests for existing code. |
-
-## Red Flags - STOP and Start Over
-
-- Code before test
-- Test after implementation
-- Test passes immediately
-- Can't explain why test failed
-- Tests added "later"
-- Rationalizing "just this once"
-- "I already manually tested it"
-- "Tests after achieve the same purpose"
-- "It's about spirit not ritual"
-- "Keep as reference" or "adapt existing code"
-- "Already spent X hours, deleting is wasteful"
-- "TDD is dogmatic, I'm being pragmatic"
-- "This is different because..."
-
-**All of these mean: Delete code. Start over with TDD.**
 
 ## Example: Bug Fix
 
@@ -259,11 +162,7 @@ test('rejects empty email', async () => {
 });
 ```
 
-**Verify RED**
-```bash
-$ npm test
-FAIL: expected 'Email required', got undefined
-```
+**Verify RED**: `npm test` prints `FAIL: expected 'Email required', got undefined`.
 
 **GREEN**
 ```typescript
@@ -275,59 +174,30 @@ function submitForm(data: FormData) {
 }
 ```
 
-**Verify GREEN**
-```bash
-$ npm test
-PASS
-```
+**Verify GREEN**: `npm test` prints `PASS`.
 
-**REFACTOR**
-Extract validation for multiple fields if needed.
-
-## Verification Checklist
-
-Before marking work complete:
-
-- [ ] Every new function/method has a test
-- [ ] Watched each test fail before implementing
-- [ ] Each test failed for expected reason (feature missing, not typo)
-- [ ] Wrote minimal code to pass each test
-- [ ] All tests pass
-- [ ] Output pristine (no errors, warnings)
-- [ ] Tests use real code (mocks only if unavoidable)
-- [ ] Edge cases and errors covered
-
-Can't check all boxes? You skipped TDD. Start over.
+**REFACTOR**: extract validation for multiple fields if needed.
 
 ## When Stuck
 
 | Problem | Solution |
 |---------|----------|
-| Don't know how to test | Write wished-for API. Write assertion first. Ask your human partner. |
+| Don't know how to test | Write wished-for API. Write assertion first. Ask the user. |
 | Test too complicated | Design too complicated. Simplify interface. |
 | Must mock everything | Code too coupled. Use dependency injection. |
 | Test setup huge | Extract helpers. Still complex? Simplify design. |
+| Tempted to test after | Write the test now against the unchanged code and watch it fail first. |
 
 ## Debugging Integration
 
-Bug found? Write failing test reproducing it. Follow TDD cycle. Test proves fix and prevents regression.
-
-Never fix bugs without a test.
+A bug fix starts with a failing test that reproduces the bug. The passing test then proves the fix and keeps the
+bug from coming back. A bug whose cause is still unclear goes through `systematic-debugging` first.
 
 ## Harness Notes
 
-- The user layer requires the failing test first for any new behaviour in scripts or code; this skill is the
+- The user layer asks for the failing test first for any new behaviour in scripts or code; this skill is the
   procedure behind that line.
-- "All tests pass" in Verify GREEN means the repository's verify convention: `make verify` when the Makefile has
-  a verify target, else `pnpm run verify` / `npm run verify` (the `verify` skill). The Stop hook `verify-gate`
-  runs the same command before you can finish.
+- Verify GREEN runs the test file and its neighbours. The repository's verify convention (`make verify`
+  when the Makefile has a verify target, else `pnpm run verify` / `npm run verify`) is the full run; the Stop hook
+  `verify-gate` runs it when a turn that changed files ends, and the `verify` skill runs it on demand.
 - Hook scripts in the harness are tested with bats: the test file under `hooks/tests/` is the RED step.
-
-## Final Rule
-
-```
-Production code → test exists and failed first
-Otherwise → not TDD
-```
-
-No exceptions without your human partner's permission.

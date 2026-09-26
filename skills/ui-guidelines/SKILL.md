@@ -1,6 +1,6 @@
 ---
 name: ui-guidelines
-description: Entry point for building, changing, or reviewing any user interface (web, React Native / Expo). Use before writing UI code, when asked to design or critique screens, and when DESIGN.md or PRODUCT.md needs creating or changing. Routes to Impeccable commands, Expo skills, and frontend-design.
+description: Entry point for building, changing, or reviewing a user interface (web, React Native / Expo), and for DESIGN.md or PRODUCT.md. Use before writing UI code or critiquing screens.
 allowed-tools: Bash(designmd:*), Bash(npx:*), Bash(git status:*), Bash(git restore:*), Read, Write, Edit, Glob, Grep, Skill
 ---
 

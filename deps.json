@@ -1,5 +1,5 @@
 {
-  "_readme": "External things the harness depends on, pinned. `mode` is reference (installed from upstream, never edited), vendored (copied into skills/ with upstream license), or cli. `ref` is the upstream tag or full 40-character commit SHA verified on `checked` (the skills CLI cannot install a short SHA). `clis` entries with `global: true` are npm packages that `uskn-harness sync` installs globally through mise at `version` (plus `bundle`); `bin` is what ends up on PATH. `skills` entries with `via` are installed by `sync`: `via: skills` through the skills CLI pinned in `clis`, `via: impeccable` from the release asset checked against `sha256`. Update refs deliberately and record why in an ADR or change.",
+  "_readme": "External things the harness depends on, pinned. `mode` is reference (installed from upstream, never edited), vendored (copied into skills/ with upstream license), or cli. `ref` is the upstream tag or full 40-character commit SHA verified on `checked` (the skills CLI cannot install a short SHA). `clis` entries with `global: true` are npm packages that `uskn-harness sync` installs globally through mise at `version` (plus `bundle`); `bin` is what ends up on PATH. `skills` entries with `via` are installed by `sync`: `via: skills` through the skills CLI pinned in `clis`, `via: impeccable` from the release asset checked against `sha256`. A `runtimes` entry with `min_version` is a floor, not a pin: `uskn-harness doctor` warns about an install older than it, `sync` never installs or pins it, and any newer version is fine. Update refs deliberately and record why in an ADR or change.",
   "updated": "2026-09-25",
   "runtimes": {
     "mise": {
@@ -16,6 +16,10 @@
       "version": "1.7",
       "via": "mise when the OS has no jq",
       "role": "JSON parsing in hooks and the installer"
+    },
+    "claude-code": {
+      "min_version": "2.1.281",
+      "role": "floor checked by `uskn-harness doctor` for the claude CLI on PATH and each VS Code extension: from 2.1.281 Claude Code reads AGENTS.md in a repository without CLAUDE.md, on every provider and with telemetry off (ADR-0003). `sync` never installs, updates, or pins Claude Code, and CI installs the latest"
     }
   },
   "clis": {
@@ -166,10 +170,12 @@
       "license": "MIT",
       "path": "skills/test-driven-development",
       "vendored": "2026-09-05",
+      "diverged": "2026-09-25",
+      "note": "Prose rewritten for Opus 5.x as positive instructions (change opus55-prompt-diet). Diverged from upstream; not re-vendored. Port upstream improvements by hand.",
       "changes": [
         "skill references renamed to harness skill names",
-        "verify convention named as the GREEN command",
-        "Harness notes section"
+        "Harness notes section: the verify convention is the full run, left to verify-gate",
+        "Iron Law, rationalization table, red flags, completion checklist, and cycle diagram removed; prose rewritten as positive instructions"
       ]
     },
     "systematic-debugging": {
@@ -179,9 +185,12 @@
       "license": "MIT",
       "path": "skills/systematic-debugging",
       "vendored": "2026-09-05",
+      "diverged": "2026-09-25",
+      "note": "Prose rewritten for Opus 5.x as positive instructions (change opus55-prompt-diet). Diverged from upstream; not re-vendored. Port upstream improvements by hand.",
       "changes": [
         "references use harness skill names",
-        "CREATION-LOG.md and test-*.md (skill tests) not vendored"
+        "CREATION-LOG.md and test-*.md (skill tests) not vendored",
+        "Iron Law, red flags, and rationalization table removed; prose rewritten as positive instructions; description narrowed to failures whose cause is not yet understood"
       ]
     }
   }

@@ -78,6 +78,14 @@ terms:
     definition: "プロダクトリポジトリをハーネスの作法に載せる作業。"
     aliases: ["オンボーディング", "オンボード"]
     en: "onboarding"
+  - term: "指示ファイル"
+    definition: "エージェントがセッションの初めに読む、リポジトリの規則を書いたファイル。`AGENTS.md` や `CLAUDE.md`。"
+    aliases: []
+    en: "instruction file"
+  - term: "最低版"
+    definition: "ハーネスが求める版の下限。`deps.json` の `min_version` に書く。ピンとは別で、上限は無い。"
+    aliases: []
+    en: "minimum version"
   - term: "文体"
     definition: "敬体と常体の別。成果物ごとにどちらを使うかが決まっている。"
     aliases: []

@@ -1,6 +1,7 @@
 ---
 name: no-grilling
-description: Skip the grilling interview for a simple change on the user's instruction, record the skip in grilling.md, then generate proposal, specs, design, and tasks. Use when the user says to skip grilling, or when a change looks simple enough (typo, wording, a small fix inside existing requirements) that the interview would have nothing to decide - ask first. Arguments - a change name or a description, optionally --step.
+description: Skip the grilling interview for a simple change on the user's instruction, record the skip in grilling.md, then generate proposal, specs, design, and tasks. Use when the user says to skip grilling.
+argument-hint: "[change-name | description] [--step]"
 allowed-tools: Bash(openspec:*), Bash(git:*), Read, Write, Edit, Glob, Grep, Skill, AskUserQuestion
 ---
 

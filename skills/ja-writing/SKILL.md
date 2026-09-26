@@ -1,6 +1,6 @@
 ---
 name: ja-writing
-description: Japanese prose rules and the textlint check for anything a person reads in Japanese - commit messages, pull requests, OpenSpec artifacts, ADRs, docs, UI copy. Use before writing Japanese, and when the textlint hook or `make verify` reports problems in a Markdown file.
+description: Japanese prose rules and the textlint check for anything a person reads in Japanese (commits, pull requests, OpenSpec artifacts, docs). Use before writing Japanese and when textlint reports problems.
 allowed-tools: Bash(textlint:*), Read, Edit, Write, Grep, Glob
 ---
 

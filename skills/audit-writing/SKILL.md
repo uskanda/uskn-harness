@@ -1,6 +1,7 @@
 ---
 name: audit-writing
-description: Audit and repair the terminology and prose of an existing repository in one pass - inventory the vocabulary, build the glossary with the user, then fix and verify. Use when a repository has never had a glossary, when its documents mix names for the same thing, or when the terms check reports many findings.
+description: Audit and repair a repository's terminology and prose in one pass - inventory, glossary with the user, repair, verify.
+disable-model-invocation: true
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob, AskUserQuestion, Skill
 ---
 

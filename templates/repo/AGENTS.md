@@ -17,8 +17,9 @@
 
 ## How to work here
 
-- Spec decisions go through the grilling interview before any OpenSpec proposal.
-- Verification: `make verify` (or `pnpm run verify` / `npm run verify`). It must pass before a change is done.
+<!-- Only what is specific to this repository. The spec workflow, the verify convention, and git come from the user
+     layer and the harness skills. -->
+
 - <build / run commands only if they are not discoverable from package.json, Makefile, or README>
 
 ## Branch model
@@ -48,3 +49,12 @@ protected: main, develop
 
 - <"never do X" items, with the reason>
 - <conventions a linter cannot enforce>
+
+## Claude Code
+
+<!-- Optional, and usually deleted: keep it only for what applies to Claude alone in this repository. Claude Code
+     reads this file itself, but only while the repository has no CLAUDE.md, .claude/CLAUDE.md, or CLAUDE.local.md,
+     so do not create one. How to work (language, spec workflow, verification, git) comes from the user layer and
+     the harness skills, installed by `uskn-harness sync`. -->
+
+- <an MCP server Claude needs here, a command that must not run here>

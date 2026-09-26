@@ -1,6 +1,7 @@
 ---
 name: fix-ci
-description: Investigate a failing CI run on GitHub Actions or GitLab CI, fix the cause in the working tree, and report. Argument - a PR/MR number, a URL of a PR/MR, pipeline, or job, or nothing for the current branch.
+description: Investigate a failing CI run on GitHub Actions or GitLab CI, fix the cause in the working tree, and report. Use when CI or the checks of a pull request fail.
+argument-hint: "[PR/MR number | PR/MR, pipeline, or job URL]"
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 ---
 

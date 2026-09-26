@@ -1,39 +1,12 @@
 <!-- managed by uskn-harness; edit templates/user/CLAUDE.md in the harness and run `uskn-harness sync` -->
 # Working agreements (all repositories)
 
-## Language
-
-- Reply in Japanese in chat. Write commit messages, pull request text, ADRs, and OpenSpec artifacts in Japanese unless the repository says otherwise.
-- Skills, hook code, and harness documents are English; do not translate them.
-
-## Deciding what to build
-
-- Planning a change starts with `/spec <idea>`: it runs the grilling interview, records it as `openspec/changes/<name>/grilling.md`, then generates proposal, specs, design, and tasks. Implementation starts with `/opsx:apply`.
-- Never write proposal / design / tasks / specs for a change that has no `grilling.md`; a hook denies it. If the interview has not happened, run `/spec` or the grilling skill first.
-- A simple change may skip the interview only on the user's instruction: `/no-grilling <idea>` records the skip in `grilling.md` and generates the rest. Suggest it when a change looks simple, and wait for the user's answer.
-- A finished change goes out with `/archive-push <change>`: it settles open tasks, verifies, archives with spec sync, commits, and pushes. Only the user starts it.
-- The user may answer a proposal with `/ok`, adding overrides such as `/ok q2はB`: it approves the rest as recommended and runs the next input the reply named.
-
-## Boundaries
-
-- Edit only the repository you were started in. A change another repository needs becomes a pull request made from a fresh clone in the scratchpad, or a handoff document; never touch another live working tree (for example `~/dotfiles`). Hooks deny writes outside the project root and `chezmoi apply`; when the user explicitly allows an exception for this session, run `/allow-repo <path>` first.
-
-## Verification
-
-- Before calling work done, run the repository's verify convention: `make verify` if a Makefile has that target, otherwise `pnpm run verify` / `npm run verify`. If none exists, say so instead of claiming verification. The `verify` skill runs it and states the command and its result before any claim; a Stop hook runs the same command.
-- When adding behavior to scripts or code, write the failing test first: follow the `test-driven-development` skill. A bug or failing test you do not yet understand goes through `systematic-debugging` before any fix. An isolated workspace comes from the agent's native worktree support, which keeps it inside the project root.
-
-## Writing
-
-- Japanese prose (commits, pull requests, specs, docs, UI copy): follow the `ja-writing` skill. A hook runs textlint after every Markdown write; fix its findings before you finish.
-- English prose a person reads: follow the `en-writing` skill (agent-style rules, then a humanizer pass). Skills, AGENTS.md, and CLAUDE.md follow `writing-for-agents`.
-
-## UI
-
-- Building or changing a user interface starts with the `ui-guidelines` skill. `DESIGN.md` (Google DESIGN.md format) and `PRODUCT.md` at the repository root are the source of truth; Impeccable commands review and refine, never `init`.
-
-## Repository context
-
-- A `<repo-context>` block is injected at session start with hosting (GitHub / GitLab) and the branch model (default / integration / qa, and the protected branches when `AGENTS.md` declares them). Skills use it; do not re-detect.
-- Git workflow skills: commit, push, pr, sync-base, switch-base, rebase, cleanup-merged, fix-ci, release.
+- Language: reply in Japanese in chat. Commit messages, pull requests, ADRs, and OpenSpec artifacts are Japanese unless the repository says otherwise; skills, hook code, and harness documents stay English.
+- Planning: `/spec <idea>` runs the grilling interview, records it as `openspec/changes/<name>/grilling.md`, then writes proposal, specs, design, and tasks. For a change that looks simple, suggest `/no-grilling <idea>`, which records the skip; the user decides.
+- Approval: the user may answer a proposal with `/ok`, optionally with overrides (`/ok q2はB`). It approves the rest as recommended and runs the next input the proposal named, so end a proposal by naming one.
+- Boundaries: another repository gets a pull request from a fresh clone in the scratchpad, or a handoff document; for a direct edit outside the project root, the user runs `/allow-repo <path>` for this session.
+- Verify convention: `make verify` when the Makefile has that target, else `pnpm run verify` / `npm run verify`. The Stop hook `verify-gate` runs it after a turn that changed files.
+- Tests: new behavior in scripts or code starts with a failing test (`test-driven-development`).
+- Writing: Japanese prose follows `ja-writing`; English prose a person reads follows `en-writing`; skills, AGENTS.md, and CLAUDE.md follow `writing-for-agents`.
+- UI: follow `ui-guidelines`, with `DESIGN.md` and `PRODUCT.md` at the repository root as the source of truth.
 - Earlier decisions live in `openspec/changes/archive/` (`grilling.md`, `design.md`), `docs/adr/`, and commit messages; search them before re-deciding something.

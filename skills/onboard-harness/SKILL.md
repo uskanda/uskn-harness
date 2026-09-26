@@ -1,6 +1,7 @@
 ---
 name: onboard-harness
-description: Bring a product repository onto the harness - decide what belongs there, place it, and deliver it as a draft pull request. Use when a repository should start using the harness, when its AGENTS.md or CLAUDE.md predates the harness, or when `uskn-harness onboard-check` reports missing items.
+description: Bring a product repository onto the harness and deliver what it needs as a draft pull request.
+disable-model-invocation: true
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 ---
 
@@ -12,20 +13,22 @@ ones, and leaves the judgement calls to a reviewed pull request.
 
 ## The rule about what goes in a repository
 
-A product repository may carry `AGENTS.md`, `CLAUDE.md`, `openspec/`, `DESIGN.md`, `PRODUCT.md`, and a `verify`
-target. That list is an **upper bound, not a checklist**:
+A product repository carries only what the conventions call for. Today that is `AGENTS.md`, `openspec/`,
+`DESIGN.md`, `PRODUCT.md`, and a `verify` target; the list is **today's contents, not a cap**, and each item
+belongs only when its row says so:
 
 | File | When it belongs |
 |---|---|
 | `AGENTS.md` | Always. The entry point: what the product is, where things are, the rules an agent cannot infer |
-| `CLAUDE.md` | Always. `@AGENTS.md` plus Claude-specific lines, under 15 lines |
 | `openspec/` | Always. `config.yaml` with `schema: uskn`, plus empty `specs/` and `changes/` |
 | verify target | Always. Built from checks the repository already has; when it has none, say so rather than invent one |
 | `DESIGN.md` | Only a repository with a user interface |
 | `PRODUCT.md` | Only a repository with a user interface |
 
-Everything else (skills, hooks, the git workflow, the writing and UI guidance) arrives through
-`uskn-harness sync` and stays out of the product repository.
+`AGENTS.md` is the only instruction file. Claude Code reads it by itself (2.1.281 and later), but only while the
+repository has no `CLAUDE.md`, `.claude/CLAUDE.md`, or `CLAUDE.local.md`; lines that apply to Claude alone go in
+the optional `## Claude Code` section of `AGENTS.md`. Everything else (skills, hooks, the git workflow, the
+writing and UI guidance) arrives through `uskn-harness sync` and stays out of the product repository.
 
 ## Never edit the target working tree
 
@@ -47,7 +50,7 @@ default branch, and (for a UI product) where colors and typography live today.
 
 ### 2. Decide what to place
 
-Apply the table above. A repository with no UI gets four items, not six; say so in the report rather than
+Apply the table above. A repository with no UI gets three items, not five; say so in the report rather than
 placing empty design files. If the repository has no deterministic check at all, the verify target says that,
 and adding tests becomes its own change.
 
@@ -56,13 +59,14 @@ and adding tests becomes its own change.
 From `~/.local/share/uskn-harness/templates/repo/`, in the scratchpad clone:
 
 - `openspec/config.yaml` with `schema: uskn`, and empty `openspec/specs/` and `openspec/changes/`
-- `CLAUDE.md`, unless one already exists that is already short and points at `AGENTS.md`
 - `Makefile` with the `verify` target, filled with the repository's real lint, type check, and test commands
-- `AGENTS.md`: when the repository has none, start from the template. When it has one, add only the
-  `## Branch model` block if the detected model needs an override
+- `AGENTS.md`: when the repository has neither it nor a `CLAUDE.md` to move (below), start from the template.
+  When it has one, add only the `## Branch model` block if the detected model needs an override
 - `protected` in that block: read the branch protection from the host (`gh api` or `glab api`, as the `push`
   skill does) and declare it, `none` when nothing is protected. A prose statement about protection in the
   existing instructions moves into this key
+- An existing `CLAUDE.md`: when it is the real entry point and there is no `AGENTS.md`, move its content to
+  `AGENTS.md` unedited and delete `CLAUDE.md`. One that already imports `@AGENTS.md` stays exactly as it is
 - `DESIGN.md` and `PRODUCT.md` for a UI product, with tokens read from the code that exists today
 
 ### 4. Leave the judgement calls to the pull request body
@@ -75,6 +79,11 @@ the pull request body as a checklist the reviewing session works through with th
 - Instructions that fight the harness, most often a Node version prefix from `nvm` where the harness uses mise
 - `DESIGN.md` values the code cannot supply: typography, spacing, the reason behind a palette
 - Project skills under `.claude/skills/` that shadow a user-layer skill
+- A `CLAUDE.md` beside `AGENTS.md` that does not import it: which of its lines move into `AGENTS.md` (Claude-only
+  ones into `## Claude Code`) before the file is deleted
+- A `CLAUDE.local.md` in the owner's working tree (`onboard-check` warns about it). It is personal and usually
+  untracked, and while it exists Claude Code does not read `AGENTS.md`. The two fixes: delete it, or set Project
+  instructions in `/config` to `claude-md-and-agents-md`
 
 ### 5. Open the draft pull request
 
@@ -103,8 +112,8 @@ Say which items were placed, which were deliberately skipped and why, and the pu
 
 - `DESIGN.md` and `PRODUCT.md`: skipped. There is no interface to design
 - `AGENTS.md`: the repository's `CLAUDE.md` is the real entry point and holds design constraints that are the
-  source of truth. Move it to `AGENTS.md` unedited; `CLAUDE.md` becomes `@AGENTS.md`. Compressing that prose is
-  a separate decision for the owner
+  source of truth. Move it to `AGENTS.md` unedited and delete `CLAUDE.md`. Compressing that prose is a separate
+  decision for the owner
 - verify: the repository already has a deterministic check. `tools/gen-layout.py` fails when the layout and the
   specification disagree, so `verify` runs it
 - `openspec/`: placed, `schema: uskn`

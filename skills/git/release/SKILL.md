@@ -1,6 +1,7 @@
 ---
 name: release
-description: Tag the tip of the remote default branch with the next CalVer tag (vYY.MM.X) and publish a GitHub or GitLab release with notes generated from the commits since the previous tag. Use when the user asks to cut or publish a release.
+description: Tag the tip of the remote default branch with the next CalVer tag (vYY.MM.X) and publish a GitHub or GitLab release.
+disable-model-invocation: true
 allowed-tools: Bash
 ---
 

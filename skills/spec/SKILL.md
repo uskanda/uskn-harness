@@ -1,6 +1,7 @@
 ---
 name: spec
-description: Turn an idea into an OpenSpec change the harness way - run the grilling interview first, record it as grilling.md, then generate proposal, specs, design, and tasks. Use whenever the user wants to plan, spec, or propose a change, or to continue an unfinished change. Arguments - a change name or a description, optionally --step to confirm each artifact.
+description: Plan a change as OpenSpec artifacts - the grilling interview first, recorded as grilling.md, then proposal, specs, design, and tasks. Use to plan, spec, or propose a change, or to continue one.
+argument-hint: "[change-name | description] [--step]"
 allowed-tools: Bash(openspec:*), Bash(git:*), Read, Write, Edit, Glob, Grep, Skill, AskUserQuestion
 ---
 

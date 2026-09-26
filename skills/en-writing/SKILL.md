@@ -1,6 +1,6 @@
 ---
 name: en-writing
-description: English prose rules for text a person reads - README and docs of English projects, pull request text in English repositories, UI copy, error messages, release notes. Use before writing such English and to audit it with agent-style and humanizer. Agent-facing documents (SKILL.md, AGENTS.md, hook comments) follow writing-for-agents instead.
+description: English prose rules for text a person reads - README and docs, pull requests in English repositories, UI copy, error messages, release notes. Use before writing such English and to audit it.
 allowed-tools: Bash(agent-style:*), Read, Edit, Write, Skill
 ---
 
