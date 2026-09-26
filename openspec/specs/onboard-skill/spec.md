@@ -62,3 +62,14 @@ UIの有無は、画面を描くコードやUIフレームワークへの依存�
 #### Scenario: 導入の実行
 - **WHEN** ユーザーがmonolithへの導入を頼む
 - **THEN** scratchpadにクローンし、`harness/onboard` ブランチでdraft PRを作る
+
+### Requirement: ユーザーだけが起動する
+`onboard-harness` は、frontmatterに `disable-model-invocation: true` を持たなければならない（MUST）。
+
+#### Scenario: 導入の開始
+- **WHEN** ユーザーが `/onboard-harness` を打つ
+- **THEN** 導入の手順が始まる
+
+#### Scenario: onboard-check の報告
+- **WHEN** `uskn-harness onboard-check` が足りない項目を報告する
+- **THEN** エージェントはユーザーに `/onboard-harness` の入力を勧める
