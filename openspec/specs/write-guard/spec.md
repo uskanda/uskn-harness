@@ -11,6 +11,7 @@
 理由には `/allow-repo <path>` で解除できる旨を書く。
 ルート内と許可リスト内は何も出力しない。
 許可リストは `/tmp`、`$TMPDIR`、`~/.ai-sessions`、`~/.claude/projects/*/memory`、ハーネスの状態ディレクトリ、`$CLAUDE_PLUGIN_DATA`。
+状態ディレクトリのうち、セッションの許可ファイル `sessions/<session_id>/allow` は許可リストに含めない。
 
 #### Scenario: 他のリポジトリ
 - **WHEN** ルートが `~/repos/a` のセッションで `~/repos/b/x.md` をWriteする
@@ -23,6 +24,10 @@
 #### Scenario: symlink 経由のルート内
 - **WHEN** ルートへのsymlinkを通したパスをEditする
 - **THEN** 実体がルート内なので何も出力しない
+
+#### Scenario: 状態ディレクトリのほかのファイル
+- **WHEN** 状態ディレクトリの `sessions/<session_id>/notes` をWriteする
+- **THEN** 何も出力しない
 
 ### Requirement: セッション限定の解除
 `sessions/<session_id>/allow` に列挙されたパス配下は許可しなければならない（MUST）。他のセッションの解除は効かない。
@@ -37,3 +42,20 @@
 #### Scenario: 壊れた入力
 - **WHEN** stdinがJSONでない
 - **THEN** 出力は空
+
+### Requirement: 許可ファイルの保護
+対象パスの実体が状態ディレクトリの `sessions/<session_id>/allow` のとき、hookは `permissionDecision: deny` を返さなければならない（MUST）。
+セッションの許可ファイルに何が書かれていても、この拒否は解除しない。
+理由には、許可ファイルを書くのは `/allow-repo` だけで、ユーザーの依頼があるときに限る旨を書く。
+
+#### Scenario: エージェントが自分で許可を足す
+- **WHEN** `~/.local/state/uskn-harness/sessions/<session_id>/allow` をWriteする
+- **THEN** 拒否され、理由に `/allow-repo` が含まれる
+
+#### Scenario: symlink 経由
+- **WHEN** 状態ディレクトリを指すsymlinkを通して許可ファイルをEditする
+- **THEN** 実体が許可ファイルなので拒否される
+
+#### Scenario: 状態ディレクトリを許可したあと
+- **WHEN** セッションの許可ファイルに状態ディレクトリが書かれている状態で、許可ファイルをWriteする
+- **THEN** 拒否される

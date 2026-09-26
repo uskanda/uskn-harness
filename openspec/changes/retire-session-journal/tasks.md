@@ -45,5 +45,5 @@
 
 - [x] 6.1 `journal`、`recall`、`ai-sessions`、`sid8`、`Session:` を `grep` する。残るのは次だけであることを確かめる。アーカイブ、記録としての文書、この変更と並行する変更の成果物、archiveで差分が当たるmain spec、`commit` スキル（4.4）
 - [x] 6.2 `make verify` と `openspec validate retire-session-journal --strict` が通ることを確かめる
-- [ ] 6.3 archiveはfix-hook-bugsとfork-skills-model-effortのあとに行う。`openspec validate` が報告する `harness-sync` のMODIFIEDの情報は、fix-hook-bugsのarchive後に消えることを確かめる。
+- [x] 6.3 archiveはfix-hook-bugsとfork-skills-model-effortのあとに行う。`openspec validate` が報告する `harness-sync` のMODIFIEDの情報は、fix-hook-bugsのarchive後に消えることを確かめる。2026-09-26に、この順でarchiveした。
   scratchpadのコピーでは、fix-hook-bugsのあとにこの変更をarchiveでき、journal系の5つの能力のspecが消えることを確かめた
