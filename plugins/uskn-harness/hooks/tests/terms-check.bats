@@ -4,6 +4,8 @@
 SCRIPT="$BATS_TEST_DIRNAME/../scripts/terms-check.sh"
 
 setup() {
+  # CI runs `make verify VERIFY_STRICT=1`, which reaches this file's environment; tests that want strictness set it.
+  unset VERIFY_STRICT
   export GIT_CONFIG_GLOBAL=/dev/null GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@x GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@x
   export HOME="$BATS_TEST_TMPDIR/home"; mkdir -p "$HOME"
   R="$BATS_TEST_TMPDIR/repo"; mkdir -p "$R/docs" "$R/openspec" "$R/bin"
