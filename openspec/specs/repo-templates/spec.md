@@ -22,5 +22,5 @@
 - **THEN** リポジトリに `CLAUDE.md` は無く、Claudeは `AGENTS.md` を読み、手順はユーザー層のスキルから得る
 
 #### Scenario: Claude 固有の記述が要るリポジトリ
-- **WHEN** Claudeだけに効く制約（必要なMCPサーバー、実行してはいけないコマンド）がある
+- **WHEN** Claudeだけに適用される制約（必要なMCPサーバー、実行してはいけないコマンド）がある
 - **THEN** その制約は `AGENTS.md` の `## Claude Code` 節に書かれ、`CLAUDE.md` は作られない

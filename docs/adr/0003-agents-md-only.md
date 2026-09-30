@@ -20,7 +20,7 @@ v2.1.281からは、Amazon Bedrock、Google Vertex AI、Microsoft Foundry、LLM 
 
 1. 指示ファイルは `AGENTS.md` だけにする。プロダクトリポジトリとこのリポジトリのどちらにも、`CLAUDE.md` は置かない。
    `templates/repo/CLAUDE.md` は削除し、`onboard-harness` は `CLAUDE.md` を作らない
-2. Claudeだけに効く記述は、`AGENTS.md` の任意の `## Claude Code` 節に書く
+2. Claudeだけに適用される記述は、`AGENTS.md` の任意の `## Claude Code` 節に書く
 3. `AGENTS.md` が無く `CLAUDE.md` が正本の既存リポジトリでは、導入のときに中身を `AGENTS.md` へ移し、`CLAUDE.md` を削除する
 4. `@AGENTS.md` を取り込む既存の `CLAUDE.md` には触らない
 5. Claude Codeの最低版を2.1.281とし、`deps.json` の `runtimes.claude-code.min_version` に書く。
@@ -43,7 +43,7 @@ v2.1.281からは、Amazon Bedrock、Google Vertex AI、Microsoft Foundry、LLM 
 - 回避策：一時的な `CLAUDE.md` に `@AGENTS.md` の1行を書く。この決定を戻すときも同じ1行で元の動きになる
 - 回避策：`CLAUDE.local.md` を使い続ける人は、ユーザー層の設定で `instructionFiles` を `claude-md-and-agents-md` にする。
   `/config` のProject instructionsで変えられ、設定ファイルでは `pluginConfigs["agents-md@builtin"].options.instructionFiles` に書く。
-  この値が効くのは `~/.claude/settings.json` などユーザー層の設定だけで、プロジェクトとlocalの設定ファイルでは無視される。
+  この値が有効になるのは `~/.claude/settings.json` などユーザー層の設定だけで、プロジェクトとlocalの設定ファイルでは無視される。
   ハーネスはこの設定を入れない
 - 既存リポジトリの `CLAUDE.md` を触らない根拠：`@AGENTS.md` だけを持つ `CLAUDE.md` は、残しても `AGENTS.md` を2度読ませない。
   公式文書は、残してもよく、中身がそれだけなら消してもよいと案内している

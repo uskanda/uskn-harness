@@ -9,7 +9,7 @@ ADR-0001ではClaude Code向けのhookをmarketplace経由のプラグインで�
 検証してみると、`~/.claude/skills/<name>` に置いたディレクトリも読み込まれた。
 `.claude-plugin/plugin.json` があればskills-dirプラグインとして扱われる。
 `hooks/hooks.json` も有効になり、置き場はsymlinkでもよい。
-一方で `npx skills add <ローカルパス>` はコピーで、live編集が効かない。miseのshimsはグローバル設定が無いと
+一方で `npx skills add <ローカルパス>` はコピーで、作業ツリーの編集が反映されない。miseのshimsはグローバル設定が無いと
 他ディレクトリで解決しない。
 
 ## 決定

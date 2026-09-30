@@ -55,7 +55,7 @@ workflowはclaude CLIをnpmで入れなければならない（MUST）。`make v
 CLIがログインを要求するなどCIで安定しないと分かったときは、この要件を外してstrictの免除対象にする。
 
 #### Scenario: hooks.json の破損
-- **WHEN** `plugins/uskn-harness/hooks/hooks.json` を壊してpushする
+- **WHEN** `plugins/uskn-harness/hooks/hooks.json` をJSONとして読めない内容にしてpushする
 - **THEN** workflowは `claude plugin validate --strict` で失敗する
 
 ### Requirement: スキルの frontmatter 検査

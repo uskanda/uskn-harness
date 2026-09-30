@@ -75,7 +75,7 @@ gitの下位コマンドは、`-c <key=value>` などのオプションを読み
 ### Requirement: 失敗しても止めない
 入力が読めない場合は何も出力せず終了コード0（MUST）。
 
-#### Scenario: 壊れた入力
+#### Scenario: JSONでない入力
 - **WHEN** stdinがJSONでない
 - **THEN** 出力は空
 

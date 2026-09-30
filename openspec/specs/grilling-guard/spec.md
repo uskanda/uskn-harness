@@ -1,7 +1,7 @@
 # grilling-guard Specification
 
 ## Purpose
-grillingの記録が無いchangeに成果物が書き込まれるのを、ツール呼び出しの手前で止めるhook。スキルを迂回した直接の書き込みにも効く。
+grillingの記録が無いchangeに成果物が書き込まれるのを、ツール呼び出しの手前で止めるhook。スキルを迂回した直接の書き込みも止める。
 
 ## Requirements
 
@@ -35,6 +35,6 @@ Write / Edit / NotebookEditの対象が `openspec/changes/<name>/` 配下にあ�
 ### Requirement: 失敗しても作業を止めない
 入力が読めない、jqが無い、パスが相対で解決できないといった場合、hookは判断を返さず終了コード0で終わらなければならない（MUST）。
 
-#### Scenario: 壊れた入力
+#### Scenario: JSONでない入力
 - **WHEN** stdinがJSONでない
 - **THEN** 出力は空で終了コードは0

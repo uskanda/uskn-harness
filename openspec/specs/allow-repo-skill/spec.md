@@ -19,7 +19,7 @@
 
 #### Scenario: 別のセッション
 - **WHEN** 新しいセッションを始める
-- **THEN** 前のセッションの許可は効いていない
+- **THEN** 前のセッションの許可は適用されていない
 
 #### Scenario: session 行の無い repo-context
 - **WHEN** `<repo-context>` にsession行が無いセッションで `/allow-repo ~/dotfiles` を実行する

@@ -1,7 +1,7 @@
 # harness-doctor Specification
 
 ## Purpose
-ハーネスの導入状態を検査し、壊れている箇所と原因を人が読める形で示す。run_onceやCIからも使えるよう、問題があれば非ゼロで終わる。
+ハーネスの導入状態を検査し、欠けた物や版の違いといった問題と、その原因を人が読める形で示す。run_onceやCIからも使えるよう、問題があれば非ゼロで終わる。
 
 ## Requirements
 
@@ -120,7 +120,7 @@ Impeccableの `SKILL.md` の `version` がピンと違うとき、`doctor` は `
 Claude Codeのインストールが見つかったとき、`doctor` はインストールごとに、版を `deps.json` の最低版と比べた結果を1行で報告しなければならない（MUST）。
 行は最低版以上なら `ok`、古ければ `warn` とし、どのインストールかを名前で示す。
 `warn` には両方の版と、`CLAUDE.md` の無いリポジトリで `AGENTS.md` が読まれないことを含める。
-版が読み取れないときは `warn` とし、読み取った出力を添える。
+版が読み取れないときは `warn` とし、読み取った出力を行に含める。
 最低版は下限であり、上限は設けない。最低版より新しい版は、どれだけ新しくても `ok` とする。
 
 #### Scenario: 古い CLI
@@ -145,7 +145,7 @@ Claude Codeのインストールが見つかったとき、`doctor` はインス
 
 #### Scenario: 版が読めない
 - **WHEN** `claude --version` の出力に版が含まれない
-- **THEN** CLIの行は `warn` で、出力がそのまま添えられる
+- **THEN** CLIの行は `warn` で、出力がそのまま行に含まれる
 
 ### Requirement: 検査する Claude Code のインストール
 `doctor` は、PATHの `claude` とVS Code拡張の両方をClaude Codeのインストールとして扱わなければならない（MUST）。

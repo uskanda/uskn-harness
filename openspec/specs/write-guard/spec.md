@@ -54,7 +54,7 @@
 - **THEN** 何も出力しない
 
 ### Requirement: セッション限定の解除
-`sessions/<session_id>/allow` に列挙されたパス配下は許可しなければならない（MUST）。他のセッションの解除は効かない。
+`sessions/<session_id>/allow` に列挙されたパス配下は許可しなければならない（MUST）。他のセッションの解除は適用されない。
 
 #### Scenario: 解除後
 - **WHEN** `~/repos/b` がallowに書かれている
@@ -63,7 +63,7 @@
 ### Requirement: 失敗しても止めない
 入力が読めない、パスが無いといった場合は何も出力せず終了コード0で終わる（MUST）。
 
-#### Scenario: 壊れた入力
+#### Scenario: JSONでない入力
 - **WHEN** stdinがJSONでない
 - **THEN** 出力は空
 

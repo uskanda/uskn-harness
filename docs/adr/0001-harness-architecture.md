@@ -52,7 +52,7 @@ GitHub public（2026-09-06にprivateから変更）、`main` のみ、CalVerタ�
 各リポジトリの `CLAUDE.md` は2026-09-25にADR-0003で置き換えた。指示ファイルは `AGENTS.md` だけにする。
 
 ### 6. ワークフロー
-1. `/spec <idea>` がgrillingを回す（ラウンド形式。mattpocock/skillsの `grilling` を参照）。
+1. `/spec <idea>` がgrillingを進める（ラウンド形式。mattpocock/skillsの `grilling` を参照）。
 2. 結果を `openspec/changes/<name>/grilling.md` に保存する。
 3. proposal、design、specs、tasksを一括生成する（`--step` で段階生成）。
 4. `/opsx:apply` をTDDで進め、Stop hookがverifyを実行する。
@@ -125,7 +125,7 @@ journalは端末ごとに閉じた記録で、他の端末のjournalは `recall`
 ### 11. UI とライティング
 - UI: Google DESIGN.md形式（YAMLトークン + 根拠）を正本。Impeccableはコマンド（audit / critique / polishなど）のみ使い `init` は使わない。
   RN / ExpoはExpo公式skillsとDESIGN.mdのproseで補う。Anthropic frontend-designはフォールバック
-- 日本語：textlint（preset-ja-technical-writing + preset-ai-writing）+ `ja-writing` スキル。英語：agent-styleの21ルール + humanizer。
+- 日本語：textlint（preset-ja-technical-writing + preset-ai-writing + 比喩の動詞のパターン）+ `ja-writing` スキル。英語：agent-styleの21ルール + humanizer。
   適用範囲はコミット、PR、仕様、ドキュメント、UI文言。文体基準はスキル作成時に短いgrillingで決める
 
 ### 12. 実装フェーズ
@@ -146,7 +146,7 @@ journalは端末ごとに閉じた記録で、他の端末のjournalは `recall`
 | 配布 | rulesync 系で各ツール向けファイルを生成 | 正本を AGENTS.md と SKILL.md に置けば生成は不要。Claude Code は `@AGENTS.md` で足りる |
 | Node | nvm 継続 | 非対話シェル（hook）で解決できない。mise は shims で解決し Python も統合できる |
 | 検証コマンド | 専用の設定ファイルを新設 | リポジトリに置くものを増やさず、人にも読める規約（`make verify`）で足りる |
-| cross-repo | 指示のみ | ユーザー要件で制約として担保が必要。Write / Edit は確実に止められる |
+| cross-repo | 指示のみ | ユーザー要件で、hookで止める制約にする必要がある。Write / Edit は確実に止められる |
 
 ## 結果
 

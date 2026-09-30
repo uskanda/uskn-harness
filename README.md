@@ -19,7 +19,7 @@
 | 領域 | 実装 | センサー |
 |---|---|---|
 | 配布と導入 | `bin/uskn-harness`（sync / doctor / onboard-check）、`templates/`、`deps.json` のピン、`plugins/uskn-harness` | `uskn-harness doctor`、bats |
-| 仕様づくり | `skills/spec/` がgrillingを回し、schema `uskn` がgrillingをproposalの前提にする。OpenSpecの操作はコマンド `/opsx:*` で行う。簡単な改修はユーザーの指示で `skills/no-grilling/` が省略を記録する。提案は `skills/ok/` で承諾し、違う点だけを書き添える。終えた変更は `skills/archive-push/` がarchiveからpushまで1回で進める | PreToolUse hook `grilling-guard` |
+| 仕様づくり | `skills/spec/` がgrillingを進め、schema `uskn` がgrillingをproposalの前提にする。OpenSpecの操作はコマンド `/opsx:*` で行う。簡単な改修はユーザーの指示で `skills/no-grilling/` が省略を記録する。提案は `skills/ok/` で承諾し、違う点だけを引数に書く。終えた変更は `skills/archive-push/` がarchiveからpushまで1回で進める | PreToolUse hook `grilling-guard` |
 | 実装と検証 | `skills/verify/`（完了の根拠を示す規則と、検証規約が無いときにCIの設定から確認する手順を含む）、obra/superpowersからforkした方法論スキル2件（TDD、系統的デバッグ） | Stop hook `verify-gate`、`make verify`、CI |
 | git運用 | ワークフローのスキル9個（commit、push、pr、rebase、releaseほか）。旧名は1行のエイリアスで残す | SessionStart hookが `<repo-context>` を注入する |
 | 安全 | `skills/allow-repo/`。ルート外への書き込み、`chezmoi apply`、他リポジトリへのgit操作を止める | PreToolUse hook `write-guard` と `bash-guard` |

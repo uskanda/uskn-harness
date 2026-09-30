@@ -29,7 +29,7 @@ forkしたスキルどうしの参照は `superpowers:` プレフィックスを
 - **THEN** 参照先は `test-driven-development` スキル
 
 #### Scenario: 修正の確認
-- **WHEN** systematic-debuggingのPhase 4で、修正が効いたと言う前に確認する
+- **WHEN** systematic-debuggingのPhase 4で、修正で問題が直ったと言う前に確認する
 - **THEN** 参照先は `verify` スキル
 
 ### Requirement: 肯定形の指示
@@ -40,7 +40,7 @@ RED、GREEN、REFACTORの手順と例、デバッグの4つの段階、参照フ
 - **WHEN** テストより先に書いたコードがある
 - **THEN** `test-driven-development` は、そのコードを下書きとして脇に置き、テストを書いて失敗を見てから実装する手順を示す
 
-#### Scenario: 3回の修正が効かない
+#### Scenario: 3回修正しても直らない
 - **WHEN** 3つ目の修正でも直らない
 - **THEN** `systematic-debugging` は、設計を疑ってユーザーと相談する手順を示す
 
