@@ -66,9 +66,8 @@ repo-contextのplatformがgitlabのとき、`spec-pr` は統合ブランチ向�
 ### Requirement: タイトルと本文
 `spec-pr` は、proposalの要点を1行にしたタイトルを付けなければならない（MUST）。
 本文は、proposalの要約、成果物へのリンク、進め方の3つを持たなければならない（MUST）。
-進め方は次の3つを示す。
+進め方は次を示す。
 
-- ループでの実装：`uskn-loop run <番号>`
 - 手元での実装：ブランチを切り替えて `/opsx:apply <name>`
 - 確認後の仕上げ：PRのブランチで `/archive-push <name>` を実行してからマージする
 

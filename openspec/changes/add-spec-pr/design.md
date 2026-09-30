@@ -14,7 +14,7 @@ SessionStart hookのrepo-contextが、platform（github / gitlab）、CLI、統�
 
 **Non-Goals:**
 - 仕様PRの中身（成果物）を書き換えること。直すのは `/spec` か `/opsx:update` の仕事である
-- ループの起動。仕様PRの本文で `uskn-loop run` を案内するだけにする
+- ループの起動と、本文でのループの案内。案内はループ本体と一緒に `add-loop-run` が足す。まだ無いコマンドを仕様PRで案内しないためである
 
 ## Decisions
 
