@@ -11,8 +11,8 @@ Four stages, in order: inventory, glossary, repair, verify. The order matters. R
 fixing what they report leaves a repository with no glossary exactly where it started, because the terms check
 can only compare against a glossary that does not exist yet.
 
-Never invent a definition. A term whose meaning you cannot establish from the code or the documents is a
-question for the user, not a gap to fill.
+Never invent a definition or a meaning. A term or a sentence whose meaning you cannot establish from the code or
+the documents is a question for the user, not a gap to fill.
 
 ## 1. Inventory (read only)
 
@@ -47,8 +47,14 @@ Then read the top of the frequency list yourself and mark the candidates:
 - **Vague or coined.** A word that carries weight in the prose but has no definition anywhere, and that a
   newcomer to the project would not know.
 
+Then read the documents for sentences that break the Sentences rules of `ja-writing` (lead with the main clause,
+name the operation and its object, say it once). The textlint output above already carries the metaphor verbs
+(`@textlint-rule/pattern`). Add what textlint cannot see: a short denial followed by a short assertion, a word whose
+referent sits outside the sentence, a comma for emphasis after a particle. Keep each candidate sentence as a quote
+with its file, line, and the rule it breaks.
+
 Report the inventory in a few lines: how many documents, how many distinct terms, how many candidates, how many
-non-existent names. Do not propose fixes yet.
+candidate sentences, how many non-existent names. Do not propose fixes yet.
 
 ## 2. Glossary, with the user
 
@@ -67,16 +73,22 @@ and list it as unresolved; a wrong definition is worse than a missing one.
 Write each confirmed round to `openspec/glossary.yml` before starting the next, in the format the
 `terminology-guard` spec sets. Stop when the candidates are exhausted or the user says enough.
 
+Candidate sentences go through the same rounds, at most ten at a time. Quote each one and ask what it means: what it
+refers to, what is done, and under which condition. Take the meaning from the user or from the code, as with a
+definition. A sentence whose meaning stays open is listed as unresolved and keeps its wording.
+
 ## 3. Repair
 
-Only terms that reached the glossary are rewritten.
+Only terms that reached the glossary, and sentences whose meaning was confirmed in stage 2, are rewritten.
 
 1. Aliases → the spelling to use. Rewrite by hand or with a scripted replacement, then read the diff. A
    substitution inside an identifier, a path, or a code block is a mistake; revert it.
 2. `textlint --fix` for notation, then the findings that need a human sentence.
 3. Non-existent names: correct them to the real name, turn them into `<placeholder>` form, or add them to
    `openspec/known-names.txt` when they are real but live in another system.
-4. Records stay as written: `openspec/changes/archive/`, and any document the repository keeps as history.
+4. Confirmed sentences: rewrite each by the `ja-writing` rule it broke, with the confirmed meaning written in.
+   Show the original beside the rewrite.
+5. Records stay as written: `openspec/changes/archive/`, and any document the repository keeps as history.
 
 ## 4. Verify and report
 
@@ -84,7 +96,7 @@ Run the repository's verify convention (`make verify`, else `pnpm run verify` / 
 none, run the checks from stage 1 again.
 
 Report four numbers and one list: documents touched, terms added to the glossary, findings fixed, findings that
-remain, and the terms left unresolved with the question that blocks each one.
+remain, and the terms and sentences left unresolved with the question that blocks each one.
 
 ## Notes
 
