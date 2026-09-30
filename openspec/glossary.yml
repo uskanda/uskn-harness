@@ -110,3 +110,35 @@ terms:
     definition: "スキルを、呼び出した会話の中でそのまま実行する形。frontmatterに `context` が無いときの既定。"
     aliases: []
     en: "inline"
+  - term: "ループエンジニアリング"
+    definition: "エージェントへの指示を人が毎回書く代わりに、指示を出す仕組みを設計する実践。"
+    aliases: []
+    en: "loop engineering"
+  - term: "仕様PR"
+    definition: "OpenSpecの変更を含み、ループの作業指示になるPRまたはMR。"
+    aliases: []
+    en: "spec PR"
+  - term: "実装役"
+    definition: "ループの中でコードを書くエージェント。"
+    aliases: ["実装用エージェント"]
+    en: "implementer"
+  - term: "監査役"
+    definition: "実装役と別の文脈で、完了基準を満たしたかを判定するエージェント。"
+    aliases: ["監査用エージェント"]
+    en: "auditor"
+  - term: "完了基準"
+    definition: "ループが仕様PRを完了とみなすために満たす条件の組。"
+    aliases: []
+    en: "completion criteria"
+  - term: "停止条件"
+    definition: "完了基準を満たしていなくてもループを打ち切る条件。"
+    aliases: []
+    en: "stop condition"
+  - term: "ウォッチャー"
+    definition: "PRとコメントを定期的に見て、ループのジョブを起動する常駐プロセス。"
+    aliases: []
+    en: "watcher"
+  - term: "進捗コメント"
+    definition: "ループが状況を書き換え続ける、PRごとに1つのコメント。"
+    aliases: []
+    en: "progress comment"
