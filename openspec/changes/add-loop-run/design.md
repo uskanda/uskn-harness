@@ -36,7 +36,7 @@ batsのテストは `bin/tests/fixtures/fake-bin` に外部コマンドの偽物
     - `loop/verdict.schema.json`：判定のJSON Schema
     - `loop/limits.env`：上限の既定値
 - `bin/uskn-loop` は自分の実体のパスから `loop/` を探す。`~/.local/bin` のsymlinkから呼ばれても、ハーネスのcheckoutのファイルを読む
-- repo-contextは、ハーネスの `plugins/uskn-harness/hooks/scripts/session-start.sh` を直接呼んで得る。hookと同じく、プラグインの `bin/` には頼らない
+- ホストは、originに設定したURL（insteadOfで書き換える前の値）から判定する。名前で判定できないホストのときだけ、ハーネスの `session-start.sh` を直接呼んで尋ねる。hookと同じく、プラグインの `bin/` には頼らない。`session-start.sh` は書き換えたあとのURLを読むので、テストでoriginを手元のリポジトリに向けると判定できなくなる
 
 ### ホストへの操作を1か所にまとめる
 
@@ -54,6 +54,7 @@ batsのテストは `bin/tests/fixtures/fake-bin` に外部コマンドの偽物
 
 PRの差分（`git diff --name-only origin/<base>...HEAD`）で、`openspec/changes/<name>/` の下にファイルを追加しているディレクトリを数える。archiveの下は数えない。
 ちょうど1つのときだけ受け付ける。grillingでは「archiveされていないchangeがちょうど1つ」とした。差分で数えるのは、統合ブランチに別の進行中のchangeがあっても受け付けるためである。
+成果物がそろっているかは、worktreeを作る前に `origin/<head>` の木をgitで読んで確かめる。求めるのは、grilling.md、proposal.md、tasks.mdがあることと、specsがあることである。specsは、`specs/` の下に `spec.md` があるか、`.openspec.yaml` が `skip_specs: true` を持てばよい。
 
 ### worktree
 
@@ -81,7 +82,7 @@ PRの差分（`git diff --name-only origin/<base>...HEAD`）で、`openspec/chan
     claude -p "<指示>" --permission-mode auto --permission-prompts none \
       --max-budget-usd 10 --output-format json
     ```
-- 指示は `loop/prompts/implementer.md` に、ラウンドごとの内容を足して作る。1ラウンド目は `/opsx:apply <change>`、2ラウンド目以降は修正必須の指摘と失敗したセンサーの出力の末尾である
+- 実装役への規則は `loop/prompts/implementer.md` に置き、`--append-system-prompt-file` で渡す。指示の本文は、1ラウンド目が `/opsx:apply <change>` だけで、2ラウンド目以降は修正必須の指摘と失敗したセンサーの出力の末尾である。1ラウンド目の本文に規則を足さないのは、`/opsx:apply` に続く文字列がコマンドの引数として渡るからである
 - 指示では、`commit` スキルでコミットすること、pushとマージとarchiveをしないことを求める
 - 実装役が終わったら、`total_cost_usd` を費用の合計に足し、新しいコミットがあればpushする
 
@@ -90,7 +91,8 @@ PRの差分（`git diff --name-only origin/<base>...HEAD`）で、`openspec/chan
 - 順番は、未コミットの変更、検証規約、`openspec validate <change> --strict`、tasks.md、差分の検査である。安い検査を先に置く
 - 1つでも失敗したら、そのラウンドの監査役は起動しない。監査役は1回3ドルかかるので、機械で分かる失敗を先に直させる
 - 検証規約は全体を走らせる。上限は30分とし、`loop/limits.env` に置く。verify-fastは変わったファイルに絞るので、完了の判定には使わない
-- 差分の検査は、`git diff --diff-filter=D` で消えたテストファイルを、追加された行の正規表現でskipの印を見つける。テストファイルは、パスに `test`、`spec`、`__tests__` を含むか、拡張子が `.bats` のファイルとする。tasks.mdがそのパスに触れていれば失敗としない
+- 差分の検査は、`git diff --diff-filter=D` で消えたテストファイルを、追加された行の正規表現でskipの印を見つける。テストファイルは、パスに `test`、`spec`、`__tests__` を含むか、拡張子が `.bats` のファイルとする。`openspec/` の下は文書なので除く。tasks.mdがそのパスに触れていれば失敗としない
+- skipの印はテストファイルの種類ごとに見分ける。batsは行頭の `skip`、JavaScriptとTypeScriptは `.skip(` と `xit(` などである。種類を見ないと、検査のコードや仕様の文書にある `.skip(` という文字列まで誤ってskipの印と判定するからである
 - 検証の設定は、`Makefile`、`package.json`、`.github/workflows/`、`.gitlab-ci.yml`、textlintの設定ファイルの変更で見分ける
 
 ### 監査役
@@ -108,6 +110,7 @@ PRの差分（`git diff --name-only origin/<base>...HEAD`）で、`openspec/chan
 - 指示には、changeの成果物のパス、差分の範囲、センサーの結果、確認させる設定の変更、前のラウンドの指摘を渡す。シナリオごとにテストを挙げて実際に走らせること、疑ってかかることを求める
 - 修正必須にするのは、specの要件かシナリオを満たしていないとき、シナリオを確かめるテストが無いとき、設定の変更に理由が無いとき、明らかな誤りがあるときに限る
 - 判定は `jq '.structured_output'` で読み、4つの欄がそろっているかを確かめる。欠けていれば「判定なし」として止める
+- 完了とみなすのは、判定がpassで修正必須の指摘が無く、シナリオが1つ以上あり、どのシナリオにもテストが挙がって判定がpassのときである。仕様の網羅の層を、監査役の申告だけでなく判定の中身でも確かめる
 - 監査の前にHEADを記録する。監査のあとは、そのHEADへの `git reset --hard` と `git clean -fd` で戻す。監査の前には、未コミットの変更が無いことを計算的センサーで確かめてある
 
 ### 進展なし
@@ -117,6 +120,7 @@ PRの差分（`git diff --name-only origin/<base>...HEAD`）で、`openspec/chan
 
 ### 上限と終了コード
 
+- PRごとの費用の合計は、ラウンドを始める前に確かめる。1回の呼び出しの使いすぎは `--max-budget-usd` が抑えるので、合計が上限を超えるのは最大でも1ラウンド分である
 - 上限の既定値は `loop/limits.env` に置く。名前が `USKN_LOOP_` から始まる環境変数を渡すと、既定値を上書きできる。試験の結果を見て調整するためである
 - 終了コードは、完了が0、想定外の失敗が1、受け付けない場合と使い方の誤りが2、停止が3とする
 

@@ -22,5 +22,5 @@
 - **THEN** その項目は `fail` で、終了コードは1
 
 #### Scenario: ループのコマンドが無い
-- **WHEN** `~/.local/bin/uskn-loop` が無い
-- **THEN** その項目は `fail` で、終了コードは1
+- **WHEN** `sync` のあとで `~/.local/bin/uskn-loop` を消してから `doctor` を実行する
+- **THEN** その項目は `warn` で、`uskn-harness sync` の実行を促す
