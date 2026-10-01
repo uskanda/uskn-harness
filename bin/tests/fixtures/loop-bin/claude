@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Stand-in for `claude -p` in bin/tests/uskn-loop.bats. Call number k (1, 2, ...) writes its arguments to
+# $FAKE_DIR/claude.<k>.args (one per line) and its prompt to claude.<k>.prompt, then runs $FAKE_DIR/claude.<k>.sh with
+# bash in the current directory when that script exists (a non-zero exit ends the call with that code). It prints the
+# JSON result: total_cost_usd from $FAKE_DIR/claude.<k>.cost (default 1), structured_output from claude.<k>.verdict.
+set -u
+n=$(($(cat "$FAKE_DIR/claude.count" 2>/dev/null || echo 0) + 1))
+echo "$n" > "$FAKE_DIR/claude.count"
+printf '%s\n' "$@" > "$FAKE_DIR/claude.$n.args"
+prev=""
+for a in "$@"; do
+  [ "$prev" = -p ] && printf '%s' "$a" > "$FAKE_DIR/claude.$n.prompt"
+  prev="$a"
+done
+pwd > "$FAKE_DIR/claude.$n.cwd"
+if [ -f "$FAKE_DIR/claude.$n.sh" ]; then bash "$FAKE_DIR/claude.$n.sh" || exit $?; fi
+cost="$(cat "$FAKE_DIR/claude.$n.cost" 2>/dev/null || echo 1)"
+if [ -f "$FAKE_DIR/claude.$n.verdict" ]; then
+  jq -cn --argjson c "$cost" --slurpfile v "$FAKE_DIR/claude.$n.verdict" \
+    '{type: "result", is_error: false, total_cost_usd: $c, result: "done", structured_output: $v[0]}'
+else
+  jq -cn --argjson c "$cost" '{type: "result", is_error: false, total_cost_usd: $c, result: "done"}'
+fi
