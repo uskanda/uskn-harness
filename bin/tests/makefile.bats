@@ -131,6 +131,14 @@ count() { line "$1" | wc -w; }
   [ "$(line bats)" = "bin/tests/makefile.bats bin/tests/uskn-harness.bats plugins/uskn-harness/hooks/tests/common.bats" ]
 }
 
+@test "verify-fast-plan: bin/uskn-loop and loop/ map to the loop's test" {
+  run plan CHANGED="loop/prompts/auditor.md"
+  [ "$(line bats)" = "bin/tests/uskn-loop.bats" ]
+  run plan CHANGED="bin/uskn-loop loop/lib/run.sh"
+  [ "$(line bats)" = "bin/tests/uskn-loop.bats" ]
+  [ "$(line shellcheck)" = "bin/uskn-loop" ]
+}
+
 @test "verify-fast-plan: hooks.json and the plugin's bin/ map to their own tests; a skill runs the all-skills tests" {
   run plan CHANGED="plugins/uskn-harness/hooks/hooks.json"
   [ "$(line bats)" = "plugins/uskn-harness/hooks/tests/hooks-json.bats" ]
