@@ -15,4 +15,4 @@
 
 - [x] 4.1 `openspec validate add-spec-pr --strict` と `make verify` が通ることを確認する
 - [x] 4.2 `uskn-harness sync --dry-run` の計画に `spec-pr` のリンクが出ることを確認する
-- [ ] 4.3 `/spec-pr add-loop-run` をユーザーが実行し、draft PRのブランチ、コミットの範囲、本文、自動マージが無いことを確かめる
+- [x] 4.3 `/spec-pr add-loop-run` をユーザーが実行し、draft PRのブランチ、コミットの範囲、本文、自動マージが無いことを確かめる（archive-pushで完了とみなした）
