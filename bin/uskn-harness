@@ -165,14 +165,21 @@ ensure_managed_dir() { # src-dir dest-dir label
 
 # ------------------------------------------------------------------ runtime
 mise_bin() { if have mise; then command -v mise; else echo "$HOME/.local/bin/mise"; fi; }
+# mise_global_node <major>: the node version mise's global config sets, when its major is <major>. Asked in /, where no
+# project mise.toml applies; a node that is not mise's (Homebrew's) does not count, though `mise exec` would run it.
+mise_global_node() {
+  local v
+  v="$("$(mise_bin)" -C / current node 2>/dev/null | awk '{print $1}')"
+  case "$v" in "$1" | "$1".*) printf '%s' "$v" ;; *) return 1 ;; esac
+}
 ensure_runtime() {
-  local node_ver mise
+  local node_ver mise cur
   node_ver="$(deps_get '.runtimes.node.version' 24)"
   if [ -x "$(mise_bin)" ]; then note ok "mise ($(mise_bin))"
   else run_step "install mise" bash -c "curl -fsSL https://mise.run | MISE_INSTALL_PATH='$HOME/.local/bin/mise' sh" && note created "mise -> ~/.local/bin/mise"; fi
   mise="$(mise_bin)"
   if stub || [ "$DRY" = 1 ]; then run_step "mise global node" "$mise" use -g "node@$node_ver"
-  elif (cd / && "$mise" exec -- node --version 2>/dev/null) | grep -q "^v$node_ver\."; then note ok "node $node_ver (mise global)"
+  elif cur="$(mise_global_node "$node_ver")"; then note ok "node $cur (mise global)"
   else run_step "mise global node" "$mise" use -g "node@$node_ver" && note created "node $node_ver (mise global)"; fi
   if have jq; then note ok "jq ($(command -v jq))"
   else run_step "mise global jq" "$mise" use -g "jq@$(deps_get '.runtimes.jq.version' 1.7)" && note created "jq (mise global)"; fi
@@ -184,7 +191,7 @@ npm_root() {
   local r
   if [ -n "${USKN_NPM_ROOT:-}" ]; then printf '%s' "$USKN_NPM_ROOT"; return 0; fi
   stub && return 1
-  r="$( (cd / && "$(mise_bin)" exec -- npm root -g 2>/dev/null) | tail -n 1 )"
+  r="$("$(mise_bin)" -C / exec -- npm root -g 2>/dev/null | tail -n 1)"
   [ -n "$r" ] || return 1
   printf '%s' "$r"
 }
@@ -219,7 +226,8 @@ ensure_npm_globals() {
     if [ -z "$stale" ]; then v="${checks%% *}"; note ok "$key ${v##*=}"
     else
       # shellcheck disable=SC2086
-      run_step "npm global $key" "$(mise_bin)" exec -- npm install -g $specs && { note created "$key ($specs)"; installed=1; }
+      # Installed from /, as npm_root asks: a project mise.toml in the caller's directory would pick another node.
+      run_step "npm global $key" "$(mise_bin)" -C / exec -- npm install -g $specs && { note created "$key ($specs)"; installed=1; }
     fi
   done 3< <(npm_pins)
   [ "$installed" = 1 ] && run_step "mise reshim" "$(mise_bin)" reshim >/dev/null 2>&1
@@ -568,7 +576,7 @@ check_claude_code() { # doctor: the claude CLI on PATH and the newest VS Code ex
 }
 
 cmd_doctor() {
-  local d name mise
+  local d name mise node_ver cur
   say info "harness: $HARNESS"
   if [ -d "$STABLE" ] && [ ! -L "$STABLE" ] && [ "$(realpath_f "$STABLE")" = "$HARNESS" ]; then note ok "stable path (managed clone)"
   else check_link "$STABLE" "$HARNESS" "stable path"; fi
@@ -576,7 +584,8 @@ cmd_doctor() {
   else
     mise="$(mise_bin)"
     if [ -x "$mise" ]; then note ok "mise"; else note warn "mise missing"; fi
-    if [ -x "$mise" ] && (cd / && "$mise" exec -- node --version >/dev/null 2>&1); then note ok "node ($(cd / && "$mise" exec -- node --version 2>/dev/null)) outside the checkout"; else note warn "node not resolvable through mise outside the checkout (run sync)"; fi
+    node_ver="$(deps_get '.runtimes.node.version' 24)"
+    if [ -x "$mise" ] && cur="$(mise_global_node "$node_ver")"; then note ok "node $cur (mise global)"; else note warn "no mise global node $node_ver: another node may answer outside the checkout (run sync)"; fi
     if have jq; then note ok "jq"; else note warn "jq missing"; fi
   fi
   check_npm_globals

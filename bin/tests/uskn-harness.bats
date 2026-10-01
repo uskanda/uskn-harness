@@ -494,6 +494,66 @@ npm_specs() {
   [[ "$output" == *"warn"*"third-party impeccable"* ]]
 }
 
+# ---- mise global node: another node on PATH (Homebrew) and a caller's mise.toml decide nothing (spec: harness-sync)
+
+# fake_mise [global node version]: a mise that logs "<cwd> <args>" to $MISE_LOG and runs nothing real. `current node`
+# prints the version only in /, where a project's mise.toml cannot apply. A node 24 that is not mise's sits on PATH
+# next to it, as Homebrew's does. The tests that use it run without the stub, so USKN_NPM_ROOT keeps npm root fake.
+fake_mise() {
+  export USKN_HARNESS_STUB_NET=0 MISE_LOG="$BATS_TEST_TMPDIR/mise.log" USKN_NPM_ROOT="$BATS_TEST_TMPDIR/npm"
+  mkdir -p "$USKN_NPM_ROOT"; : > "$MISE_LOG"
+  cat > "$HOME/.local/bin/mise" <<EOF
+#!/bin/sh
+if [ "\$1" = -C ]; then cd "\$2" || exit 1; shift 2; fi
+printf '%s %s\n' "\$PWD" "\$*" >> "$MISE_LOG"
+case "\$1" in
+  current) [ "\$PWD" = / ] && [ -n "${1:-}" ] && echo "${1:-}"; exit 0 ;;
+  exec) shift; [ "\$1" = -- ] && shift; [ "\$1" = npm ] && exit 0; exec "\$@" ;;
+esac
+EOF
+  printf '#!/bin/sh\necho v24.9.0\n' > "$HOME/.local/bin/node"
+  chmod +x "$HOME/.local/bin/mise" "$HOME/.local/bin/node"
+  mkdir -p "$BATS_TEST_TMPDIR/project"; printf '[tools]\nnode = "24"\n' > "$BATS_TEST_TMPDIR/project/mise.toml"
+}
+
+@test "sync sets the mise global node when the node 24 on PATH is not mise's" {
+  fake_mise
+  cd "$BATS_TEST_TMPDIR/project"
+  run "$CLI" sync --tools
+  [ "$status" -eq 0 ]
+  grep -qF "use -g node@$(dep .runtimes.node.version)" "$MISE_LOG"
+  [[ "$output" == *"created"*"node $(dep .runtimes.node.version) (mise global)"* ]]
+}
+
+@test "sync keeps a mise global node at the pinned major" {
+  fake_mise "$(dep .runtimes.node.version).21.0"
+  run "$CLI" sync --tools
+  [ "$status" -eq 0 ]
+  refute grep -qF "use -g node@" "$MISE_LOG"
+  [[ "$output" == *"ok"*"node $(dep .runtimes.node.version).21.0 (mise global)"* ]]
+}
+
+@test "sync installs the pinned npm CLIs from /, not under the caller's mise.toml" {
+  fake_mise "$(dep .runtimes.node.version).21.0"
+  cd "$BATS_TEST_TMPDIR/project"
+  run "$CLI" sync --tools
+  [ "$status" -eq 0 ]
+  grep -qF "/ exec -- npm install -g $(npm_specs textlint)" "$MISE_LOG"
+  refute grep -qF "$BATS_TEST_TMPDIR/project exec -- npm install -g" "$MISE_LOG"
+}
+
+@test "doctor warns when mise has no global node, even with a node 24 on PATH" {
+  fake_mise
+  run "$CLI" doctor
+  [[ "$output" == *"warn"*"no mise global node"*"run sync"* ]]
+}
+
+@test "doctor reports the mise global node at the pinned major as ok" {
+  fake_mise "$(dep .runtimes.node.version).21.0"
+  run "$CLI" doctor
+  [[ "$output" == *"ok"*"node $(dep .runtimes.node.version).21.0 (mise global)"* ]]
+}
+
 # ---- phase 4: onboard-check (spec: onboard-check)
 
 fixture_repo() { # <dir> [ui]  -- a bare product repo, optionally with a UI dependency
