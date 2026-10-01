@@ -42,7 +42,7 @@ lint() { textlint --config "$CONF" --format compact "$1" 2>&1; }
   need_textlint
   printf 'この設定は全体に効く。\n' > "$BATS_TEST_TMPDIR/one.txt"
   run lint "$BATS_TEST_TMPDIR/one.txt"
-  [[ "$output" == *"効く"*"ja-writing"*"($RULE)"* ]]
+  [[ "$output" == *"効く"*"ja-writing"*"($RULE)"* ]] || false
 }
 
 @test "pass.md gets no finding: literal uses, compounds, and bad examples in backticks or a block quote" {

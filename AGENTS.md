@@ -19,6 +19,9 @@ installer that distributes them.
 ## How work happens here
 
 - Scripts get bats tests first; skills get a worked example in their body.
+- Scripts and tests run on Linux and on macOS, where bats and the hooks get `/bin/bash` 3.2 and BSD tools. End a
+  `[[ ]]` statement in a test with `|| false`, use `sed -E` / `grep -E` for alternation, and list trees with the
+  `listing` helper instead of `find -printf`. `bin/tests/bats-portability.bats` checks these.
 - CI runs `make verify` with `VERIFY_STRICT=1`, where a missing tool fails instead of skipping.
 
 ## Branch model

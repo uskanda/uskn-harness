@@ -36,8 +36,8 @@ json_cwd() { printf '{"session_id":"s","cwd":"%s","hook_event_name":"SessionStar
   make_repo "$BATS_TEST_TMPDIR/r" git@github.com:o/r.git
   run bash -c "cd '$BATS_TEST_TMPDIR/r' && '$SCRIPT' </dev/null"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"<repo-context>"* ]]
-  [[ "$output" == *"platform: github"* ]]
+  [[ "$output" == *"<repo-context>"* ]] || false
+  [[ "$output" == *"platform: github"* ]] || false
 }
 
 @test "hosting: github.com remote is github with reason" {
@@ -46,7 +46,7 @@ json_cwd() { printf '{"session_id":"s","cwd":"%s","hook_event_name":"SessionStar
   [ "$status" -eq 0 ]
   [ "$output" = "github" ]
   run "$SCRIPT" --json "$BATS_TEST_TMPDIR/r"
-  [[ "$output" == *'"hosting_reason":"known host"'* ]]
+  [[ "$output" == *'"hosting_reason":"known host"'* ]] || false
 }
 
 @test "hosting: self-hosted gitlab host name" {
@@ -60,7 +60,7 @@ json_cwd() { printf '{"session_id":"s","cwd":"%s","hook_event_name":"SessionStar
   run "$SCRIPT" --plain hosting "$BATS_TEST_TMPDIR/r"
   [ "$output" = "unknown" ]
   run "$SCRIPT" "$BATS_TEST_TMPDIR/r"
-  [[ "$output" == *"decide"* ]]
+  [[ "$output" == *"decide"* ]] || false
 }
 
 @test "hosting: .github/workflows without remote hints github" {
@@ -86,7 +86,7 @@ json_cwd() { printf '{"session_id":"s","cwd":"%s","hook_event_name":"SessionStar
   [ "${lines[1]}" = "integration=main" ]
   [ "${lines[2]}" = "qa=" ]
   run "$SCRIPT" "$BATS_TEST_TMPDIR/r"
-  [[ "$output" == *"qa: (none)"* ]]
+  [[ "$output" == *"qa: (none)"* ]] || false
 }
 
 @test "branches: origin/HEAD master" {
@@ -104,7 +104,7 @@ json_cwd() { printf '{"session_id":"s","cwd":"%s","hook_event_name":"SessionStar
   run "$SCRIPT" --plain branches "$BATS_TEST_TMPDIR/r"
   [ "${lines[0]}" = "default=main" ]
   run "$SCRIPT" "$BATS_TEST_TMPDIR/r"
-  [[ "$output" == *"default: main (origin/main exists)"* ]]
+  [[ "$output" == *"default: main (origin/main exists)"* ]] || false
 }
 
 @test "AGENTS.md overrides integration only; other keys stay detected" {
@@ -125,8 +125,8 @@ MD
   [ "${lines[1]}" = "integration=trunk" ]
   [ "${lines[2]}" = "qa=qa" ]
   run "$SCRIPT" "$BATS_TEST_TMPDIR/r"
-  [[ "$output" == *"integration: trunk (AGENTS.md)"* ]]
-  [[ "$output" == *"default: main (origin/HEAD)"* ]]
+  [[ "$output" == *"integration: trunk (AGENTS.md)"* ]] || false
+  [[ "$output" == *"default: main (origin/HEAD)"* ]] || false
 }
 
 @test "AGENTS.md qa: none disables qa; quoted values are unquoted" {
@@ -148,7 +148,7 @@ MD
   make_repo "$BATS_TEST_TMPDIR/r" git@github.com:o/r.git
   printf '## Branch model\n\n```yaml\nprotected: none\n```\n' > "$BATS_TEST_TMPDIR/r/AGENTS.md"
   run "$SCRIPT" "$BATS_TEST_TMPDIR/r"
-  [[ "$output" == *"protected: none (AGENTS.md)"* ]]
+  [[ "$output" == *"protected: none (AGENTS.md)"* ]] || false
   run "$SCRIPT" --json "$BATS_TEST_TMPDIR/r"
   echo "$output" | jq -e '.protected == "none" and .sources.protected == "AGENTS.md"' >/dev/null
   run "$SCRIPT" --plain branches "$BATS_TEST_TMPDIR/r"
@@ -165,7 +165,7 @@ protected:  main ,release/*   # comment
 ```
 MD
   run "$SCRIPT" "$BATS_TEST_TMPDIR/r"
-  [[ "$output" == *"protected: main, release/* (AGENTS.md)"* ]]
+  [[ "$output" == *"protected: main, release/* (AGENTS.md)"* ]] || false
   run "$SCRIPT" --json "$BATS_TEST_TMPDIR/r"
   echo "$output" | jq -e '.protected == "main, release/*"' >/dev/null
 }
@@ -174,7 +174,7 @@ MD
   make_repo "$BATS_TEST_TMPDIR/r" git@github.com:o/r.git
   printf '## Branch model\n\n```yaml\nintegration: main\nprotected:\n```\n' > "$BATS_TEST_TMPDIR/r/AGENTS.md"
   run "$SCRIPT" "$BATS_TEST_TMPDIR/r"
-  [[ "$output" == *"protected: (not declared)"* ]]
+  [[ "$output" == *"protected: (not declared)"* ]] || false
   run "$SCRIPT" --json "$BATS_TEST_TMPDIR/r"
   echo "$output" | jq -e '.protected == "" and .sources.protected == "not declared"' >/dev/null
 }
@@ -189,21 +189,21 @@ MD
 @test "context block names the top-level directory, remote, and the no-redetect rule" {
   make_repo "$BATS_TEST_TMPDIR/r" git@github.com:o/r.git
   run bash -c "echo '$(json_cwd "$BATS_TEST_TMPDIR/r")' | '$SCRIPT'"
-  [[ "$output" == "<repo-context>"* ]]
-  [[ "$output" == *"</repo-context>" ]]
-  [[ "$output" == *"git@github.com:o/r.git"* ]]
-  [[ "$output" == *"Use these values"* ]]
+  [[ "$output" == "<repo-context>"* ]] || false
+  [[ "$output" == *"</repo-context>" ]] || false
+  [[ "$output" == *"git@github.com:o/r.git"* ]] || false
+  [[ "$output" == *"Use these values"* ]] || false
 }
 
 @test "hook mode prints no session line and no trailer or recall rule (the journal is retired)" {
   make_repo "$BATS_TEST_TMPDIR/r" git@github.com:o/r.git
   run bash -c "printf '{\"session_id\":\"abcdef1234567890-x\",\"cwd\":\"$BATS_TEST_TMPDIR/r\"}' | '$SCRIPT'"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"</repo-context>"* ]]
-  [[ "$output" != *"abcdef12"* ]]
-  [[ "$output" != *"session:"* ]]
-  [[ "$output" != *"Session:"* ]]
-  [[ "$output" != *"recall"* ]]
+  [[ "$output" == *"</repo-context>"* ]] || false
+  [[ "$output" != *"abcdef12"* ]] || false
+  [[ "$output" != *"session:"* ]] || false
+  [[ "$output" != *"Session:"* ]] || false
+  [[ "$output" != *"recall"* ]] || false
 }
 
 @test "works without jq on PATH (stdin cwd still parsed)" {
@@ -214,12 +214,12 @@ MD
   done
   run env PATH="$fakebin" bash -c "echo '$(json_cwd "$BATS_TEST_TMPDIR/r")' | '$SCRIPT'"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"platform: github"* ]]
+  [[ "$output" == *"platform: github"* ]] || false
   run env PATH="$fakebin" "$SCRIPT" --json "$BATS_TEST_TMPDIR/r"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"platform":"github"'* ]]
+  [[ "$output" == *'"platform":"github"'* ]] || false
   printf '## Branch model\n\n```yaml\nprotected: main, release/*\n```\n' > "$BATS_TEST_TMPDIR/r/AGENTS.md"
   run env PATH="$fakebin" "$SCRIPT" --json "$BATS_TEST_TMPDIR/r"
-  [[ "$output" == *'"protected":"main, release/*"'* ]]
+  [[ "$output" == *'"protected":"main, release/*"'* ]] || false
   echo "$output" | jq -e '.sources.protected == "AGENTS.md"' >/dev/null
 }

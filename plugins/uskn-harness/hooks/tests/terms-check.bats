@@ -49,7 +49,7 @@ path_without_python() {
   printf '# t\n\n設定は `harness.yaml` に置く。\n' > "$R/docs/ng.md"
   run cli "$R/docs/ng.md"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"harness.yaml"* ]]
+  [[ "$output" == *"harness.yaml"* ]] || false
 }
 
 @test "placeholders, assignments and version examples are not names" {
@@ -72,20 +72,20 @@ path_without_python() {
   printf '# t\n\nこのフレームワークはコマンドを読む。\n' > "$R/docs/new.md"
   run cli "$R/docs/new.md"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"フレームワーク"* ]]
+  [[ "$output" == *"フレームワーク"* ]] || false
 }
 
 @test "a term listed as an alias is reported with the spelling to use" {
   printf '# t\n\nハーネス基盤を導入する。\n' > "$R/docs/alias.md"
   run cli "$R/docs/alias.md"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"ハーネス基盤"* ]]; [[ "$output" == *"ハーネス"* ]]
+  [[ "$output" == *"ハーネス基盤"* ]] || false; [[ "$output" == *"ハーネス"* ]] || false
 }
 
 @test "quoted terms are checked, code blocks and English files are not" {
   printf '# t\n\n「未知概念」と書く。\n' > "$R/docs/q.md"
   run cli "$R/docs/q.md"
-  [ "$status" -ne 0 ]; [[ "$output" == *"未知概念"* ]]
+  [ "$status" -ne 0 ]; [[ "$output" == *"未知概念"* ]] || false
   printf '# t\n\n```\nハーネス基盤 `harness.yaml` 「未知概念」\n```\n' > "$R/docs/fence.md"
   run cli "$R/docs/fence.md"
   [ "$status" -eq 0 ]; [ -z "$output" ]
@@ -141,7 +141,7 @@ path_without_python() {
   printf '# t\n\n設定は `harness.yaml` に置く。\n' > "$R/docs/ng.md"
   run cli "$R/docs/ng.md"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"harness.yaml"* ]]
+  [[ "$output" == *"harness.yaml"* ]] || false
 }
 
 @test "a crash of the check fails CLI mode and stays silent in hook mode" {
@@ -150,7 +150,7 @@ path_without_python() {
   printf '# t\n\n`Makefile` を読む。\n' > "$R/docs/clean.md"
   PATH="$fb:$PATH" run cli "$R/docs/clean.md"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"Traceback"* ]]
+  [[ "$output" == *"Traceback"* ]] || false
   PATH="$fb:$PATH" run hook "$R/docs/clean.md"
   [ "$status" -eq 0 ]; [ -z "$output" ]
 }
@@ -162,7 +162,7 @@ path_without_python() {
   [ "$status" -eq 0 ]
   VERIFY_STRICT=1 PATH="$P" run cli "$R/docs/ng.md"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"VERIFY_STRICT"* ]]
+  [[ "$output" == *"VERIFY_STRICT"* ]] || false
   VERIFY_STRICT=1 PATH="$P" run hook "$R/docs/ng.md"
   [ "$status" -eq 0 ]; [ -z "$output" ]
 }
@@ -174,7 +174,7 @@ path_without_python() {
   rm "$R/openspec/glossary.yml"
   run cli "$R/docs/skip.md"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"harness.yaml"* ]]; [[ "$output" != *"ハーネス基盤"* ]]
+  [[ "$output" == *"harness.yaml"* ]] || false; [[ "$output" != *"ハーネス基盤"* ]] || false
 }
 
 @test "USKN_SKIP_TERMS=1 in hook mode still reads the whole hook input, so the writer never gets a broken pipe" {
