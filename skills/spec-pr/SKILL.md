@@ -106,11 +106,12 @@ The title is the point of `proposal.md` in one Japanese line. The body is Japane
 - Drop the design line when the change has no `design.md`.
 - The tasks stay in `tasks.md`; the body links to them and copies none.
 
-Write the body to a file in a new `mktemp -d` directory, outside the repository. Lint a copy with the title as a
-heading on top:
+Write the body to `<body>.pr.md` in a new `mktemp -d` directory, outside the repository. Lint a copy named
+`<copy>.pr.md` with the title as a heading on top. The `.pr.md` ending marks a PR body, so the `textlint-check` hook
+also lints both files with the 敬体 config:
 
 ```bash
-textlint --config ~/.local/share/uskn-harness/skills/ja-writing/textlintrc.json --format compact <copy>.md
+textlint --config ~/.local/share/uskn-harness/skills/ja-writing/textlintrc.desumasu.json --format compact <copy>.pr.md
 ```
 
 Fix what it reports; the `ja-writing` skill has the rules. When textlint is not installed, skip the lint and say so.
@@ -120,14 +121,14 @@ Fix what it reports; the `ja-writing` skill has the rules. When textlint is not 
 GitHub:
 
 ```bash
-gh pr create --draft --base "<integration>" --head "change/<name>" --title "<title>" --body-file <body>.md
+gh pr create --draft --base "<integration>" --head "change/<name>" --title "<title>" --body-file <body>.pr.md
 ```
 
 GitLab:
 
 ```bash
 glab mr create --draft --source-branch "change/<name>" --target-branch "<integration>" \
-  --title "<title>" --description "$(cat <body>.md)" --yes
+  --title "<title>" --description "$(cat <body>.pr.md)" --yes
 ```
 
 The draft is complete as created: it stays a draft with no auto-merge, for the implementation to fill.

@@ -26,8 +26,18 @@ Follows the artifact, and only one of the two appears in a document.
 体言止め（ending on a noun）belongs to table cells, bullet items, headings, and a commit's summary line
 （`archive-push` writes 「`<name>`をarchiveし、main specsに反映」）. A sentence in body text ends on its predicate.
 
-The linted corpus is all 常体, so `no-mix-dearu-desumasu` is set to `である` for both body and list items.
-Mixing the two inside one document is the error the rule catches.
+Two configs carry the two registers. They are the same file apart from `no-mix-dearu-desumasu`, which asks for
+one register in both body text and list items:
+
+| Config | Register | Lints |
+|---|---|---|
+| `textlintrc.json` | 常体（`である`） | Every Japanese document and commit message |
+| `textlintrc.desumasu.json` | 敬体（`ですます`） | PR and MR bodies, in a file named `<body>.pr.md` |
+
+The name decides: the `textlint-check` hook lints a file ending in `.pr.md` with `textlintrc.desumasu.json`, even in
+a repository with its own `.textlintrc*`, and every other Markdown file as before. A PR body written to a plain `.md`
+gets 常体 findings; rename it to `<body>.pr.md`. A rule change goes into both configs, and a bats test in the harness
+fails when they drift. Mixing the two registers inside one document is the error the rule catches.
 
 ## Sentences
 
@@ -99,9 +109,16 @@ textlint --config ~/.local/share/uskn-harness/skills/ja-writing/textlintrc.json 
 
 - `--fix` handles notation (spacing, colons, brackets, dictionary terms). Read the diff before keeping it: a
   dictionary substitution can leave a space behind between two Japanese words.
-- A repository with its own `.textlintrc*` at the root uses that instead: run `textlint <file.md>` from the root.
-- Prose that is not a file (a commit message, a PR body): write it to a scratch `.md`, lint that, then use it.
-  The `commit` and `pr` skills do this.
+- A PR or MR body: write it to `<body>.pr.md` and lint it with the 敬体 config.
+
+  ```bash
+  textlint --config ~/.local/share/uskn-harness/skills/ja-writing/textlintrc.desumasu.json --format compact <body>.pr.md
+  ```
+
+- A repository with its own `.textlintrc*` at the root uses that instead, for everything but a PR or MR body: run
+  `textlint <file.md>` from the root.
+- Prose that is not a file (a commit message, a PR body): write it to a scratch file, lint that, then use it. The
+  `commit` skill does this with a scratch `.md`, and the `pr` and `spec-pr` skills with `<body>.pr.md`.
 - Done when the command prints no problems.
 
 ## Fixing findings

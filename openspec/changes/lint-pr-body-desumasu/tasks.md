@@ -10,10 +10,10 @@
 
 ## 3. スキル
 
-- [ ] 3.1 `bin/tests/ja-writing-rules.bats` にテストを足し、失敗を確認する。`skills/git/pr/SKILL.md` と `skills/spec-pr/SKILL.md` が、敬体の設定と `<body>.pr.md` の形の一時ファイルを使うことを確かめる
-- [ ] 3.2 `skills/git/pr/SKILL.md` の「Japanese body」の節を直す。本文を `<body>.pr.md` の形の一時ファイルに書き、敬体の設定でlintする。3.1の `pr` についてのテストが通ることを確認する
-- [ ] 3.3 `skills/spec-pr/SKILL.md` の手順4を直す。本文の一時ファイルとlintの写しを `<body>.pr.md` の形の名前にし、敬体の設定でlintする。3.1のテストが通ることを確認する
-- [ ] 3.4 `skills/ja-writing/SKILL.md` の「Register」と「Check」の節に、2つの設定の使い分けと、PRとMRの本文を検査するコマンドを書く。`bin/tests/skill-*.bats` が通ることを確認する
+- [x] 3.1 `bin/tests/ja-writing-rules.bats` にテストを足し、失敗を確認する。`skills/git/pr/SKILL.md` と `skills/spec-pr/SKILL.md` が、敬体の設定と `<body>.pr.md` の形の一時ファイルを使うことを確かめる
+- [x] 3.2 `skills/git/pr/SKILL.md` の「Japanese body」の節を直す。本文を `<body>.pr.md` の形の一時ファイルに書き、敬体の設定でlintする。3.1の `pr` についてのテストが通ることを確認する
+- [x] 3.3 `skills/spec-pr/SKILL.md` の手順4を直す。本文の一時ファイルとlintの写しを `<body>.pr.md` の形の名前にし、敬体の設定でlintする。3.1のテストが通ることを確認する
+- [x] 3.4 `skills/ja-writing/SKILL.md` の「Register」と「Check」の節に、2つの設定の使い分けと、PRとMRの本文を検査するコマンドを書く。`bin/tests/skill-*.bats` が通ることを確認する
 
 ## 4. 結合の確認
 

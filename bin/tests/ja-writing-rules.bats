@@ -76,3 +76,23 @@ lint() { textlint --config "$CONF" --format compact "$1" 2>&1; }
   run lint "$FIX/body.pr.md"
   [[ "$output" == *"(ja-technical-writing/no-mix-dearu-desumasu)"* ]] || false
 }
+
+# pr_body_lint <skill>: every textlint command in the skill lints a <body>.pr.md file with the desumasu config, and
+# the skill names no other placeholder Markdown file (<body>.md, <copy>.md) and not the である config.
+pr_body_lint() {
+  local lines bad
+  lines="$(grep -E '^[[:space:]]*textlint ' "$1" || true)"
+  [ -n "$lines" ] || { echo "no textlint command in $1"; return 1; }
+  bad="$(grep -vE -- '--config [^ ]*/skills/ja-writing/textlintrc\.desumasu\.json .*<[a-z-]+>\.pr\.md$' <<<"$lines" || true)"
+  [ -z "$bad" ] || { printf 'not the desumasu config on a <body>.pr.md file:\n%s\n' "$bad"; return 1; }
+  bad="$(grep -nE '<[a-z-]+>\.md|textlintrc\.json' "$1" || true)"
+  [ -z "$bad" ] || { printf 'a body file outside the <body>.pr.md form, or the である config:\n%s\n' "$bad"; return 1; }
+}
+
+@test "the pr skill lints the PR or MR body as a <body>.pr.md file with the desumasu config" {
+  pr_body_lint "$REPO/skills/git/pr/SKILL.md"
+}
+
+@test "the spec-pr skill lints the spec PR body as a <body>.pr.md file with the desumasu config" {
+  pr_body_lint "$REPO/skills/spec-pr/SKILL.md"
+}
