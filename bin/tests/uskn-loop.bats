@@ -437,6 +437,22 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   grep -qx -- '--json-schema' <<< "$a" && grep -qx 3 <<< "$a" && grep -qx none <<< "$a"
 }
 
+# The real claude, not the fake: a schema the CLI rejects stops every round with "no verdict". An unknown model ends
+# the call before any API request, signed in or not, so the test costs nothing. CI (VERIFY_STRICT=1) has claude.
+@test "the real claude accepts the verdict schema for --json-schema" {
+  real="$(PATH="${PATH#"$FAKES:"}" command -v claude || true)"
+  if [ -z "$real" ]; then
+    if [ "${VERIFY_STRICT:-0}" = 1 ]; then echo "claude is missing (VERIFY_STRICT=1)"; return 1; fi
+    skip "claude is not installed"
+  fi
+  mkdir -p "$T/home"
+  run env -u ANTHROPIC_API_KEY HOME="$T/home" "$real" -p ok --model uskn-loop-no-such-model \
+    --no-session-persistence --strict-mcp-config --output-format json \
+    --json-schema "$(cat "$REPO/loop/verdict.schema.json")"
+  [[ "$output" != *"not a valid JSON Schema"* ]]
+  [[ "$output" == *"unrecognized_model"* ]]
+}
+
 @test "a verdict without the four fields stops the loop" {
   make_repo github
   step 1 "$finish_tasks"
