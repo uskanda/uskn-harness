@@ -1,7 +1,7 @@
 ## 1. 敬体の設定
 
-- [ ] 1.1 `bin/tests/ja-writing-rules.bats` に3つのテストを足し、失敗を確認する。1つ目は、`skills/ja-writing/textlintrc.desumasu.json` の `no-mix-dearu-desumasu` が本文と箇条書きに `"ですます"` を持つことである。2つ目は、2つの設定がその規則のほかは一致することである。3つ目は、敬体で書いたPR本文の例が、敬体の設定で文体の指摘を受けないことである
-- [ ] 1.2 `skills/ja-writing/textlintrc.desumasu.json` を作る。1.1のテストが通ることを確認する
+- [x] 1.1 `bin/tests/ja-writing-rules.bats` に3つのテストを足し、失敗を確認する。1つ目は、`skills/ja-writing/textlintrc.desumasu.json` の `no-mix-dearu-desumasu` が本文と箇条書きに `"ですます"` を持つことである。2つ目は、2つの設定がその規則のほかは一致することである。3つ目は、敬体で書いたPR本文の例が、敬体の設定で文体の指摘を受けないことである
+- [x] 1.2 `skills/ja-writing/textlintrc.desumasu.json` を作る。1.1のテストが通ることを確認する
 
 ## 2. hook
 

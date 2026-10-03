@@ -1,8 +1,10 @@
 #!/usr/bin/env bats
-# Tests for the metaphor-verb patterns in skills/ja-writing/textlintrc.json (spec: ja-writing-skill).
-# Runs the real textlint with the harness config. The example sentences live in fixtures/ja-writing/.
+# Tests for the harness textlint configs in skills/ja-writing/ (spec: ja-writing-skill): the metaphor-verb patterns
+# in textlintrc.json, and textlintrc.desumasu.json, its copy for 敬体 (PR and MR bodies). Runs the real textlint
+# with the harness configs. The example sentences live in fixtures/ja-writing/.
 REPO="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
 CONF="$REPO/skills/ja-writing/textlintrc.json"
+DESU="$REPO/skills/ja-writing/textlintrc.desumasu.json"
 FIX="$BATS_TEST_DIRNAME/fixtures/ja-writing"
 RULE="@textlint-rule/pattern"
 
@@ -50,4 +52,27 @@ lint() { textlint --config "$CONF" --format compact "$1" 2>&1; }
   run lint "$FIX/pass.md"
   [ "$status" -eq 0 ]
   [ -z "$output" ]
+}
+
+@test "the desumasu config asks for ですます in body text and in list items" {
+  run jq -r '.rules["preset-ja-technical-writing"]["no-mix-dearu-desumasu"] | .preferInBody, .preferInList' "$DESU"
+  [ "$status" -eq 0 ]
+  [ "$output" = "ですます
+ですます" ]
+}
+
+@test "the two configs are the same apart from no-mix-dearu-desumasu" {
+  # A textlint config cannot extend another, so the desumasu config is a full copy; a rule added to one only fails here.
+  local strip='del(.rules["preset-ja-technical-writing"]["no-mix-dearu-desumasu"])'
+  [ -f "$DESU" ]
+  diff <(jq -S "$strip" "$CONF") <(jq -S "$strip" "$DESU")
+}
+
+@test "a PR body in 敬体 passes the desumasu config, and the である config reports its register" {
+  need_textlint
+  run textlint --config "$DESU" --format compact "$FIX/body.pr.md"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  run lint "$FIX/body.pr.md"
+  [[ "$output" == *"(ja-technical-writing/no-mix-dearu-desumasu)"* ]] || false
 }
