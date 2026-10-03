@@ -128,6 +128,26 @@ $F3"
   grep -q "cwd=$WT" "$LOG"
 }
 
+@test "a PR body (<body>.pr.md) gets the harness desumasu config even when the repository has its own .textlintrc" {
+  export FAKE_FINDINGS="$F1"
+  echo '{"rules":{}}' > "$R/.textlintrc.json"
+  mkdir -p "$TMP/scratch"; printf '# 題名\n\nこの変更は敬体の設定を足します。\n' > "$TMP/scratch/body.pr.md"
+  run call "$TMP/scratch/body.pr.md"
+  [ "$status" -eq 0 ]
+  ctx | grep -q "1 problem"
+  ctx | grep -q -- "--config $USKN_HARNESS_DIR/skills/ja-writing/textlintrc.desumasu.json"
+  grep -q -- "--config $USKN_HARNESS_DIR/skills/ja-writing/textlintrc.desumasu.json" "$LOG"
+  grep -q "$TMP/scratch/body.pr.md" "$LOG"
+}
+
+@test "a PR body (<body>.pr.md) gets the desumasu config in a repository without a .textlintrc" {
+  mkdir -p "$TMP/scratch"; printf '# 題名\n\nこの変更は敬体の設定を足します。\n' > "$TMP/scratch/body.pr.md"
+  run call "$TMP/scratch/body.pr.md"
+  [ "$status" -eq 0 ]
+  grep -q -- "--config $USKN_HARNESS_DIR/skills/ja-writing/textlintrc.desumasu.json" "$LOG"
+  refute grep -q -- "textlintrc.json" "$LOG"
+}
+
 @test "findings are capped at 20 lines and the cap is stated" {
   many=""; for i in $(seq 1 30); do many="$many$R/docs/ja.md: line $i, col 1, Error - x (ja-technical-writing/sentence-length)
 "; done

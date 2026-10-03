@@ -5,8 +5,8 @@
 
 ## 2. hook
 
-- [ ] 2.1 `plugins/uskn-harness/hooks/tests/textlint-check.bats` にテストを足し、失敗を確認する。`<body>.pr.md` の形のファイルでは、リポジトリの `.textlintrc.json` があっても `--config` で敬体の設定が渡ることを確かめる
-- [ ] 2.2 `plugins/uskn-harness/hooks/scripts/textlint-check.sh` を直し、2.1のテストと、普通の `.md` についての既存のテストが通ることを確認する
+- [x] 2.1 `plugins/uskn-harness/hooks/tests/textlint-check.bats` にテストを足し、失敗を確認する。`<body>.pr.md` の形のファイルでは、リポジトリの `.textlintrc.json` があっても `--config` で敬体の設定が渡ることを確かめる
+- [x] 2.2 `plugins/uskn-harness/hooks/scripts/textlint-check.sh` を直し、2.1のテストと、普通の `.md` についての既存のテストが通ることを確認する
 
 ## 3. スキル
 

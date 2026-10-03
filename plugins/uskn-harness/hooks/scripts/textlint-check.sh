@@ -2,7 +2,8 @@
 # textlint-check.sh: PostToolUse hook (Write | Edit). When the written file is Markdown written in
 # Japanese (kana at or above a share of the file), run textlint on it and return the findings as additionalContext. This is the
 # sensor for the ja-writing skill. Config: the repository's own .textlintrc* when present, else
-# skills/ja-writing/textlintrc.json in the harness checkout.
+# skills/ja-writing/textlintrc.json in the harness checkout. A PR or MR body (a file named <body>.pr.md) is 敬体 and
+# always gets the harness's skills/ja-writing/textlintrc.desumasu.json, whatever the repository carries.
 # Contract (openspec: textlint-hook): never blocks; exit 0 always; silent unless textlint reports problems;
 # nothing when textlint is missing, the file is not Japanese Markdown, or USKN_SKIP_TEXTLINT=1.
 # textlint is capped at USKN_TEXTLINT_TIMEOUT seconds (default 25, inside the hook's 30) through with_timeout.
@@ -29,10 +30,14 @@ BYTES="$(wc -c < "$ABS" 2>/dev/null || echo 0)"
 have textlint || exit 0
 ROOT="$(work_root "${CWD:-$PWD}")"   # the git top level of cwd: a worktree reads its own files
 CONF="" LOCAL_RC=""
-for f in "$ROOT"/.textlintrc "$ROOT"/.textlintrc.*; do [ -f "$f" ] && LOCAL_RC="$f"; done
-if [ -z "$LOCAL_RC" ]; then
-  CONF="$(harness_dir)/skills/ja-writing/textlintrc.json"; [ -f "$CONF" ] || exit 0
-fi
+case "$ABS" in
+  *.pr.md) CONF="$(harness_dir)/skills/ja-writing/textlintrc.desumasu.json"; [ -f "$CONF" ] || exit 0 ;;
+  *)
+    for f in "$ROOT"/.textlintrc "$ROOT"/.textlintrc.*; do [ -f "$f" ] && LOCAL_RC="$f"; done
+    if [ -z "$LOCAL_RC" ]; then
+      CONF="$(harness_dir)/skills/ja-writing/textlintrc.json"; [ -f "$CONF" ] || exit 0
+    fi ;;
+esac
 MAX=20
 LIMIT="${USKN_TEXTLINT_TIMEOUT:-25}"
 OUT="$(cd "$ROOT" && with_timeout "$LIMIT" textlint ${CONF:+--config "$CONF"} --format compact "$ABS" 2>&1)"; RC=$?
