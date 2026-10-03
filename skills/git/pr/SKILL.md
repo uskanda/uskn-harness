@@ -38,13 +38,15 @@ If the argument is the qa branch but the context has no qa branch (`qa: (none)`)
 
 ## Japanese body
 
-Lint it before creating the PR / MR. Write the body to a scratch `.md` (the title goes in as a heading), run
+Lint it before creating the PR / MR. Write the body to a scratch file named `<body>.pr.md` (the title goes in as a
+heading). PR and MR text is 敬体, and the `.pr.md` ending marks the file as a PR body, so the `textlint-check` hook
+also lints it with the 敬体 config. Run
 
 ```bash
-textlint --config ~/.local/share/uskn-harness/skills/ja-writing/textlintrc.json --format compact <scratch>.md
+textlint --config ~/.local/share/uskn-harness/skills/ja-writing/textlintrc.desumasu.json --format compact <body>.pr.md
 ```
 
-and fix what it reports; the `ja-writing` skill has the rules, the fixes, and the register (PR text is 敬体).
+and fix what it reports; the `ja-writing` skill has the rules and the fixes.
 Skip this when textlint is not installed and say so. Then pass the file with `--body-file`.
 
 ## Safety rules for auto-merge
