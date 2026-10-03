@@ -17,4 +17,4 @@
 
 ## 4. 結合の確認
 
-- [ ] 4.1 `openspec validate lint-pr-body-desumasu --strict` と `make verify` が通ることを確認する
+- [x] 4.1 `openspec validate lint-pr-body-desumasu --strict` と `make verify` が通ることを確認する
