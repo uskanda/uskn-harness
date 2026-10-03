@@ -1,0 +1,38 @@
+{
+  "title": "uskn-loop auditor verdict",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "scenarios", "findings", "question"],
+  "properties": {
+    "verdict": { "enum": ["pass", "fail"] },
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scenario", "tests", "status"],
+        "properties": {
+          "scenario": { "type": "string" },
+          "tests": { "type": "array", "items": { "type": "string" } },
+          "status": { "enum": ["pass", "fail"] }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "file", "line", "summary", "evidence"],
+        "properties": {
+          "severity": { "enum": ["blocking", "advisory"] },
+          "file": { "type": "string" },
+          "line": { "type": "integer", "minimum": 0 },
+          "summary": { "type": "string" },
+          "evidence": { "type": "string" }
+        }
+      }
+    },
+    "question": { "type": "string" }
+  }
+}

@@ -134,13 +134,15 @@ FAST_TEXTLINT = $(if $(filter skills/ja-writing/textlintrc.json skills/ja-writin
 FAST_TERMS    = $(if $(filter openspec/glossary.yml openspec/known-names.txt skills/ja-writing/common-words.txt,$(CHANGED)),$(DOCS_TERMS),$(filter $(CHANGED),$(DOCS_TERMS)))
 FAST_SHELL    = $(if $(filter $(HOOK_SCRIPTS)/lib/%,$(CHANGED)),$(SCRIPTS),$(filter $(CHANGED),$(SCRIPTS)))
 # The bats files a change touches: a changed test itself; hooks/scripts/<name>.sh -> hooks/tests/<name>.bats; the
-# lib and the fixtures -> every hook test; the rest by name. bin/tests/skill-*.bats look at every skill.
+# lib and the fixtures -> every hook test; bin/uskn-loop and loop/ -> bin/tests/uskn-loop.bats; the rest by name.
+# bin/tests/skill-*.bats look at every skill.
 FAST_BATS     = $(sort $(wildcard $(filter %.bats,$(CHANGED)) \
   $(patsubst $(HOOK_SCRIPTS)/%.sh,$(HOOK_TESTS)/%.bats,$(filter $(HOOK_SCRIPTS)/%.sh,$(CHANGED))) \
   $(if $(filter $(HOOK_SCRIPTS)/lib/% $(HOOK_TESTS)/fixtures/%,$(CHANGED)),$(HOOK_TESTS)/*.bats) \
   $(if $(filter plugins/uskn-harness/hooks/hooks.json,$(CHANGED)),$(HOOK_TESTS)/hooks-json.bats) \
   $(if $(filter plugins/uskn-harness/bin/%,$(CHANGED)),$(HOOK_TESTS)/plugin-bin.bats) \
   $(if $(filter bin/uskn-harness,$(CHANGED)),bin/tests/uskn-harness.bats) \
+  $(if $(filter bin/uskn-loop loop/%,$(CHANGED)),bin/tests/uskn-loop.bats) \
   $(if $(filter Makefile,$(CHANGED)),bin/tests/makefile.bats) \
   $(if $(filter skills/%,$(CHANGED)),bin/tests/skill-*.bats) \
   $(patsubst skills/%/SKILL.md,bin/tests/%-skill.bats,$(filter skills/%/SKILL.md,$(CHANGED)))))

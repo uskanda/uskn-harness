@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Stand-in for `gh` in bin/tests/uskn-loop.bats. Every call is appended to $FAKE_DIR/gh.log. The PR comes from
+# $FAKE_DIR/gh-pr.json, the login from $FAKE_DIR/user (default "me"). Comments live as $FAKE_DIR/comments/<id>.body and
+# <id>.author; `api` creates, edits, and lists them in GitHub's shape. A merge, an edit, or a label is a forbidden call:
+# it is recorded in $FAKE_DIR/forbidden and fails.
+set -u
+printf '%s\n' "$*" >> "$FAKE_DIR/gh.log"
+C="$FAKE_DIR/comments"
+mkdir -p "$C"
+user="$(cat "$FAKE_DIR/user" 2>/dev/null || echo me)"
+case "${1:-} ${2:-}" in
+  "pr view") cat "$FAKE_DIR/gh-pr.json"; exit 0 ;;
+  "pr ready") echo "$*" >> "$FAKE_DIR/ready"; exit 0 ;;
+  "pr merge" | "pr edit" | "pr close" | "label "*) echo "$*" >> "$FAKE_DIR/forbidden"; exit 1 ;;
+esac
+[ "${1:-}" = api ] || { echo "fake gh: unsupported: $*" >&2; exit 2; }
+shift
+method=GET path="" body=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -X | --method) method="$2"; shift 2 ;;
+    -F | --field | -f | --raw-field) case "$2" in body=@*) body="${2#body=@}" ;; esac; shift 2 ;;
+    --hostname) shift 2 ;;
+    --paginate) shift ;;
+    -*) shift ;;
+    *) path="$1"; shift ;;
+  esac
+done
+case "$method $path" in
+  "GET user") jq -cn --arg u "$user" '{login: $u}' ;;
+  GET\ repos/*/issues/*/comments)
+    for f in "$C"/*.body; do
+      [ -e "$f" ] || continue
+      id="$(basename "$f" .body)"
+      jq -cn --argjson id "$id" --rawfile b "$f" --arg a "$(cat "$C/$id.author")" '{id: $id, body: $b, user: {login: $a}}'
+    done | jq -cs . ;;
+  POST\ repos/*/issues/*/comments)
+    id=$(($(cat "$FAKE_DIR/comment.seq" 2>/dev/null || echo 100) + 1)); echo "$id" > "$FAKE_DIR/comment.seq"
+    cp "$body" "$C/$id.body"; echo "$user" > "$C/$id.author"
+    jq -cn --argjson id "$id" '{id: $id}' ;;
+  PATCH\ repos/*/issues/comments/*)
+    id="${path##*/}"; [ -f "$C/$id.body" ] || { echo "fake gh: no comment $id" >&2; exit 1; }
+    cp "$body" "$C/$id.body"; jq -cn --argjson id "$id" '{id: $id}' ;;
+  *) echo "fake gh: unsupported api: $method $path" >&2; exit 2 ;;
+esac

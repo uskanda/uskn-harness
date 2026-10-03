@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Stand-in for `openspec` in bin/tests/uskn-loop.bats. Calls are appended to $FAKE_DIR/openspec.log. `validate` fails
+# while $FAKE_DIR/openspec-fail exists, printing its contents; every other command succeeds silently.
+set -u
+printf '%s\n' "$*" >> "$FAKE_DIR/openspec.log"
+if [ "${1:-}" = validate ] && [ -f "$FAKE_DIR/openspec-fail" ]; then cat "$FAKE_DIR/openspec-fail"; exit 1; fi
+exit 0

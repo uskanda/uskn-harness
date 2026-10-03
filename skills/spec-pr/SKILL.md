@@ -8,8 +8,8 @@ allowed-tools: Bash, Read, Glob, Grep, Skill, AskUserQuestion
 # spec-pr: one OpenSpec change as a draft spec PR
 
 A spec PR carries exactly one change directory, `openspec/changes/<name>/`, on the branch `change/<name>`, as a
-draft PR (GitLab: draft MR) against the integration branch. It is the work order for implementing the change. It never
-gets auto-merge.
+draft PR (GitLab: draft MR) against the integration branch. It is the work order for implementing the change, by hand
+with `/opsx:apply` or by the loop with `uskn-loop run`. It never gets auto-merge.
 
 Every check runs before the branch exists, so a stop leaves nothing to undo. This skill runs git, `gh`, and `glab`
 itself: the `pr` skill enables auto-merge in its integration mode, and the `push` skill commits every uncommitted
@@ -97,6 +97,7 @@ The title is the point of `proposal.md` in one Japanese line. The body is Japane
 
 ## 進め方
 
+- ループで実装する：`uskn-loop run <このPRの番号>`
 - 手元で実装する：`git switch change/<name>` のあと `/opsx:apply <name>`
 - 確認のあと、このブランチで `/archive-push <name>` を実行してからマージする
 ```
@@ -143,7 +144,7 @@ Report:
 - the PR or MR URL, the branch `change/<name>`, and the commit
 - that the change directory now lives on `change/<name>` and left the `<orig>` working tree, and that
   `git switch change/<name>` brings it back for local work
-- the next step: `/opsx:apply <name>` on the branch
+- the next step: `uskn-loop run <number>` for the loop, or `/opsx:apply <name>` on the branch by hand
 
 ## Examples
 
