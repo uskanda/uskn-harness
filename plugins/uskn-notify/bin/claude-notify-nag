@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# claude-notify-nag: repeat a TTS reminder until the user responds.
+#
+# Wired into Claude Code hooks:
+#   Notification     -> claude-notify-nag start "確認をお願いします"
+#   UserPromptSubmit -> claude-notify-nag stop
+#   Stop             -> claude-notify-nag stop
+#
+# `start` launches a detached background loop that waits GRACE seconds, speaks
+# MESSAGE once, then re-speaks every INTERVAL seconds (default 600 = 10 min).
+# `stop` kills it. The grace delay is the point: at turn end Claude Code fires a
+# Notification and Stop almost together. Deferring the first "確認をお願いします"
+# lets the Stop path's `stop` cancel it, so a completing turn says only
+# "作業が完了しました" — and the two no longer hit VoiceVox at once (which used to
+# make the second utterance fall back to `say`). A genuine permission prompt has
+# no Stop right behind it, so it still speaks after the grace delay.
+#
+# The hook JSON on stdin is parsed for session_id so concurrent Claude sessions
+# each get their own loop (pidfile namespaced per session).
+#
+# Env:
+#   CLAUDE_NAG_INTERVAL  seconds between reminders (default 600)
+#   CLAUDE_NAG_GRACE     seconds to defer the first utterance (default 3); a Stop
+#                        landing within this window suppresses it entirely
+
+ACTION="${1:-}"
+MESSAGE="${2:-確認をお願いします}"
+INTERVAL="${CLAUDE_NAG_INTERVAL:-600}"
+GRACE="${CLAUDE_NAG_GRACE:-3}"
+# Self-locate claude-notify relative to THIS script, not $HOME. Under a devcontainer
+# bind-mount the Mac's ~/.local/bin is mounted at its absolute host path while $HOME
+# is /home/vscode, so "$HOME/.local/bin/claude-notify" does not exist in the container
+# and the repeat reminder fails silently. Mirrors the dispatcher's BIN_DIR logic.
+BIN_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
+NOTIFY="$BIN_DIR/claude-notify"
+
+# Resolve a Python 3 interpreter (python3 on macOS/Linux; python / `py -3` under
+# Git Bash on Windows, which has no `python3`).
+py() {
+  if command -v python3 >/dev/null 2>&1; then python3 "$@"
+  elif command -v python >/dev/null 2>&1; then python "$@"
+  elif command -v py >/dev/null 2>&1; then py -3 "$@"
+  else return 127
+  fi
+}
+
+# Namespace the pidfile by session_id from the hook JSON payload (if any).
+SESSION=""
+if [ ! -t 0 ]; then
+  STDIN="$(cat 2>/dev/null || true)"
+  if [ -n "$STDIN" ]; then
+    SESSION="$(printf '%s' "$STDIN" | py -c 'import json,sys
+try:
+    print(json.load(sys.stdin).get("session_id",""))
+except Exception:
+    pass' 2>/dev/null || true)"
+  fi
+fi
+PIDFILE="/tmp/claude-notify-nag-${SESSION:-default}.pid"
+
+stop_loop() {
+  [ -f "$PIDFILE" ] || return 0
+  local pid kids
+  pid="$(cat "$PIDFILE" 2>/dev/null || true)"
+  if [ -n "$pid" ]; then
+    # Order matters. Killing the `sleep` child first makes the parent loop return
+    # from `sleep` and fall through to its next `claude-notify` — i.e. every stop
+    # would fire one spurious "確認をお願いします". So kill the LOOP first (while it
+    # is still blocked in sleep it cannot advance), then reap the orphaned sleep.
+    kids="$(pgrep -P "$pid" 2>/dev/null || true)"
+    kill "$pid" 2>/dev/null || true
+    # shellcheck disable=SC2015,SC2086  # $kids is a list of PIDs, split on purpose; || true covers both commands
+    [ -n "$kids" ] && kill $kids 2>/dev/null || true
+  fi
+  rm -f "$PIDFILE"
+}
+
+case "$ACTION" in
+  start)
+    stop_loop   # never run more than one loop per session
+    # Sleep GRACE before the FIRST utterance so a Stop hook firing right behind a
+    # turn-end Notification can cancel it (stop_loop kills this sleeping child
+    # before it speaks). After speaking once, remind every INTERVAL until stopped.
+    nohup bash -c '
+      sleep '"$GRACE"'
+      "'"$NOTIFY"'" "'"$MESSAGE"'"
+      while true; do
+        sleep '"$INTERVAL"'
+        "'"$NOTIFY"'" "'"$MESSAGE"'"
+      done
+    ' >/dev/null 2>&1 &
+    echo $! > "$PIDFILE"
+    disown 2>/dev/null || true
+    ;;
+  stop)
+    stop_loop
+    ;;
+  *)
+    echo "usage: claude-notify-nag {start|stop} [message]" >&2
+    exit 1
+    ;;
+esac

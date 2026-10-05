@@ -1,0 +1,57 @@
+{
+  "agentPushNotifEnabled": true,
+  "cleanupPeriodDays": 30,
+  "effortLevel": "xhigh",
+  "env": {
+    "IMPECCABLE_NO_STALENESS_CHECK": "1"
+  },
+  "includeCoAuthoredBy": true,
+  "inputNeededNotifEnabled": true,
+  "model": "opus[1m]",
+  "permissions": {
+    "defaultMode": "auto",
+    "additionalDirectories": [
+      "/tmp"
+    ],
+    "allow": [
+      "Bash(git *)",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(glab auth *)",
+      "Bash(glab variable *)",
+      "Bash(glab api *)",
+      "Bash(glab ci *)",
+      "Bash(glab issue *)",
+      "Bash(glab repo *)",
+      "Bash(ls -la)",
+      "Bash(bash -n *)",
+      "Bash(bash --version)",
+      "Bash(claude --version)",
+      "WebSearch",
+      "Bash(apt-cache *)",
+      "Bash(grep -iE *)",
+      "Bash(command -v *)",
+      "Bash(chezmoi --version)",
+      "Bash(chezmoi source-path *)",
+      "Bash(openspec --help)",
+      "Bash(openspec --version)",
+      "Bash(openspec show *)",
+      "Bash(openspec list *)",
+      "Bash(openspec new *)",
+      "Bash(openspec status *)",
+      "Bash(openspec instructions *)",
+      "Bash(openspec archive *)",
+      "Bash(openspec validate *)",
+      "Bash(systemctl is-enabled *)",
+      "Bash(systemctl is-active *)",
+      "Bash(lscpu)",
+      "Read(//etc/**)",
+      "Read(//usr/lib/**)",
+      "Read(//tmp/**)",
+      "Read(//sys/devices/system/cpu/**)"
+    ]
+  },
+  "remoteControlAtStartup": true,
+  "theme": "auto",
+  "tui": "fullscreen"
+}

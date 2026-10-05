@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# claude-notify-hook: dispatcher for Claude Code TTS notification hooks.
+#
+# Reads the hook JSON payload on stdin and decides what to speak. The repo name
+# (basename of the git toplevel for the hook's cwd) is prefixed to each message.
+#
+# Wiring (see ../hooks/hooks.json in the uskn-notify plugin):
+#   Notification     -> claude-notify-hook notification
+#   UserPromptSubmit -> claude-notify-hook stop
+#   Stop             -> claude-notify-hook done
+#
+# Why a dispatcher: the Notification hook fires for several notification_type
+# values (permission_prompt, idle_prompt, auth_success, elicitation_*). Speaking
+# on all of them causes "確認をお願いします" to go off while merely idle. We only
+# speak for genuine confirmation requests and stay silent for the known noise.
+
+KIND="${1:-}"
+# Resolve sibling scripts relative to THIS file rather than $HOME. When ~/.claude
+# is bind-mounted from the Mac into a devcontainer, settings.json carries the
+# Mac's absolute hook path (/Users/<me>/.local/bin/claude-notify-hook), but $HOME
+# inside the container differs (/home/vscode). Self-locating keeps claude-notify
+# and claude-notify-nag findable in both places.
+BIN_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
+NOTIFY="$BIN_DIR/claude-notify"
+NAG="$BIN_DIR/claude-notify-nag"
+
+# Resolve a Python 3 interpreter. macOS/Linux have `python3`; Git Bash on Windows
+# usually does not, so fall back to `python` / `py -3`.
+py() {
+  if command -v python3 >/dev/null 2>&1; then python3 "$@"
+  elif command -v python >/dev/null 2>&1; then python "$@"
+  elif command -v py >/dev/null 2>&1; then py -3 "$@"
+  else return 127
+  fi
+}
+
+# Slurp the hook JSON from stdin once (hooks always receive it piped).
+STDIN=""
+[ -t 0 ] || STDIN="$(cat 2>/dev/null || true)"
+
+json_field() {
+  printf '%s' "$STDIN" | py -c 'import json,sys
+try:
+    print(json.load(sys.stdin).get(sys.argv[1],""))
+except Exception:
+    pass' "$1" 2>/dev/null
+}
+
+NTYPE="$(json_field notification_type)"
+CWD="$(json_field cwd)"
+
+# Optional debug trace. Enabled only when the sentinel ~/.claude/notify-hook-debug.on
+# exists; writes to ~/.claude/notify-hook-debug.log. Both live under ~/.claude, which
+# the devcontainer bind-mounts from the Mac, so a remote session's traces are readable
+# on the host without a rebuild. Remove the sentinel to disable. json_field (python)
+# runs only while debug is on, keeping the normal hot path untouched.
+DEBUG_ON="$HOME/.claude/notify-hook-debug.on"
+DEBUG_LOG="$HOME/.claude/notify-hook-debug.log"
+dlog() {
+  [ -e "$DEBUG_ON" ] || return 0
+  printf '%s kind=%s ntype=%s host=%s home=%s bindir=%s notify=%s msg=%q | %s\n' \
+    "$(date '+%FT%T')" "$KIND" "${NTYPE:-<empty>}" "$(uname)" "$HOME" "$BIN_DIR" \
+    "$([ -x "$NOTIFY" ] && echo yes || echo MISSING)" "$(json_field message)" "$*" \
+    >> "$DEBUG_LOG" 2>/dev/null || true
+}
+
+# Repo name = basename of the git toplevel for the hook cwd (empty if none).
+repo_name() {
+  local top
+  top="$(git -C "${CWD:-$PWD}" rev-parse --show-toplevel 2>/dev/null)"
+  [ -n "$top" ] && basename "$top"
+}
+
+case "$KIND" in
+  notification)
+    # Stay silent for the noisy/non-confirmation notification types. Anything
+    # else (permission_prompt, elicitation_dialog, unknown/empty) speaks + nags.
+    case "$NTYPE" in
+      idle_prompt|auth_success|elicitation_complete|elicitation_response)
+        dlog "notification: SILENT (muted ntype)"
+        : # silent
+        ;;
+      *)
+        repo="$(repo_name)"
+        msg="${repo:+${repo}の}確認をお願いします"
+        # Don't speak synchronously here. Hand the utterance to the nag loop, which
+        # defers it by CLAUDE_NAG_GRACE seconds. At turn end the Stop hook's
+        # `nag stop` lands inside that window and cancels it, so a completing turn
+        # speaks only "作業が完了しました" instead of "確認"+"完了" back-to-back
+        # (which also made the second collide in VoiceVox and fall back to `say`).
+        printf '%s' "$STDIN" | "$NAG" start "$msg"
+        dlog "notification: SCHEDULED deferred speak + nag"
+        ;;
+    esac
+    ;;
+  stop)
+    # User submitted a prompt -> they responded; stop nagging. No speech.
+    printf '%s' "$STDIN" | "$NAG" stop
+    dlog "stop: nag stopped"
+    ;;
+  done)
+    # Assistant turn finished -> stop any nag. This also cancels a turn-end
+    # Notification's deferred "確認" while it is still inside the grace window,
+    # so completion announces only "作業が完了しました".
+    printf '%s' "$STDIN" | "$NAG" stop
+    repo="$(repo_name)"
+    "$NOTIFY" "${repo:+${repo}の}作業が完了しました"; nrc=$?
+    dlog "done: SPOKE notify_rc=$nrc"
+    ;;
+  *)
+    echo "usage: claude-notify-hook {notification|stop|done}" >&2
+    exit 1
+    ;;
+esac
