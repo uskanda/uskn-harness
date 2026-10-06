@@ -44,7 +44,7 @@ GitHub public（2026-09-06にprivateから変更）、`main` のみ、CalVerタ�
 - スキル：`npx skills add uskanda/uskn-harness -g`。Claude Codeでは `~/.claude/skills/` へsymlink、名前はプレフィックスなし
 - hook: Claude Codeプラグイン `uskn-harness`（marketplaceは本リポジトリ）。hook本体はbash + jq、テストはbats
 - ランタイム：mise（NodeとPython）。shimsをzprofileに通し、非対話シェルのhookからも解決する
-- マシン間：chezmoiのrun_onceが `uskn-harness sync` を呼ぶ。`~/.claude/skills` のハーネス由来symlinkは `.chezmoiignore`。dotfilesへの変更はすべてPR
+- マシン間：chezmoiのrun_onceが `uskn-harness sync` を呼ぶ（2026-10-05のADR-0006で `run_after_` のスクリプトに変えた）。`~/.claude/skills` のハーネス由来symlinkは `.chezmoiignore`。dotfilesへの変更はすべてPR
 
 ### 5. 指示ファイルと言語
 各リポジトリは `AGENTS.md` を正本、`CLAUDE.md` は `@AGENTS.md` とClaude固有の数行。ユーザー層は `templates/user/AGENTS.md` を
@@ -90,6 +90,7 @@ cleanup-merged、pre-merge、fix-ci、release、nessun-dormaも移す。
 旧名は `disable-model-invocation: true` の1行エイリアスで残す。
 プロジェクト履歴への言及（Issue番号など）は削除する。
 chezmoi-merge、sync-claude-settings、set-workspace-theme、cleanupはdotfilesに残す。
+このうちcleanupとset-workspace-themeは、2026-10-05にADR-0006でハーネスへ移した。chezmoi-mergeとsync-claude-settingsは、dotfilesのプロジェクト層へ移した。
 `openspec-*` はCLI生成物に置き換える。
 
 2026-09-25に `nessun-dorma` と `pre-merge` を削除した（change `retire-obsolete-skills`）。

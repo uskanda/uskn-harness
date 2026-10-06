@@ -18,7 +18,7 @@
 
 | 領域 | 実装 | センサー |
 |---|---|---|
-| 配布と導入 | `bin/uskn-harness`（sync / doctor / onboard-check）、`templates/`、`deps.json` のピン、`plugins/uskn-harness` | `uskn-harness doctor`、bats |
+| 配布と導入 | `bin/uskn-harness`（sync / doctor / onboard-check）、`templates/`、`deps.json` のピン、`plugins/uskn-harness`、ユーザー層のsettings.json（設定断片 `templates/user/settings.json` のマージ） | `uskn-harness doctor`、bats |
 | 仕様づくり | `skills/spec/` がgrillingを進め、schema `uskn` がgrillingをproposalの前提にする。OpenSpecの操作はコマンド `/opsx:*` で行う。簡単な改修はユーザーの指示で `skills/no-grilling/` が省略を記録する。成果物をそろえた変更は、`skills/spec-pr/` が統合ブランチ向けのdraftの仕様PRにする。提案は `skills/ok/` で承諾し、違う点だけを引数に書く。終えた変更は `skills/archive-push/` がarchiveからpushまで1回で進める | PreToolUse hook `grilling-guard` |
 | 実装と検証 | `skills/verify/`（完了の根拠を示す規則と、検証規約が無いときにCIの設定から確認する手順を含む）、obra/superpowersからforkした方法論スキル2件（TDD、系統的デバッグ） | Stop hook `verify-gate`、`make verify`、CI |
 | git運用 | ワークフローのスキル9個（commit、push、pr、rebase、releaseほか）。旧名は1行のエイリアスで残す | SessionStart hookが `<repo-context>` を注入する |
@@ -26,6 +26,8 @@
 | 文章 | `skills/ja-writing/`（JTF準拠の表記、成果物ごとの文体）、`skills/en-writing/`（agent-styleとhumanizer） | PostToolUse hook `textlint-check`、`make verify` |
 | 用語 | 用語集 `openspec/glossary.yml`。名前の出所を3つに限る。`skills/audit-writing/` が既存リポジトリを一括で直す | PostToolUse hook `terms-check`、`make verify` |
 | UI | `skills/ui-guidelines/` と `templates/repo/DESIGN.md`。正本はGoogle DESIGN.md形式とPRODUCT.md | `designmd lint` |
+| 端末の道具 | `skills/cleanup/` が古いClaude Codeのプロセスを止める。`skills/set-workspace-theme/` がVS Codeのworkspaceごとにタイトルと配色を決める | `make verify` のスキル検査 |
+| 通知 | `plugins/uskn-notify/`。Claude Codeが確認を求めたときとturnの終わりに、手元の端末で読み上げる。受信の常駐とVOICEVOXはユーザーが入れる | `uskn-harness doctor`、bats |
 
 使ううえでの要点は3つ。
 
@@ -58,7 +60,7 @@ Stop hookは応答が正常に終わったときだけ走る。利用上限で�
 
 ## 導入
 
-新しいマシンではdotfilesを適用すると、run_onceがmiseを入れて `~/.local/share/uskn-harness` を用意する。続けて `uskn-harness sync` が走る。
+dotfilesを適用すると、bootstrapのスクリプトがmiseと `~/.local/share/uskn-harness` を用意し、続けて `uskn-harness sync` を実行する。このスクリプトは `chezmoi apply` のたびに走る。
 OSごとの手順と確認方法は [docs/setup-new-machine.md](docs/setup-new-machine.md) にある。
 このcheckoutがある開発機では、次のコマンドを使う。
 

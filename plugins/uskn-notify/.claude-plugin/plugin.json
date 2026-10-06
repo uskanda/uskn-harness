@@ -1,0 +1,8 @@
+{
+  "name": "uskn-notify",
+  "description": "Spoken notifications for Claude Code: a hook on Notification, UserPromptSubmit and Stop speaks on the machine in front of you (VOICEVOX, then the OS voice), or relays from a remote session. Commands in bin/ are also linked into ~/.local/bin by `uskn-harness sync`.",
+  "version": "0.1.0",
+  "author": { "name": "uskanda" },
+  "repository": "https://github.com/uskanda/uskn-harness",
+  "license": "MIT"
+}

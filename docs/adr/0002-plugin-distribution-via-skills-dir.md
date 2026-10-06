@@ -17,7 +17,7 @@ ADR-0001ではClaude Code向けのhookをmarketplace経由のプラグインで�
 1. 各マシンでのハーネスの参照点は `~/.local/share/uskn-harness`。開発機では `~/repos/uskn-harness` へのsymlink、
    他端末ではmanaged clone。`USKN_HARNESS_DIR` で上書きできる
 2. Claude向けhookは `~/.claude/skills/uskn-harness -> <harness>/plugins/uskn-harness` のsymlinkで配る。
-   marketplace.jsonと `claude plugin install` は使わない。settings.jsonは触らない
+   marketplace.jsonと `claude plugin install` は使わない。settings.jsonは触らない（settings.jsonについては、2026-10-05にADR-0006で置き換えた）
 3. hookスクリプトの正本は `plugins/uskn-harness/hooks/scripts/`（`${CLAUDE_PLUGIN_ROOT}` 基準で自己完結）。
    トップレベル `hooks/` は他ツール向けアダプタだけを置き、参照点経由で同じスクリプトを参照する
 4. 自作スキルは `sync` が `skills/**/<name>` ごとに `~/.claude/skills/<name>` へsymlinkを張る。
@@ -26,7 +26,7 @@ ADR-0001ではClaude Code向けのhookをmarketplace経由のプラグインで�
 
 ## 結果
 
-- 良い点：導入がsymlinkだけになり、編集が即反映される。settings.json（chezmoi管理）との競合が無い
+- 良い点：導入がsymlinkだけになり、編集が即反映される。settings.json（chezmoi管理）との競合が無い。settings.jsonは、ADR-0006でハーネスがマージする形に変わった
 - 引き受けるコスト：skills-dirプラグインは `bin/` 非対応（installerは `~/.local/bin/uskn-harness` のsymlinkでPATHに載せる）。
   マシン間の更新は `git pull`（`sync` が行う）に依存する
 - 訂正（2026-09-25）：`bin/` 非対応は誤りだった。skills-dirプラグインの `bin/` も、Bashツールの `PATH` に載る。

@@ -1,7 +1,7 @@
 # machine-bootstrap Specification
 
 ## Purpose
-新しいマシンでdotfilesを適用するだけでハーネスが使える状態にする、chezmoiのrun_onceスクリプトの契約。スクリプトの正本はハーネスに置き、dotfilesへはPRでコピーする。
+dotfilesを適用するだけでハーネスが使える状態にし、以後のapplyでも最新に保つ、chezmoiの `run_after_` スクリプトの契約。スクリプトの正本はハーネスに置き、dotfilesへはPRでコピーする。
 
 ## Requirements
 

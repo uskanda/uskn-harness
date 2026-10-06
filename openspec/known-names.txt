@@ -12,3 +12,9 @@ run_once_install-uskn-harness.sh
 2026-09-10-dotfiles-mise-migration.md
 hookSpecificOutput.additionalContext
 run_onchange_before_remove-migrated-claude-skills.sh.tmpl
+permissions.allow
+claude-notify.ps1
+com.claude.notify-daemon
+com.claude.notify-ntfy-sub
+window.title
+workbench.colorTheme

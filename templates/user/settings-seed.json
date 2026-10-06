@@ -1,0 +1,144 @@
+{
+  "agentPushNotifEnabled": true,
+  "cleanupPeriodDays": 30,
+  "effortLevel": "xhigh",
+  "extraKnownMarketplaces": {
+    "superpowers-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "obra/superpowers-marketplace"
+      }
+    }
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.local/bin/claude-notify-hook notification"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.local/bin/claude-notify-hook stop"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.local/bin/claude-notify-hook done"
+          }
+        ]
+      }
+    ]
+  },
+  "includeCoAuthoredBy": true,
+  "inputNeededNotifEnabled": true,
+  "model": "opus[1m]",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "xhigh"
+    }
+  },
+  "remoteControlAtStartup": true,
+  "permissions": {
+    "defaultMode": "auto",
+    "additionalDirectories": [
+      "/tmp"
+    ],
+    "allow": [
+      "Bash(git *)",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(glab auth *)",
+      "Bash(glab variable *)",
+      "Bash(glab api *)",
+      "Bash(glab ci *)",
+      "Bash(glab issue *)",
+      "Bash(glab repo *)",
+      "Bash(crontab -l)",
+      "Bash(ls -la)",
+      "Bash(cat MEMORY.md)",
+      "Bash(exit 1)",
+      "Bash(bash -n *)",
+      "Bash(bash --version)",
+      "Bash(claude --version)",
+      "WebSearch",
+      "Bash(../venv/bin/pyinfra *)",
+      "Bash(venv/bin/pyinfra *)",
+      "Bash(venv/bin/python -m py_compile *)",
+      "Bash(venv/bin/python -c ' *)",
+      "Bash(venv/bin/python -c \" *)",
+      "Bash(../venv/bin/python -)",
+      "Bash(venv/bin/pip install *)",
+      "Bash(venv/bin/pip freeze *)",
+      "Bash(backend/venv/bin/python -)",
+      "Bash(backend/venv/bin/python -c \"import pygments; print\\('pygments', pygments.__version__\\)\")",
+      "Bash(apt-cache *)",
+      "Bash(apt-get download *)",
+      "Bash(dpkg -L fonts-noto-cjk)",
+      "Bash(dpkg-deb -c *)",
+      "Bash(fc-list*)",
+      "Bash(grep -iE *)",
+      "Bash(snap list *)",
+      "Bash(command -v *)",
+      "Bash(chezmoi --version)",
+      "Bash(chezmoi source-path *)",
+      "Bash(openspec --help)",
+      "Bash(openspec --version)",
+      "Bash(openspec show *)",
+      "Bash(openspec list *)",
+      "Bash(openspec new *)",
+      "Bash(openspec status *)",
+      "Bash(openspec instructions *)",
+      "Bash(openspec archive *)",
+      "Bash(openspec validate *)",
+      "Skill(commit)",
+      "Skill(commit:*)",
+      "Skill(list-unmerged-qa-changes)",
+      "Skill(list-unmerged-qa-changes:*)",
+      "Skill(merge-develop)",
+      "Skill(merge-develop:*)",
+      "Skill(mr-qa)",
+      "Skill(mr-qa:*)",
+      "Bash(grep -rn -E \"mypy|ruff\" .gitlab-ci.yml .github)",
+      "Bash(find /workspace -maxdepth 3 -name \".pre-commit-config.yaml\")",
+      "Bash(cat /proc/1/cgroup 2>/dev/null | head -5; echo \"--- env ---\"; env | grep -iE \"remote|codespace|devcontainer|container|CLAUDE|ANTHROPIC\" | sed 's/\\\\\\(KEY|TOKEN|SECRET\\\\\\)=.*/\\\\1=REDACTED/I')",
+      "Bash(systemctl is-enabled *)",
+      "Bash(systemctl is-active *)",
+      "Bash(sudo ls -la /var/spool/cron/crontabs/)",
+      "Bash(lscpu)",
+      "Bash(lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT,UUID)",
+      "Bash(mount)",
+      "Bash(pvs)",
+      "Bash(vgs)",
+      "Bash(sudo pvs)",
+      "Bash(sudo vgs)",
+      "Bash(sudo lvs)",
+      "PowerShell(git *)",
+      "PowerShell(chezmoi source-path)",
+      "PowerShell(chezmoi status)",
+      "PowerShell(chezmoi diff *)",
+      "Read(//etc/**)",
+      "Read(//usr/lib/**)",
+      "Read(//usr/share/fonts/**)",
+      "Read(//tmp/**)",
+      "Read(//proc/1/**)",
+      "Read(//sys/devices/system/cpu/**)",
+      "Read(//var/spool/cron/crontabs/**)",
+      "Read(//home/vscode/.claude/**)"
+    ]
+  },
+  "theme": "auto",
+  "tui": "fullscreen"
+}
