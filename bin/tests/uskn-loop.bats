@@ -105,13 +105,13 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
 @test "uskn-loop with no arguments shows the usage and exits 2" {
   run "$CLI"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"usage: uskn-loop run"* ]]
+  [[ "$output" == *"usage: uskn-loop run"* ]] || false
 }
 
 @test "an unknown subcommand shows the usage and exits 2" {
   run "$CLI" watch 12
   [ "$status" -eq 2 ]
-  [[ "$output" == *"usage: uskn-loop run"* ]]
+  [[ "$output" == *"usage: uskn-loop run"* ]] || false
 }
 
 # ---- limits (task 1.3) -------------------------------------------------------------------------------------------
@@ -166,13 +166,13 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   git -C "$CLONE" remote set-url origin https://example.org/acme/app.git
   run loop 12
   [ "$status" -eq 2 ]
-  [[ "$output" == *"neither a GitHub nor a GitLab"* ]]
+  [[ "$output" == *"neither a GitHub nor a GitLab"* ]] || false
 }
 
 @test "outside a clone the loop refuses and creates nothing" {
   run bash -c "cd '$T' && '$CLI' run 12"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"not inside a git clone"* ]]
+  [[ "$output" == *"not inside a git clone"* ]] || false
   [ ! -e "$T/state/uskn-harness/loop" ]
 }
 
@@ -181,7 +181,7 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   fake_pr state=closed
   run loop 12
   [ "$status" -eq 2 ]
-  [[ "$output" == *"not open (state: closed)"* ]]
+  [[ "$output" == *"not open (state: closed)"* ]] || false
   [ ! -e "$WT" ] && [ "$(ncomments)" = 0 ]
 }
 
@@ -190,7 +190,7 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   fake_pr fork=true
   run loop 12
   [ "$status" -eq 2 ]
-  [[ "$output" == *"fork"* ]]
+  [[ "$output" == *"fork"* ]] || false
   [ ! -e "$WT" ] && [ "$(ncomments)" = 0 ]
 }
 
@@ -199,7 +199,7 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   fake_pr author=someone
   run loop 12
   [ "$status" -eq 2 ]
-  [[ "$output" == *"its author is someone, not me"* ]]
+  [[ "$output" == *"its author is someone, not me"* ]] || false
   [ ! -e "$WT" ] && [ "$(ncomments)" = 0 ]
   [ ! -e "$FAKE_DIR/claude.count" ]
 }
@@ -211,7 +211,7 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   git -C "$T/seed" push -q origin change/add-x
   run loop 12
   [ "$status" -eq 2 ]
-  [[ "$output" == *"2 changes: add-x, add-y"* ]]
+  [[ "$output" == *"2 changes: add-x, add-y"* ]] || false
   [ ! -e "$WT" ] && [ "$(ncomments)" = 0 ]
 }
 
@@ -222,7 +222,7 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   git -C "$T/seed" push -q origin change/add-x
   run loop 12
   [ "$status" -eq 2 ]
-  [[ "$output" == *"the change add-x lacks: tasks.md"* ]]
+  [[ "$output" == *"the change add-x lacks: tasks.md"* ]] || false
 }
 
 @test "a repository without a verify convention is not accepted" {
@@ -232,7 +232,7 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   git -C "$T/seed" push -q origin change/add-x
   run loop 12
   [ "$status" -eq 2 ]
-  [[ "$output" == *"no verify convention"* ]]
+  [[ "$output" == *"no verify convention"* ]] || false
   [ ! -e "$WT" ]
 }
 
@@ -272,7 +272,7 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   run loop 12
   kill "$(cat "$STATE/lock/pid")"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"already running"* ]]
+  [[ "$output" == *"already running"* ]] || false
   [ ! -e "$FAKE_DIR/claude.count" ]
 }
 
@@ -286,7 +286,7 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   verdict 4 pass
   run loop 12
   [ "$status" -eq 0 ]
-  [[ "$(cat "$FAKE_DIR/claude.3.prompt")" == "Continue the change add-x"* ]]
+  [[ "$(cat "$FAKE_DIR/claude.3.prompt")" == "Continue the change add-x"* ]] || false
   [ "$(jq -c '[.rounds[].round]' "$STATE/state.json")" = "[1,2]" ]
   [ "$(jq .cost "$STATE/state.json")" = 4 ]
 }
@@ -327,7 +327,7 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   run loop 12
   [ "$status" -eq 0 ]
   p="$(cat "$FAKE_DIR/claude.3.prompt")"
-  [[ "$p" == *'`src/a.ts:1` fix src/a.ts'* ]]
+  [[ "$p" == *'`src/a.ts:1` fix src/a.ts'* ]] || false
 }
 
 @test "each round pushes its commits to the head branch before the audit, and nowhere else" {
@@ -347,7 +347,7 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   step 1 "$finish_tasks"
   run loop 12
   [ "$status" -eq 3 ]
-  [[ "$(comments)" == *"pushの拒否"* ]]
+  [[ "$(comments)" == *"pushの拒否"* ]] || false
 }
 
 @test "sensor: an uncommitted change fails the round, is not pushed, and no audit runs" {
@@ -366,7 +366,7 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   USKN_LOOP_ROUNDS=2 run loop 12
   [ "$status" -eq 3 ]
   [ "$(jq -c '.rounds[0].failed' "$STATE/state.json")" = '["verify"]' ]
-  [[ "$(cat "$FAKE_DIR/claude.2.prompt")" == *"### verify"*"verify-raw-output"* ]]
+  [[ "$(cat "$FAKE_DIR/claude.2.prompt")" == *"### verify"*"verify-raw-output"* ]] || false
 }
 
 @test "sensor: openspec validate --strict failing fails the round" {
@@ -384,7 +384,7 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   USKN_LOOP_ROUNDS=1 run loop 12
   [ "$status" -eq 3 ]
   [ "$(jq -c '.rounds[0].failed' "$STATE/state.json")" = '["tasks"]' ]
-  [[ "$(cat "$STATE/round-1/tasks.txt")" == *"- [ ] 1.1 do it"* ]]
+  [[ "$(cat "$STATE/round-1/tasks.txt")" == *"- [ ] 1.1 do it"* ]] || false
 }
 
 @test "sensor: deleting a test file is a blocking failure" {
@@ -449,8 +449,8 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   run env -u ANTHROPIC_API_KEY HOME="$T/home" "$real" -p ok --model uskn-loop-no-such-model \
     --no-session-persistence --strict-mcp-config --output-format json \
     --json-schema "$(cat "$REPO/loop/verdict.schema.json")"
-  [[ "$output" != *"not a valid JSON Schema"* ]]
-  [[ "$output" == *"unrecognized_model"* ]]
+  [[ "$output" != *"not a valid JSON Schema"* ]] || false
+  [[ "$output" == *"unrecognized_model"* ]] || false
 }
 
 @test "a verdict without the four fields stops the loop" {
@@ -458,7 +458,7 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   step 1 "$finish_tasks"
   run loop 12
   [ "$status" -eq 3 ]
-  [[ "$(comments)" == *"監査役の判定なし"* ]]
+  [[ "$(comments)" == *"監査役の判定なし"* ]] || false
 }
 
 @test "the worktree goes back to its state before the audit" {
@@ -482,7 +482,7 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   run loop 12
   [ "$status" -eq 3 ]
   [ "$(cat "$FAKE_DIR/claude.count")" = 5 ]
-  [[ "$(comments)" == *"ラウンドの上限（5回）"* ]]
+  [[ "$(comments)" == *"ラウンドの上限（5回）"* ]] || false
 }
 
 @test "stop: the PR's estimated cost passes the budget" {
@@ -491,7 +491,7 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   run loop 12
   [ "$status" -eq 3 ]
   [ "$(cat "$FAKE_DIR/claude.count")" = 1 ]
-  [[ "$(comments)" == *'費用の上限（$40.00）'* ]]
+  [[ "$(comments)" == *'費用の上限（$40.00）'* ]] || false
 }
 
 @test "stop: two rounds with the same failures make no progress" {
@@ -499,7 +499,7 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   run loop 12
   [ "$status" -eq 3 ]
   [ "$(cat "$FAKE_DIR/claude.count")" = 2 ]
-  [[ "$(comments)" == *"2ラウンド続けて進展なし"* ]]
+  [[ "$(comments)" == *"2ラウンド続けて進展なし"* ]] || false
 }
 
 @test "stop: the auditor's question keeps the PR a draft and the worktree" {
@@ -510,8 +510,8 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   [ "$status" -eq 3 ]
   [ ! -e "$FAKE_DIR/ready" ] && [ -d "$WT" ]
   c="$(comments)"
-  [[ "$c" == *"期限切れのトークンを401と403のどちらで返すか"* ]]
-  [[ "$c" == *'`uskn-loop run 12`'* ]]
+  [[ "$c" == *"期限切れのトークンを401と403のどちらで返すか"* ]] || false
+  [[ "$c" == *'`uskn-loop run 12`'* ]] || false
 }
 
 @test "stop: a PR in conflict with its base starts no round" {
@@ -520,7 +520,7 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   run loop 12
   [ "$status" -eq 3 ]
   [ ! -e "$FAKE_DIR/claude.count" ]
-  [[ "$(comments)" == *"基底ブランチとの衝突"* ]]
+  [[ "$(comments)" == *"基底ブランチとの衝突"* ]] || false
 }
 
 @test "done: the PR leaves draft, the worktree goes, and nothing is merged, archived, or labelled" {
@@ -556,7 +556,7 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   [ "$status" -eq 0 ]
   [ "$(grep -l -- '<!-- uskn-loop -->' "$FAKE_DIR"/comments/*.body | wc -l | tr -d ' ')" = 1 ]
   p="$(cat "$(grep -l -- '<!-- uskn-loop -->' "$FAKE_DIR"/comments/*.body)")"
-  [[ "$p" == *"| 1 |"* && "$p" == *"| 2 |"* && "$p" == *"| 3 |"* ]]
+  [[ "$p" == *"| 1 |"* && "$p" == *"| 2 |"* && "$p" == *"| 3 |"* ]] || false
 }
 
 @test "a rerun rewrites the progress comment it finds by its mark" {
@@ -580,9 +580,9 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   run loop 12
   [ "$status" -eq 0 ]
   d="$(cat "$FAKE_DIR/during-audit.md")"
-  [[ "$d" == *"### uskn-loop：監査中"* && "$d" == *'`add-x`'* ]]
-  [[ "$d" == *"| 1 | 失敗（tasks） | - |"* && "$d" == *"| 2 | 監査中 |"* ]]
-  [[ "$d" == *"費用の見積もりの合計は"* ]]
+  [[ "$d" == *"### uskn-loop：監査中"* && "$d" == *'`add-x`'* ]] || false
+  [[ "$d" == *"| 1 | 失敗（tasks） | - |"* && "$d" == *"| 2 | 監査中 |"* ]] || false
+  [[ "$d" == *"費用の見積もりの合計は"* ]] || false
 }
 
 @test "comments carry no raw output; it stays in the state directory" {
@@ -590,8 +590,8 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   step 1 "$finish_tasks && touch .fail-verify && git add .fail-verify && git commit -qm fail"
   USKN_LOOP_ROUNDS=1 run loop 12
   [ "$status" -eq 3 ]
-  [[ "$(comments)" != *"verify-raw-output"* ]]
-  [[ "$(comments)" == *"失敗（verify）"* ]]
+  [[ "$(comments)" != *"verify-raw-output"* ]] || false
+  [[ "$(comments)" == *"失敗（verify）"* ]] || false
   grep -q verify-raw-output "$STATE/round-1/verify.txt"
 }
 
@@ -603,5 +603,5 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
   [ "$status" -eq 0 ]
   [ "$(ncomments)" = 2 ]
   c="$(comments)"
-  [[ "$c" == *"1ラウンドで完了基準を満たしました"* && "$c" == *'`/archive-push add-x`'* ]]
+  [[ "$c" == *"1ラウンドで完了基準を満たしました"* && "$c" == *'`/archive-push add-x`'* ]] || false
 }

@@ -339,7 +339,7 @@ npm_specs() {
   rm "$HOME/.local/bin/uskn-loop"
   run "$CLI" doctor
   [ "$status" -eq 0 ]
-  [[ "$output" == *"warn"*"loop runner"*"missing (run uskn-harness sync)"* ]]
+  [[ "$output" == *"warn"*"loop runner"*"missing (run uskn-harness sync)"* ]] || false
 }
 
 @test "doctor: symlink pointing elsewhere is fail, exit 1" {
