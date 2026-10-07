@@ -20,25 +20,25 @@ has_yaml() { python3 -c 'import yaml' >/dev/null 2>&1; }
 
 @test "default: a missing tool is reported as skipped and the target succeeds" {
   run mk verify-design
-  [ "$status" -eq 0 ]; [[ "$output" == *"[design.md] skipped"* ]]
+  [ "$status" -eq 0 ]; [[ "$output" == *"[design.md] skipped"* ]] || false
   run mk verify-textlint
-  [ "$status" -eq 0 ]; [[ "$output" == *"[textlint] skipped"* ]]
+  [ "$status" -eq 0 ]; [[ "$output" == *"[textlint] skipped"* ]] || false
 }
 
 @test "VERIFY_STRICT=1: a missing tool fails the target and names the check" {
   run mk verify-design VERIFY_STRICT=1
-  [ "$status" -ne 0 ]; [[ "$output" == *"[design.md]"* ]]; [[ "$output" == *"VERIFY_STRICT"* ]]
+  [ "$status" -ne 0 ]; [[ "$output" == *"[design.md]"* ]] || false; [[ "$output" == *"VERIFY_STRICT"* ]] || false
   run mk verify-textlint VERIFY_STRICT=1
-  [ "$status" -ne 0 ]; [[ "$output" == *"[textlint]"* ]]; [[ "$output" == *"VERIFY_STRICT"* ]]
+  [ "$status" -ne 0 ]; [[ "$output" == *"[textlint]"* ]] || false; [[ "$output" == *"VERIFY_STRICT"* ]] || false
   run mk verify-plugin VERIFY_STRICT=1
-  [ "$status" -ne 0 ]; [[ "$output" == *"[plugin]"* ]]
+  [ "$status" -ne 0 ]; [[ "$output" == *"[plugin]"* ]] || false
 }
 
 @test "verify-terms without python3: skipped by default, a failure under VERIFY_STRICT=1" {
   run mk verify-terms
-  [ "$status" -eq 0 ]; [[ "$output" == *"skipped"* ]]
+  [ "$status" -eq 0 ]; [[ "$output" == *"skipped"* ]] || false
   run mk verify-terms VERIFY_STRICT=1
-  [ "$status" -ne 0 ]; [[ "$output" == *"[terms]"* ]]; [[ "$output" == *"VERIFY_STRICT"* ]]
+  [ "$status" -ne 0 ]; [[ "$output" == *"[terms]"* ]] || false; [[ "$output" == *"VERIFY_STRICT"* ]] || false
 }
 
 @test "verify-skills parses every frontmatter as YAML: an unquoted colon fails and names the file" {
@@ -48,8 +48,8 @@ has_yaml() { python3 -c 'import yaml' >/dev/null 2>&1; }
   skill "$fx/git/bad" 'description: Do a thing. Optional argument: a name.'
   run make -C "$REPO" verify-skills SKILLS_DIR="$fx"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"$fx/git/bad/SKILL.md"* ]]
-  [[ "$output" != *"$fx/good/SKILL.md"* ]]
+  [[ "$output" == *"$fx/git/bad/SKILL.md"* ]] || false
+  [[ "$output" != *"$fx/good/SKILL.md"* ]] || false
 }
 
 @test "verify-skills: a name that differs from the directory and an empty description fail" {
@@ -59,27 +59,27 @@ has_yaml() { python3 -c 'import yaml' >/dev/null 2>&1; }
   mkdir -p "$fx/two"; printf -- '---\nname: other\ndescription: x\n---\n' > "$fx/two/SKILL.md"
   run make -C "$REPO" verify-skills SKILLS_DIR="$fx"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"one/SKILL.md"*"description"* ]]
-  [[ "$output" == *"two/SKILL.md"*"name"* ]]
+  [[ "$output" == *"one/SKILL.md"*"description"* ]] || false
+  [[ "$output" == *"two/SKILL.md"*"name"* ]] || false
 }
 
 @test "verify-skills passes on this repository's skills" {
   has_yaml || skip "python3 with PyYAML is not available"
   run make -C "$REPO" verify-skills
   [ "$status" -eq 0 ]
-  [[ "$output" == *"[skills]"* ]]
+  [[ "$output" == *"[skills]"* ]] || false
 }
 
 @test "verify-skills without PyYAML: skipped by default, a failure under VERIFY_STRICT=1" {
   run mk verify-skills
-  [ "$status" -eq 0 ]; [[ "$output" == *"skipped"* ]]
+  [ "$status" -eq 0 ]; [[ "$output" == *"skipped"* ]] || false
   run mk verify-skills VERIFY_STRICT=1
-  [ "$status" -ne 0 ]; [[ "$output" == *"[skills]"* ]]; [[ "$output" == *"VERIFY_STRICT"* ]]
+  [ "$status" -ne 0 ]; [[ "$output" == *"[skills]"* ]] || false; [[ "$output" == *"VERIFY_STRICT"* ]] || false
 }
 
 @test "VERIFY_STRICT=0 behaves like the default" {
   run mk verify-design VERIFY_STRICT=0
-  [ "$status" -eq 0 ]; [[ "$output" == *"skipped"* ]]
+  [ "$status" -eq 0 ]; [[ "$output" == *"skipped"* ]] || false
 }
 
 # ---- verify-fast (spec: verify-fast). verify-fast-plan prints what verify-fast would check, one "<check>: <files>"
@@ -101,7 +101,7 @@ count() { line "$1" | wc -w; }
   run plan CHANGED="skills/ok/SKILL.md"
   [ -z "$(line textlint)" ]
   [ "$(line terms)" = "skills/ok/SKILL.md" ]
-  [[ " $(line bats) " == *" bin/tests/ok-skill.bats "* ]]
+  [[ " $(line bats) " == *" bin/tests/ok-skill.bats "* ]] || false
 }
 
 @test "verify-fast-plan: the glossary sends every document to terms; the textlint config sends every one to textlint" {
@@ -146,24 +146,24 @@ count() { line "$1" | wc -w; }
   [ "$(line bats)" = "plugins/uskn-harness/hooks/tests/plugin-bin.bats" ]
   [ "$(line shellcheck)" = "plugins/uskn-harness/bin/uskn-repo-context" ]
   run plan CHANGED="skills/git/push/SKILL.md"
-  [[ " $(line bats) " == *" bin/tests/skill-commands.bats "* ]]
+  [[ " $(line bats) " == *" bin/tests/skill-commands.bats "* ]] || false
 }
 
 @test "verify-fast: nothing changed passes without running a check" {
   run mk verify-fast CHANGED=
   [ "$status" -eq 0 ]
-  [[ "$output" == *"nothing to check"* ]]
-  [[ "$output" != *"[terms]"* ]]
+  [[ "$output" == *"nothing to check"* ]] || false
+  [[ "$output" != *"[terms]"* ]] || false
 }
 
 @test "verify-fast: a failing check fails the target; a missing tool skips, and fails under VERIFY_STRICT=1" {
   printf '#!/usr/bin/env bash\necho "fake terms: $*"; exit 1\n' > "$BATS_TEST_TMPDIR/terms"; chmod +x "$BATS_TEST_TMPDIR/terms"
   run mk verify-fast CHANGED=README.md TERMS_CHECK="$BATS_TEST_TMPDIR/terms"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"fake terms: README.md"* ]]
-  [[ "$output" == *"[textlint] skipped"* ]]
+  [[ "$output" == *"fake terms: README.md"* ]] || false
+  [[ "$output" == *"[textlint] skipped"* ]] || false
   run mk verify-fast CHANGED=README.md VERIFY_STRICT=1
-  [ "$status" -ne 0 ]; [[ "$output" == *"VERIFY_STRICT"* ]]
+  [ "$status" -ne 0 ]; [[ "$output" == *"VERIFY_STRICT"* ]] || false
 }
 
 @test "verify-fast: the changed files are the commits since the remote base plus the working tree and untracked files" {

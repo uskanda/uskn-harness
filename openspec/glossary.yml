@@ -142,3 +142,15 @@ terms:
     definition: "ループが状況を書き換え続ける、PRごとに1つのコメント。"
     aliases: []
     en: "progress comment"
+  - term: "設定断片"
+    definition: "ハーネスが持つ、ユーザー層の `~/.claude/settings.json` へマージするキーの集合 `templates/user/settings.json`。"
+    aliases: ["フラグメント", "settings断片"]
+    en: "settings fragment"
+  - term: "端末別設定"
+    definition: "1台の端末だけで使うキーを書く、リポジトリに入らないファイル `~/.config/uskn-harness/settings.json`。"
+    aliases: ["オーバーレイ", "ローカル上書き"]
+    en: "machine overlay"
+  - term: "適用記録"
+    definition: "syncが最後にマージした設定断片と端末別設定の合成の写し `~/.local/state/uskn-harness/settings-applied.json`。"
+    aliases: ["前回の断片"]
+    en: "applied record"

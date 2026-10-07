@@ -9,7 +9,11 @@ VERIFY_STRICT ?= 0
 # $(call skip,<message>): report a check that cannot run here; under VERIFY_STRICT=1 that is a failure.
 skip = if [ "$(VERIFY_STRICT)" = 1 ]; then echo "$(1) -- VERIFY_STRICT=1: this check is required" >&2; exit 1; else echo "$(1)"; fi
 
-SCRIPT_DIRS := plugins/uskn-harness/hooks/scripts plugins/uskn-harness/bin bin
+SCRIPT_DIRS := plugins/uskn-harness/hooks/scripts plugins/uskn-harness/bin plugins/uskn-notify/bin bin
+# The shell scripts in SCRIPT_DIRS: *.sh, or a first line naming sh or bash. A shebang decides, not the execute bit:
+# plugins/uskn-notify/bin also holds a Python command and a PowerShell script, which shellcheck cannot read.
+SCRIPTS = $(shell find $(SCRIPT_DIRS) -type f 2>/dev/null | grep -v '/tests/' | grep -v '/lib/' | sort | while read -r f; do \
+  case "$$f" in (*.sh) echo "$$f" ;; (*) head -n 1 "$$f" | grep -qE '^\#!.*[/ ](ba)?sh( |$$)' && echo "$$f" ;; esac; done)
 TEST_DIRS   := plugins/uskn-harness/hooks/tests bin/tests
 SKILLS_DIR  ?= skills
 
@@ -61,7 +65,7 @@ DOCS_JA := README.md docs/setup-new-machine.md $(wildcard docs/adr/*.md) \
            $(shell find openspec/changes -mindepth 2 -name '*.md' -not -path 'openspec/changes/archive/*' 2>/dev/null)
 
 # Prose the terminology guard checks: the Japanese set plus the English documents agents read.
-DOCS_TERMS := $(DOCS_JA) AGENTS.md plugins/uskn-harness/README.md $(shell find skills -name 'SKILL.md' 2>/dev/null)
+DOCS_TERMS := $(DOCS_JA) AGENTS.md plugins/uskn-harness/README.md plugins/uskn-notify/README.md $(shell find skills -name 'SKILL.md' 2>/dev/null)
 TERMS_CHECK := plugins/uskn-harness/hooks/scripts/terms-check.sh
 
 verify: verify-openspec verify-shell verify-skills verify-plugin verify-textlint verify-design verify-terms ## Run every check that applies to this repo
@@ -75,7 +79,7 @@ verify-openspec:
 	else $(call skip,[openspec] skipped (cli or openspec/ missing)); fi
 
 verify-shell:
-	@files=$$(find $(SCRIPT_DIRS) -type f \( -name '*.sh' -o -perm -u+x \) 2>/dev/null | grep -v '/tests/' | grep -v '/lib/' || true); \
+	@files="$(SCRIPTS)"; \
 	if [ -z "$$files" ]; then echo "[shell] skipped (no scripts yet)"; \
 	elif command -v shellcheck >/dev/null; then echo "[shell] shellcheck"; shellcheck -x -P SCRIPTDIR $$files; \
 	else $(call skip,[shell] bash -n only (shellcheck not installed)); for f in $$files; do bash -n "$$f" || exit 1; done; fi; \
@@ -100,7 +104,8 @@ verify-skills:
 
 verify-plugin:
 	@if command -v claude >/dev/null && [ -d plugins/uskn-harness ]; then \
-	  echo "[plugin] claude plugin validate --strict"; claude plugin validate --strict plugins/uskn-harness || exit 1; \
+	  for p in plugins/*/; do [ -f "$$p.claude-plugin/plugin.json" ] || continue; \
+	    echo "[plugin] claude plugin validate --strict $$p"; claude plugin validate --strict "$$p" || exit 1; done; \
 	else $(call skip,[plugin] skipped (claude cli or plugin dir missing)); fi
 
 verify-textlint:
@@ -126,7 +131,6 @@ VERIFY_BASE ?= $(shell for r in '@{upstream}' origin/HEAD origin/main origin/mas
 # CHANGED is computed once, on first use (the $(eval) memo), so no other target runs git for it. Given on the make
 # command line, it replaces the git answer: `make verify-fast-plan CHANGED="a.md b.sh"` (the tests do this).
 CHANGED = $(eval CHANGED := $$(sort $$(shell git diff --name-only --diff-filter=d $$(VERIFY_BASE) -- 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null)))$(CHANGED)
-SCRIPTS = $(shell find $(SCRIPT_DIRS) -type f \( -name '*.sh' -o -perm -u+x \) 2>/dev/null | grep -v '/tests/' | grep -v '/lib/')
 HOOK_SCRIPTS := plugins/uskn-harness/hooks/scripts
 HOOK_TESTS   := plugins/uskn-harness/hooks/tests
 # What to check. A shared input (the glossary, the textlint config, the hooks' lib) widens its check to everything.

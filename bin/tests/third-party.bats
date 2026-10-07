@@ -24,6 +24,22 @@ setup() {
 refute() { ! "$@"; }
 # dep <jq path>: a value from deps.json, so a pin bump needs no test edit.
 dep() { jq -r "$1" "$REPO/deps.json"; }
+# listing <format> [find tests...]: one sorted line per entry under the current directory, in find's printf notation
+# (%p path, %y type, %s size, %T@ mtime, %l link target). Perl, because BSD find (macOS) has no printf action.
+listing() {
+  local fmt="$1"; shift
+  find . "$@" | LC_ALL=C sort | FMT="$fmt" perl -MTime::HiRes=lstat -nle '
+    my @s = lstat($_) or next;
+    my %v = (p => $_, y => (-l _ ? "l" : -d _ ? "d" : -f _ ? "f" : "o"), s => $s[7], "T@" => $s[9], l => (-l _ ? readlink : ""));
+    (my $line = $ENV{FMT}) =~ s/%(T@|[pysl])/$v{$1}/g; print $line'
+}
+
+@test "listing prints the path, type, and size of every entry, so the writes-nothing tests compare something" {
+  mkdir -p "$HOME/d"; printf 'abc' > "$HOME/d/f"
+  output="$( cd "$HOME" && listing '%p %y %s' )"
+  [[ "$output" == *"./d d"* ]] || false
+  [[ "$output" == *"./d/f f 3"* ]] || false
+}
 
 # ---------------------------------------------------------------- pins (spec: harness-sync, ci-verify)
 
@@ -38,7 +54,7 @@ dep() { jq -r "$1" "$REPO/deps.json"; }
 }
 
 @test "the skills CLI is pinned to a fixed version, not latest" {
-  [[ "$(dep .clis.skills.version)" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+  [[ "$(dep .clis.skills.version)" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || false
 }
 
 @test "every reference skill sync installs says how (via) and pins a source and a ref; none keeps an install string" {
@@ -50,10 +66,10 @@ dep() { jq -r "$1" "$REPO/deps.json"; }
 @test "impeccable pins the skill release (ref = skill-v<version>), its sha256, the CLI version, and the agents to remove" {
   [ "$(dep .skills.impeccable.via)" = impeccable ]
   [ "$(dep .skills.impeccable.ref)" = "skill-v$(dep .skills.impeccable.version)" ]
-  [[ "$(dep .skills.impeccable.sha256)" =~ ^[0-9a-f]{64}$ ]]
+  [[ "$(dep .skills.impeccable.sha256)" =~ ^[0-9a-f]{64}$ ]] || false
   [ -n "$(dep .skills.impeccable.asset | grep -v '^null$')" ]
   [ "$(dep .skills.impeccable.cli.package)" = impeccable ]
-  [[ "$(dep .skills.impeccable.cli.version)" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+  [[ "$(dep .skills.impeccable.cli.version)" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || false
   [ "$(jq '.skills.impeccable.remove_agents | length' "$REPO/deps.json")" -eq 4 ]
 }
 
@@ -136,7 +152,7 @@ impeccable_agents() { jq -r '.skills.impeccable.remove_agents[]' "$REPO/deps.jso
   run "$CLI" sync --no-pull
   [ "$status" -eq 0 ]
   refute grep -qF "skills@" "$USKN_HARNESS_STUB_LOG"
-  [[ "$output" == *"ok"*"third-party grilling"* ]]
+  [[ "$output" == *"ok"*"third-party grilling"* ]] || false
 }
 
 @test "a skill whose lock ref differs from the pin, or has no ref, is reinstalled" {
@@ -156,12 +172,12 @@ impeccable_agents() { jq -r '.skills.impeccable.remove_agents[]' "$REPO/deps.jso
   rm -rf "$SKILLS/handoff"
   sourced ensure_third_party
   [ "$status" -eq 0 ]
-  [[ "$output" == *"updated"*"third-party grilling"* ]]
-  [[ "$output" == *"created"*"third-party handoff"* ]]
+  [[ "$output" == *"updated"*"third-party grilling"* ]] || false
+  [[ "$output" == *"created"*"third-party handoff"* ]] || false
   grep -qF "$(install_line grilling)" "$FAKE_LOG"
   FAKE_NPX_RC=1 sourced 'ensure_third_party; echo "FAILS=$FAILS"'
-  [[ "$output" == *"fail"*"third-party grilling"* ]]
-  [[ "$output" == *"FAILS=2"* ]]
+  [[ "$output" == *"fail"*"third-party grilling"* ]] || false
+  [[ "$output" == *"FAILS=2"* ]] || false
 }
 
 @test "a skill directory the lock does not know is a conflict, left untouched" {
@@ -170,7 +186,7 @@ impeccable_agents() { jq -r '.skills.impeccable.remove_agents[]' "$REPO/deps.jso
   echo "# mine" > "$SKILLS/grilling/SKILL.md"
   run "$CLI" sync --no-pull
   [ "$status" -eq 0 ]
-  [[ "$output" == *"conflict"*"third-party grilling"* ]]
+  [[ "$output" == *"conflict"*"third-party grilling"* ]] || false
   refute grep -qF "@grilling " "$USKN_HARNESS_STUB_LOG"
   [ "$(cat "$SKILLS/grilling/SKILL.md")" = "# mine" ]
 }
@@ -179,22 +195,22 @@ impeccable_agents() { jq -r '.skills.impeccable.remove_agents[]' "$REPO/deps.jso
   pinned_all
   export XDG_STATE_HOME="$BATS_TEST_TMPDIR/state"
   run "$CLI" sync --no-pull
-  [[ "$output" == *"conflict"*"third-party grilling"* ]]
+  [[ "$output" == *"conflict"*"third-party grilling"* ]] || false
   mkdir -p "$XDG_STATE_HOME/skills" && mv "$LOCK" "$XDG_STATE_HOME/skills/.skill-lock.json"
   : > "$USKN_HARNESS_STUB_LOG"
   run "$CLI" sync --no-pull
-  [[ "$output" == *"ok"*"third-party grilling"* ]]
+  [[ "$output" == *"ok"*"third-party grilling"* ]] || false
   refute grep -qF "skills@" "$USKN_HARNESS_STUB_LOG"
 }
 
 @test "sync --dry-run plans a reinstall and writes nothing" {
   pinned_all
   lock grilling
-  before="$( cd "$HOME" && find . -printf '%p %y %s\n' | sort )"
+  before="$( cd "$HOME" && listing '%p %y %s' )"
   run "$CLI" sync --dry-run --no-pull
   [ "$status" -eq 0 ]
-  [[ "$output" == *"plan"*"@grilling"* ]]
-  [ "$( cd "$HOME" && find . -printf '%p %y %s\n' | sort )" = "$before" ]
+  [[ "$output" == *"plan"*"@grilling"* ]] || false
+  [ "$( cd "$HOME" && listing '%p %y %s' )" = "$before" ]
 }
 
 # ---------------------------------------------------------------- impeccable (spec: harness-sync)
@@ -210,7 +226,7 @@ impeccable_agents() { jq -r '.skills.impeccable.remove_agents[]' "$REPO/deps.jso
   run "$CLI" sync --no-pull
   [ "$status" -eq 0 ]
   refute grep -q "impeccable_install" "$USKN_HARNESS_STUB_LOG"
-  [[ "$output" == *"ok"*"third-party impeccable $(dep .skills.impeccable.version)"* ]]
+  [[ "$output" == *"ok"*"third-party impeccable $(dep .skills.impeccable.version)"* ]] || false
 }
 
 @test "an older impeccable is reinstalled from the pinned release" {
@@ -227,7 +243,7 @@ impeccable_agents() { jq -r '.skills.impeccable.remove_agents[]' "$REPO/deps.jso
   before="$(cat "$SKILLS/impeccable/SKILL.md")"
   run "$CLI" sync --no-pull
   [ "$status" -eq 0 ]
-  [[ "$output" == *"conflict"*"third-party impeccable"* ]]
+  [[ "$output" == *"conflict"*"third-party impeccable"* ]] || false
   refute grep -q "impeccable_install" "$USKN_HARNESS_STUB_LOG"
   [ "$(cat "$SKILLS/impeccable/SKILL.md")" = "$before" ]
 }
@@ -245,7 +261,7 @@ impeccable_agents() { jq -r '.skills.impeccable.remove_agents[]' "$REPO/deps.jso
   fake_tools; test_zip
   sourced "impeccable_install https://example.invalid/skill-v9.9.9/universal.zip $(printf '0%.0s' {1..64}) impeccable@4.1.0"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"sha256"* ]]
+  [[ "$output" == *"sha256"* ]] || false
   refute grep -q "^npx" "$FAKE_LOG"
   [ ! -e "$SKILLS/impeccable" ]
 }
@@ -254,15 +270,15 @@ impeccable_agents() { jq -r '.skills.impeccable.remove_agents[]' "$REPO/deps.jso
   fake_tools; test_zip
   pinned_all; impeccable_at 4.2.0
   sourced 'ensure_third_party; echo "FAILS=$FAILS"'
-  [[ "$output" == *"fail"*"third-party impeccable"* ]]
-  [[ "$output" == *"FAILS=1"* ]]
+  [[ "$output" == *"fail"*"third-party impeccable"* ]] || false
+  [[ "$output" == *"FAILS=1"* ]] || false
   refute grep -q "^npx" "$FAKE_LOG"
   grep -qx "version: 4.2.0" "$SKILLS/impeccable/SKILL.md"
   HARNESS_DIR="$BATS_TEST_TMPDIR/fx"; mkdir -p "$HARNESS_DIR"
   jq --arg s "$ZIP_SHA" '.skills.impeccable.sha256 = $s' "$REPO/deps.json" > "$HARNESS_DIR/deps.json"
   FAKE_IMPECCABLE_VERSION="$(dep .skills.impeccable.version)" sourced 'ensure_third_party; echo "FAILS=$FAILS"'
-  [[ "$output" == *"updated"*"third-party impeccable 4.2.0 -> $(dep .skills.impeccable.version)"* ]]
-  [[ "$output" == *"FAILS=0"* ]]
+  [[ "$output" == *"updated"*"third-party impeccable 4.2.0 -> $(dep .skills.impeccable.version)"* ]] || false
+  [[ "$output" == *"FAILS=0"* ]] || false
   grep -qx "version: $(dep .skills.impeccable.version)" "$SKILLS/impeccable/SKILL.md"
 }
 
@@ -280,7 +296,7 @@ impeccable_agents() { jq -r '.skills.impeccable.remove_agents[]' "$REPO/deps.jso
   [ -f "$AGENTS/my-agent.md" ]; [ -f "$AGENTS/impeccable-mine.md" ]
   run "$CLI" sync --no-pull
   [ "$status" -eq 0 ]
-  [[ "$output" != *"removed"* ]]
+  [[ "$output" != *"removed"* ]] || false
 }
 
 @test "an impeccable install through the CLI ends without its agents" {
@@ -289,7 +305,7 @@ impeccable_agents() { jq -r '.skills.impeccable.remove_agents[]' "$REPO/deps.jso
   HARNESS_DIR="$BATS_TEST_TMPDIR/fx"; mkdir -p "$HARNESS_DIR"
   jq --arg s "$ZIP_SHA" '.skills.impeccable.sha256 = $s' "$REPO/deps.json" > "$HARNESS_DIR/deps.json"
   FAKE_IMPECCABLE_VERSION="$(dep .skills.impeccable.version)" sourced ensure_third_party
-  [[ "$output" == *"created"*"third-party impeccable"* ]]
+  [[ "$output" == *"created"*"third-party impeccable"* ]] || false
   impeccable_agents | while read -r f; do [ ! -e "$f" ]; done
   [ -d "$AGENTS" ]
 }
@@ -302,7 +318,7 @@ impeccable_agents() { jq -r '.skills.impeccable.remove_agents[]' "$REPO/deps.jso
   impeccable_at "$(dep .skills.impeccable.version)"
   run "$CLI" sync --dry-run --no-pull
   [ "$status" -eq 0 ]
-  [[ "$output" == *"plan"*"remove"*"impeccable-documenter.md"* ]]
+  [[ "$output" == *"plan"*"remove"*"impeccable-documenter.md"* ]] || false
   impeccable_agents | while read -r f; do [ -f "$f" ]; done
 }
 
@@ -313,14 +329,14 @@ staleness_off() { printf '{"env":{"IMPECCABLE_NO_STALENESS_CHECK":"1"}}\n' > "$C
 
 @test "doctor: everything at its pin is ok, and doctor writes nothing" {
   pinned_all; staleness_off
-  before="$( cd "$HOME" && find . -printf '%p %y %s\n' | sort )"
+  before="$( cd "$HOME" && listing '%p %y %s' )"
   run "$CLI" doctor
   [ "$status" -eq 0 ]
   refute grep -qE '^warn .*(third-party|impeccable|IMPECCABLE)' <<<"$output"
-  [[ "$output" == *"ok"*"third-party grilling $(dep .skills.grilling.ref | cut -c1-12)"* ]]
-  [[ "$output" == *"ok"*"third-party impeccable $(dep .skills.impeccable.version)"* ]]
-  [[ "$output" == *"ok"*"IMPECCABLE_NO_STALENESS_CHECK"* ]]
-  [ "$( cd "$HOME" && find . -printf '%p %y %s\n' | sort )" = "$before" ]
+  [[ "$output" == *"ok"*"third-party grilling $(dep .skills.grilling.ref | cut -c1-12)"* ]] || false
+  [[ "$output" == *"ok"*"third-party impeccable $(dep .skills.impeccable.version)"* ]] || false
+  [[ "$output" == *"ok"*"IMPECCABLE_NO_STALENESS_CHECK"* ]] || false
+  [ "$( cd "$HOME" && listing '%p %y %s' )" = "$before" ]
 }
 
 @test "doctor warns when the lock ref differs from the pin or is missing, with both values" {
@@ -329,9 +345,9 @@ staleness_off() { printf '{"env":{"IMPECCABLE_NO_STALENESS_CHECK":"1"}}\n' > "$C
   lock humanizer v2.11.1
   run "$CLI" doctor
   [ "$status" -eq 0 ]
-  [[ "$output" == *"warn"*"third-party grilling"*"no ref"*"$(dep .skills.grilling.ref | cut -c1-12)"*"run sync"* ]]
-  [[ "$output" == *"warn"*"third-party humanizer"*"v2.11.1"*"$(dep .skills.humanizer.ref)"* ]]
-  [[ "$output" == *"ok"*"third-party handoff"* ]]
+  [[ "$output" == *"warn"*"third-party grilling"*"no ref"*"$(dep .skills.grilling.ref | cut -c1-12)"*"run sync"* ]] || false
+  [[ "$output" == *"warn"*"third-party humanizer"*"v2.11.1"*"$(dep .skills.humanizer.ref)"* ]] || false
+  [[ "$output" == *"ok"*"third-party handoff"* ]] || false
 }
 
 @test "doctor warns about a skill directory the lock does not know" {
@@ -339,7 +355,7 @@ staleness_off() { printf '{"env":{"IMPECCABLE_NO_STALENESS_CHECK":"1"}}\n' > "$C
   unlock grilling
   run "$CLI" doctor
   [ "$status" -eq 0 ]
-  [[ "$output" == *"warn"*"third-party grilling"*"lock"* ]]
+  [[ "$output" == *"warn"*"third-party grilling"*"lock"* ]] || false
 }
 
 @test "doctor warns when impeccable's version differs from the pin, with both versions" {
@@ -347,7 +363,7 @@ staleness_off() { printf '{"env":{"IMPECCABLE_NO_STALENESS_CHECK":"1"}}\n' > "$C
   impeccable_at 4.2.0
   run "$CLI" doctor
   [ "$status" -eq 0 ]
-  [[ "$output" == *"warn"*"third-party impeccable"*"4.2.0"*"$(dep .skills.impeccable.version)"* ]]
+  [[ "$output" == *"warn"*"third-party impeccable"*"4.2.0"*"$(dep .skills.impeccable.version)"* ]] || false
 }
 
 @test "doctor warns about impeccable agents that are still there" {
@@ -355,20 +371,20 @@ staleness_off() { printf '{"env":{"IMPECCABLE_NO_STALENESS_CHECK":"1"}}\n' > "$C
   mkdir -p "$AGENTS"; echo x > "$AGENTS/impeccable-documenter.md"
   run "$CLI" doctor
   [ "$status" -eq 0 ]
-  [[ "$output" == *"warn"*"impeccable-documenter.md"*"run sync"* ]]
+  [[ "$output" == *"warn"*"impeccable-documenter.md"*"run sync"* ]] || false
 }
 
 @test "doctor warns until IMPECCABLE_NO_STALENESS_CHECK=1 is set in the settings env or its own environment" {
   pinned_all
   run "$CLI" doctor
   [ "$status" -eq 0 ]
-  [[ "$output" == *"warn"*"IMPECCABLE_NO_STALENESS_CHECK"* ]]
+  [[ "$output" == *"warn"*"IMPECCABLE_NO_STALENESS_CHECK"* ]] || false
   IMPECCABLE_NO_STALENESS_CHECK=1 run "$CLI" doctor
-  [[ "$output" == *"ok"*"IMPECCABLE_NO_STALENESS_CHECK"* ]]
+  [[ "$output" == *"ok"*"IMPECCABLE_NO_STALENESS_CHECK"* ]] || false
   printf '{"env":{"IMPECCABLE_NO_STALENESS_CHECK":"0"}}\n' > "$CLAUDE_CONFIG_DIR/settings.json"
   run "$CLI" doctor
-  [[ "$output" == *"warn"*"IMPECCABLE_NO_STALENESS_CHECK"* ]]
+  [[ "$output" == *"warn"*"IMPECCABLE_NO_STALENESS_CHECK"* ]] || false
   staleness_off
   run "$CLI" doctor
-  [[ "$output" == *"ok"*"IMPECCABLE_NO_STALENESS_CHECK"* ]]
+  [[ "$output" == *"ok"*"IMPECCABLE_NO_STALENESS_CHECK"* ]] || false
 }

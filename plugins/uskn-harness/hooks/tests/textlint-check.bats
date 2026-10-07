@@ -6,7 +6,10 @@ SCRIPT="$BATS_TEST_DIRNAME/../scripts/textlint-check.sh"
 setup() {
   export HOME="$BATS_TEST_TMPDIR/home"; mkdir -p "$HOME"
   export USKN_HARNESS_DIR="$(cd "$BATS_TEST_DIRNAME/../../../.." && pwd)"
-  R="$BATS_TEST_TMPDIR/repo"; mkdir -p "$R/docs" "$BATS_TEST_TMPDIR/bin"; ( cd "$R" && git init -q -b main )
+  # The hook works in the resolved git top level. TMPDIR can sit behind a symlink (macOS: /var -> /private/var), so the
+  # repositories live under the resolved temporary dir, and cwd=... in the log compares equal on every OS.
+  TMP="$(cd "$BATS_TEST_TMPDIR" && pwd -P)"
+  R="$TMP/repo"; mkdir -p "$R/docs" "$BATS_TEST_TMPDIR/bin"; ( cd "$R" && git init -q -b main )
   export CLAUDE_PROJECT_DIR="$R"
   LOG="$BATS_TEST_TMPDIR/textlint.log"
   cat > "$BATS_TEST_TMPDIR/bin/textlint" <<EOF
@@ -115,7 +118,7 @@ $F3"
 
 @test "the config is looked up at the git root of cwd, not at CLAUDE_PROJECT_DIR (a worktree)" {
   export FAKE_FINDINGS="$F1"
-  WT="$BATS_TEST_TMPDIR/wt"; mkdir -p "$WT/docs"; ( cd "$WT" && git init -q -b main )
+  WT="$TMP/wt"; mkdir -p "$WT/docs"; ( cd "$WT" && git init -q -b main )
   echo '{"rules":{}}' > "$WT/.textlintrc.json"
   printf '# 見出し\n\nこれは日本語の文章です。\n' > "$WT/docs/ja.md"
   run bash -c "jq -c -n --arg f '$WT/docs/ja.md' --arg cwd '$WT' '{session_id:\"s\", cwd:\$cwd, tool_name:\"Write\", tool_input:{file_path:\$f}}' | '$SCRIPT'"

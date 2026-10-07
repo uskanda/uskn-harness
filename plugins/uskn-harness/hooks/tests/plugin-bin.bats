@@ -35,7 +35,7 @@ setup() {
   printf '# t\n\nSee `nowhere-at-all.yaml`.\n' > "$R/docs/ng.md"
   run bash -c "cd '$R' && '$BIN/uskn-terms-check' docs/ng.md"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"nowhere-at-all.yaml"* ]]
+  [[ "$output" == *"nowhere-at-all.yaml"* ]] || false
   printf '# t\n\nNothing to report.\n' > "$R/docs/ok.md"
   run bash -c "cd '$R' && '$BIN/uskn-terms-check' docs/ok.md"
   [ "$status" -eq 0 ]

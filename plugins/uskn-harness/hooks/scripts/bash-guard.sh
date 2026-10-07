@@ -20,8 +20,8 @@ INPUT="$(cat 2>/dev/null || true)"; [ -n "$INPUT" ] || exit 0
 CMD="$(json_field "$INPUT" '.tool_input.command' command)"; [ -n "$CMD" ] || exit 0
 CWD="$(json_field "$INPUT" '.cwd' cwd)"; SID="$(json_field "$INPUT" '.session_id' session_id)"
 ROOTS="$(project_roots "${CWD:-$PWD}")"   # CLAUDE_PROJECT_DIR, plus cwd's checkout of the same repository
-# expand ~ and $HOME for the path checks only
-CMDX="$(printf '%s' "$CMD" | sed "s#\(^\|[[:space:]=\"']\)~/#\1$HOME/#g; s#\\\$HOME/#$HOME/#g; s#\\\${HOME}/#$HOME/#g")"
+# expand ~ and $HOME for the path checks only. ERE (-E): BSD sed (macOS) has no \| in a basic regex.
+CMDX="$(printf '%s' "$CMD" | sed -E "s#(^|[[:space:]=\"'])~/#\1$HOME/#g; s#\\\$HOME/#$HOME/#g; s#\\\$\\{HOME\\}/#$HOME/#g")"
 GIT_WRITES=' push commit reset checkout switch rebase merge cherry-pick apply am '
 CHEZMOI_WRITES=' apply add update edit re-add merge '
 DENY=""; WARN=""; GIT_DENIED=0; ALLOW_DENIED=0; GATE_DENIED=0; REMOVING=0
