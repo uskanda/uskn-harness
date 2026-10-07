@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Stand-in for `glab` in bin/tests/uskn-loop.bats. Every call is appended to $FAKE_DIR/glab.log. The MR comes from
+# $FAKE_DIR/glab-mr.json, the username from $FAKE_DIR/user (default "me"). Notes live as $FAKE_DIR/comments/<id>.body
+# and <id>.author; `api` creates, edits, and lists them in GitLab's shape. A merge or a label is a forbidden call: it
+# is recorded in $FAKE_DIR/forbidden and fails.
+set -u
+printf '%s\n' "$*" >> "$FAKE_DIR/glab.log"
+C="$FAKE_DIR/comments"
+mkdir -p "$C"
+user="$(cat "$FAKE_DIR/user" 2>/dev/null || echo me)"
+case "${1:-} ${2:-}" in
+  "mr update")
+    case " $* " in *" --ready "*) echo "$*" >> "$FAKE_DIR/ready"; exit 0 ;; esac
+    echo "$*" >> "$FAKE_DIR/forbidden"; exit 1 ;;
+  "mr merge" | "mr close" | "label "*) echo "$*" >> "$FAKE_DIR/forbidden"; exit 1 ;;
+esac
+[ "${1:-}" = api ] || { echo "fake glab: unsupported: $*" >&2; exit 2; }
+shift
+method=GET path="" body=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -X | --method) method="$2"; shift 2 ;;
+    -F | --field | -f | --raw-field) case "$2" in body=@*) body="${2#body=@}" ;; esac; shift 2 ;;
+    --hostname) shift 2 ;;
+    --paginate) shift ;;
+    -*) shift ;;
+    *) path="$1"; shift ;;
+  esac
+done
+case "$method $path" in
+  "GET user") jq -cn --arg u "$user" '{username: $u}' ;;
+  GET\ projects/*/merge_requests/*/notes)
+    for f in "$C"/*.body; do
+      [ -e "$f" ] || continue
+      id="$(basename "$f" .body)"
+      jq -cn --argjson id "$id" --rawfile b "$f" --arg a "$(cat "$C/$id.author")" '{id: $id, body: $b, author: {username: $a}}'
+    done | jq -cs . ;;
+  GET\ projects/*/merge_requests/*) cat "$FAKE_DIR/glab-mr.json" ;;
+  POST\ projects/*/merge_requests/*/notes)
+    id=$(($(cat "$FAKE_DIR/comment.seq" 2>/dev/null || echo 100) + 1)); echo "$id" > "$FAKE_DIR/comment.seq"
+    cp "$body" "$C/$id.body"; echo "$user" > "$C/$id.author"
+    jq -cn --argjson id "$id" '{id: $id}' ;;
+  PUT\ projects/*/merge_requests/*/notes/*)
+    id="${path##*/}"; [ -f "$C/$id.body" ] || { echo "fake glab: no note $id" >&2; exit 1; }
+    cp "$body" "$C/$id.body"; jq -cn --argjson id "$id" '{id: $id}' ;;
+  *) echo "fake glab: unsupported api: $method $path" >&2; exit 2 ;;
+esac

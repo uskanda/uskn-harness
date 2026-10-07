@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# uskn-loop: run the implement / check / audit loop on one spec PR (openspec: loop-run, loop-criteria,
+# loop-progress-comment; ADR-0007).
+#
+#   uskn-loop run <number|url> [--reset]
+#
+# Run it inside the clone of the PR's repository. Each round starts the implementer (claude -p) in a worktree under
+# .claude/worktrees/, pushes its commits to the PR's head branch, runs the computational sensors, and, when they all
+# pass, the auditor (a separate claude -p). The loop ends when the completion criteria hold or a stop condition hits.
+# --reset forgets the recorded rounds and starts again from round 1. Limits: loop/limits.env, overridden by
+# USKN_LOOP_<NAME>. State: $USKN_STATE_DIR (else $XDG_STATE_HOME/uskn-harness)/loop/<host>/<repo path>/<number>/.
+#
+# Exit codes: 0 done (the PR is ready for review), 1 unexpected failure, 2 refused or usage error, 3 stopped (the PR
+# stays a draft and a comment says why).
+set -uo pipefail
+
+# The harness checkout: follow symlinks from this file (sync links it into ~/.local/bin) to bin/, then go up one.
+src="${BASH_SOURCE[0]}"
+while [ -L "$src" ]; do
+  dir="$(cd -P "$(dirname "$src")" && pwd)"
+  src="$(readlink "$src")"
+  case "$src" in /*) ;; *) src="$dir/$src" ;; esac
+done
+HARNESS="$(cd -P "$(dirname "$src")/.." && pwd)"
+LOOP_DIR="$HARNESS/loop"
+HOOKS="$HARNESS/plugins/uskn-harness/hooks/scripts"
+
+# shellcheck source=../plugins/uskn-harness/hooks/scripts/lib/common.sh
+. "$HOOKS/lib/common.sh"
+# shellcheck source=../loop/lib/util.sh
+. "$LOOP_DIR/lib/util.sh"
+# shellcheck source=../loop/lib/host.sh
+. "$LOOP_DIR/lib/host.sh"
+# shellcheck source=../loop/lib/state.sh
+. "$LOOP_DIR/lib/state.sh"
+# shellcheck source=../loop/lib/sensors.sh
+. "$LOOP_DIR/lib/sensors.sh"
+# shellcheck source=../loop/lib/comment.sh
+. "$LOOP_DIR/lib/comment.sh"
+# shellcheck source=../loop/lib/run.sh
+. "$LOOP_DIR/lib/run.sh"
+
+usage() {
+  echo "usage: uskn-loop run <number|url> [--reset]" >&2
+  echo "Run it inside the clone of the PR's (MR's) repository. Exit codes: 0 done, 1 error, 2 refused, 3 stopped." >&2
+}
+
+case "${1:-}" in
+  run) shift; loop_run "$@"; exit $? ;;
+  *) usage; exit 2 ;;
+esac

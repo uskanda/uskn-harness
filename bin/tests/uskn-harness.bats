@@ -105,6 +105,8 @@ npm_specs() {
   [ "$(readlink -f "$STABLE")" = "$REPO" ]
   [ -L "$HOME/.local/bin/uskn-harness" ]
   [ "$(readlink -f "$HOME/.local/bin/uskn-harness")" = "$REPO/bin/uskn-harness" ]
+  [ -L "$HOME/.local/bin/uskn-loop" ]
+  [ "$(readlink -f "$HOME/.local/bin/uskn-loop")" = "$REPO/bin/uskn-loop" ]
   [ -L "$SKILLS/commit" ]
   [ "$(readlink -f "$SKILLS/commit")" = "$REPO/skills/git/commit" ]
   [ -L "$SKILLS/pr" ]
@@ -133,6 +135,7 @@ npm_specs() {
   [ "$(readlink -f "$HOME/.local/share/openspec/schemas/uskn")" = "$REPO/schemas/uskn" ]
   [ ! -e "$STABLE" ]
   [ ! -e "$HOME/.local/bin/uskn-harness" ]
+  [ ! -e "$HOME/.local/bin/uskn-loop" ]
   [ ! -e "$SKILLS/commit" ]
   [ ! -e "$SKILLS/uskn-harness" ]
   [ ! -e "$CLAUDE_CONFIG_DIR/CLAUDE.md" ]
@@ -258,6 +261,7 @@ npm_specs() {
   [ ! -e "$SKILLS/commit" ]
   [ ! -e "$SKILLS/uskn-harness" ]
   [ ! -e "$HOME/.local/bin/uskn-harness" ]
+  [ ! -e "$HOME/.local/bin/uskn-loop" ]
   [ ! -e "$STABLE" ]
   [ ! -e "$HOME/.local/share/openspec/schemas/uskn" ]
   [ -d "$SKILLS/keepme" ]
@@ -345,6 +349,14 @@ npm_specs() {
   [ "$status" -eq 0 ]
   [ "$(snapshot)" = "$before" ]
   [ "$(printf '%s\n' "$output" | grep -c '^fail')" -eq 0 ]
+}
+
+@test "doctor: a missing ~/.local/bin/uskn-loop is warn and asks for sync" {
+  "$CLI" sync >/dev/null
+  rm "$HOME/.local/bin/uskn-loop"
+  run "$CLI" doctor
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"warn"*"loop runner"*"missing (run uskn-harness sync)"* ]] || false
 }
 
 @test "doctor: symlink pointing elsewhere is fail, exit 1" {

@@ -15,3 +15,7 @@ frontmatter() { sed -n '2,/^---$/p' "$SKILL"; }
   [ -f "$SKILL" ]
   ! frontmatter | grep -q '^disable-model-invocation: *true'
 }
+
+@test "spec-pr's body template shows how to run the loop on the spec PR" {
+  sed -n '/^## 進め方/,/^```$/p' "$SKILL" | grep -qF '`uskn-loop run <このPRの番号>`'
+}

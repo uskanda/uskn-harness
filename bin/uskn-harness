@@ -10,7 +10,7 @@
 #   0. update           git pull --ff-only in the checkout, then re-exec the new script (--no-pull skips it)
 #   1. stable path      ~/.local/share/uskn-harness -> this checkout (or a managed clone)
 #   2. runtime          mise, global node + jq, then every deps.json cli with global:true at its pinned version
-#   3. executable       ~/.local/bin/uskn-harness -> bin/uskn-harness
+#   3. executables      ~/.local/bin/uskn-harness -> bin/uskn-harness, ~/.local/bin/uskn-loop -> bin/uskn-loop
 #   4. own skills       ~/.claude/skills/<name> -> skills/**/<name>   (real dirs left alone; dangling links pruned)
 #   5. plugins          ~/.claude/skills/<name> -> plugins/<name>, for each dir with .claude-plugin/plugin.json
 #   5a. notify commands ~/.local/bin/<command> -> plugins/uskn-notify/bin/<command>
@@ -40,6 +40,7 @@ set -uo pipefail
 
 STABLE="$HOME/.local/share/uskn-harness"
 BIN_LINK="$HOME/.local/bin/uskn-harness"
+LOOP_LINK="$HOME/.local/bin/uskn-loop"
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 SKILLS_DIR="$CLAUDE_DIR/skills"
 COMMANDS_DIR="$CLAUDE_DIR/commands"
@@ -648,6 +649,7 @@ cmd_sync() {
     remove_notify_commands
     remove_link "$SCHEMA_LINK" "openspec schema uskn"
     remove_link "$BIN_LINK" "executable"
+    remove_link "$LOOP_LINK" "loop runner"
     remove_link "$STABLE" "stable path"
     is_managed_file "$CLAUDE_DIR/CLAUDE.md" && do_rm "$CLAUDE_DIR/CLAUDE.md" && note removed "user CLAUDE.md"
     remove_user_settings
@@ -661,6 +663,7 @@ cmd_sync() {
   ensure_runtime
   ensure_npm_globals
   ensure_link "$BIN_LINK" "$HARNESS/bin/uskn-harness" "executable"
+  ensure_link "$LOOP_LINK" "$HARNESS/bin/uskn-loop" "loop runner"
   for d in $(own_skills); do name="$(basename "$d")"; ensure_link "$SKILLS_DIR/$name" "$d" "skill $name"; done
   prune_stale_skill_links
   for d in $(own_plugins); do name="$(basename "$d")"; ensure_link "$SKILLS_DIR/$name" "$d" "plugin $name"; done
@@ -788,6 +791,7 @@ cmd_doctor() {
   fi
   check_npm_globals
   check_link "$BIN_LINK" "$HARNESS/bin/uskn-harness" "executable"
+  check_link "$LOOP_LINK" "$HARNESS/bin/uskn-loop" "loop runner"
   for d in $(own_skills); do name="$(basename "$d")"; check_link "$SKILLS_DIR/$name" "$d" "skill $name"; done
   while IFS= read -r d; do
     [ -n "$d" ] && note warn "stale skill link $(basename "$d") -> $(readlink "$d") (the skill left the harness; run uskn-harness sync)"
