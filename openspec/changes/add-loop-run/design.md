@@ -142,7 +142,7 @@ PRの差分（`git diff --name-only origin/<base>...HEAD`）で、`openspec/chan
 - `Makefile` のverify-fastで、`bin/uskn-loop` と `loop/` の変更に `bin/tests/uskn-loop.bats` を対応させる
 - `spec-pr` の本文の雛形の進め方に `uskn-loop run <このPRの番号>` の行を足し、報告の次の一歩にもループを加える。`bin/tests/spec-pr-skill.bats` で雛形の行を確かめる
 - `bin/tests/skill-commands.bats` が認めるコマンドに、リポジトリの `bin/` の実行ファイルを加える。今はインストーラとプラグインの `bin/` だけを認めている。`uskn-loop` はプラグインでなくリポジトリの `bin/` に置くからである
-- ADR-0006を `docs/adr/0006-loop-runner.md` に書き、AGENTS.mdのLayout表に `loop/` の行を、README.mdの機能の表にループの行を足す
+- ADR-0007を `docs/adr/0007-loop-runner.md` に書き、AGENTS.mdのLayout表に `loop/` の行を、README.mdの機能の表にループの行を足す
 
 ## Risks / Trade-offs
 

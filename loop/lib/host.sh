@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Host operations for bin/uskn-loop: the only file that calls gh or glab (openspec: loop-run; ADR-0006).
+# Host operations for bin/uskn-loop: the only file that calls gh or glab (openspec: loop-run; ADR-0007).
 # Sourced, not executed. host_detect sets the globals the other functions read.
 # shellcheck disable=SC2034  # HOST_KIND, HOST_NAME, REPO_PATH, and REPO_URL are read by the other files
 

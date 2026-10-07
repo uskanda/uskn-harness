@@ -12,7 +12,7 @@ installer that distributes them.
 | `schemas/` | OpenSpec schema `uskn` (grilling artifact ahead of proposal) |
 | `plugins/uskn-harness/` | Claude Code plugin: the hook bodies (bash + jq), `hooks.json`, their bats tests, and the short commands skills call. No skills |
 | `bin/` | The installer `uskn-harness` (sync, doctor, onboard-check), the loop runner `uskn-loop`, and the bats tests for them and for skill frontmatter |
-| `loop/` | What `uskn-loop` reads: shared functions, the implementer and auditor prompts, the verdict schema, the limits (ADR-0006) |
+| `loop/` | What `uskn-loop` reads: shared functions, the implementer and auditor prompts, the verdict schema, the limits (ADR-0007) |
 | `deps.json` | Pinned sources of every external skill, CLI, and runtime |
 | `docs/adr/` | Architecture decisions. Start with ADR-0001 |
 | `openspec/` | This repository's own specs and changes (dogfooding) |

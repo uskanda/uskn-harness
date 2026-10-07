@@ -18,7 +18,7 @@
 - ラウンドごとにpushし、PRに1つの進捗コメントを日本語で書き換える。完了したらdraftを解除し、止めたらdraftのまま理由を知らせる
 - `uskn-harness sync` が `~/.local/bin/uskn-loop` を張り、`doctor` がその向き先を検査する
 - `spec-pr` が作る仕様PRの本文の進め方に、`uskn-loop run <番号>` の行を足す。スキルが名指しするコマンドの実在を確かめるbatsのテストは、リポジトリの `bin/` のコマンドも認めるようにする
-- ADR-0006に、ループをハーネスに置くこと、プロダクトリポジトリに何も足さないこと、段階2ではサーバー単位のウォッチャーにすることを記録する
+- ADR-0007に、ループをハーネスに置くこと、プロダクトリポジトリに何も足さないこと、段階2ではサーバー単位のウォッチャーにすることを記録する
 
 ## Capabilities
 
@@ -40,7 +40,7 @@
 - 新規：`bin/uskn-loop`、`loop/`（指示、JSON Schema、共通の関数）、`bin/tests/uskn-loop.bats` と偽物の `claude`、`gh`、`glab`
 - 変更：`bin/uskn-harness`（syncとdoctorのリンク）と `bin/tests/uskn-harness.bats`
 - 変更：`Makefile`（verify-fastのテストの選択）と `bin/tests/makefile.bats`
-- 文書：`docs/adr/0006-loop-runner.md`、`AGENTS.md` のLayout表、`README.md`
+- 文書：`docs/adr/0007-loop-runner.md`、`AGENTS.md` のLayout表、`README.md`
 - 依存：`claude`（`-p`、`--json-schema`、`--max-budget-usd`）、`gh`、`glab`、jq。プロダクトリポジトリには何も足さない
 - 前提：仕様PRは `add-spec-pr` の `spec-pr` が作る。`spec-pr-skill` の差分があるので、`add-spec-pr` を先にarchiveする
 - 変更：`skills/spec-pr/SKILL.md`、`bin/tests/spec-pr-skill.bats`、`bin/tests/skill-commands.bats`

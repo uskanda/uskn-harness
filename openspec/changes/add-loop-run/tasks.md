@@ -1,6 +1,6 @@
 ## 1. 土台
 
-- [x] 1.1 `docs/adr/0006-loop-runner.md` を書く。ループをハーネスに置くこと、プロダクトリポジトリに何も足さないこと、段階2ではサーバー単位のウォッチャーにすることを記録する。退けた案（リポジトリごとのCI、routines、1セッション内のsubagent）も書く。textlintとterms checkが通ることを確認する
+- [x] 1.1 `docs/adr/0007-loop-runner.md` を書く。ループをハーネスに置くこと、プロダクトリポジトリに何も足さないこと、段階2ではサーバー単位のウォッチャーにすることを記録する。退けた案（リポジトリごとのCI、routines、1セッション内のsubagent）も書く。textlintとterms checkが通ることを確認する
 - [x] 1.2 `bin/tests/uskn-loop.bats` の土台を作る。偽物の `claude`、`gh`、`glab` と、一時ディレクトリにbareのoriginを作る補助を置く。`uskn-loop` を引数なしで実行すると使い方を示して終了コード2で終わるテストを書き、失敗を確認してから `bin/uskn-loop` を作って通す
 - [x] 1.3 `loop/limits.env` と上限の読み込みを作る。既定値と、`USKN_LOOP_` で始まる環境変数による上書きをテストで確かめる
 - [x] 1.4 `AGENTS.md` のLayout表に `loop/` の行を足す。terms checkが通ることを確認する

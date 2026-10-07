@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # uskn-loop: run the implement / check / audit loop on one spec PR (openspec: loop-run, loop-criteria,
-# loop-progress-comment; ADR-0006).
+# loop-progress-comment; ADR-0007).
 #
 #   uskn-loop run <number|url> [--reset]
 #
