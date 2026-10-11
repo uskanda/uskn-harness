@@ -18,3 +18,8 @@ com.claude.notify-daemon
 com.claude.notify-ntfy-sub
 window.title
 workbench.colorTheme
+.chezmoiexternal.toml
+install-voicevox-engine.ps1
+setup.ps1
+com.claude.notify-telegram-bot
+api.telegram.org
