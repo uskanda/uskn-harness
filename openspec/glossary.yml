@@ -154,3 +154,27 @@ terms:
     definition: "syncが最後にマージした設定断片と端末別設定の合成の写し `~/.local/state/uskn-harness/settings-applied.json`。"
     aliases: ["前回の断片"]
     en: "applied record"
+  - term: "送信Bot"
+    definition: "Claude Codeが動く端末から、通知をチャンネルへ投稿するTelegramのBot。"
+    aliases: []
+    en: "sender bot"
+  - term: "受信Bot"
+    definition: "発話する端末でチャンネルの投稿を読むTelegramのBot。発話する端末ごとに1つ作る。"
+    aliases: []
+    en: "receiver bot"
+  - term: "チャンネル"
+    definition: "送信Botが通知を投稿する、Telegramの非公開の配信先。"
+    aliases: []
+    en: "channel"
+  - term: "グループ"
+    definition: "Telegramで、チャンネルに連携させると投稿が自動で転送される会話の場。"
+    aliases: []
+    en: "discussion group"
+  - term: "識別行"
+    definition: "通知のメッセージの2行目。`#claude_notify` で始まり、種類、ホスト名、リポジトリ名、セッションIDの先頭8文字を持つ。"
+    aliases: ["マーカー行"]
+    en: "marker line"
+  - term: "受信の常駐プロセス"
+    definition: "受信Botとしてチャンネルの投稿を読み、発話のコマンドを呼ぶ、端末で動き続けるプロセス `claude-notify-telegram-bot`。"
+    aliases: []
+    en: "receiver"
