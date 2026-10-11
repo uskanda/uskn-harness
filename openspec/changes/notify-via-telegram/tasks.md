@@ -2,7 +2,7 @@
 
 ## 1. 前提と実機検証
 
-- [ ] 1.1 `openspec list --specs` に `notify-plugin` と `loop-run` が出ることを確かめる。出なければ、`migrate-ai-config-to-harness` と `add-loop-run` のarchiveを待つ。`openspec validate notify-via-telegram --strict` がarchiveの拒否を知らせないことも確かめる
+- [x] 1.1 `openspec list --specs` に `notify-plugin` と `loop-run` が出ることを確かめる。出なければ、`migrate-ai-config-to-harness` と `add-loop-run` のarchiveを待つ。`openspec validate notify-via-telegram --strict` がarchiveの拒否を知らせないことも確かめる
 - [ ] 1.2 BotFatherで、ユーザーが送信Botを1つ、受信Botを発話する端末の数だけ作る。非公開のチャンネルを作り、すべてのBotを管理者に加える。それぞれのトークンで `getMe` が成功することをcurlで確かめる
 - [ ] 1.3 curlで送信Botから2行のメッセージを `parse_mode` なしで投稿する。チャンネルに現れることを確かめ、応答からチャンネルのIDを控える
 - [ ] 1.4 `getUpdates` を受信Botで呼び、1.3の投稿が `channel_post` として読めることを確かめる。読めなければ、チャンネルにグループを連携させ、自動転送された投稿を読む。どちらも読めなければ、実装を止めてユーザーに相談する
