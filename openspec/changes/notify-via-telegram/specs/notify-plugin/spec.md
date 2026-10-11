@@ -50,24 +50,6 @@ syncは、受信の常駐プロセスとVOICEVOX ENGINEを新しく入れては�
 - **WHEN** LaunchAgentの無いmacOS端末でsyncを実行する
 - **THEN** `~/Library/LaunchAgents` に通知のplistは作られない
 
-### Requirement: 既存の LaunchAgent の入れ直し
-入れ直しの対象は、LaunchAgent `com.claude.notify-telegram-bot` と、そのコマンド `claude-notify-telegram-bot` の1組である。
-macOSでこのLaunchAgentのplistがあり、コマンドの中身が前回入れたときと違うとき、syncはコマンドの `install` を実行しなければならない（MUST）。
-前回入れたときのコマンドの中身は、状態としてハッシュで残す。ハッシュが無いときは、違うものとして扱う。
-入れ直したときは `updated`、中身が同じときは `ok` と報告する。
-
-#### Scenario: コマンドが更新された
-- **WHEN** plistがあり、記録したハッシュが今のコマンドの中身と違う
-- **THEN** syncは `claude-notify-telegram-bot install` を実行し、ハッシュを記録して `updated` と報告する
-
-#### Scenario: 変わっていない
-- **WHEN** plistがあり、記録したハッシュが今の `claude-notify-telegram-bot` と同じ
-- **THEN** `install` は実行されず、`ok` と報告される
-
-#### Scenario: Linux
-- **WHEN** Linuxでsyncを実行する
-- **THEN** LaunchAgentの手順は実行されず、出力にも現れない
-
 ### Requirement: シェルの検査
 `make verify` は、`plugins/uskn-notify/bin/` のbashのスクリプトにshellcheckをかけなければならない（MUST）。
 shebangがbashでないファイル（Pythonの `claude-notify-telegram-bot` とPowerShellの2つ）は対象から外す。
@@ -81,6 +63,28 @@ shebangがbashでないファイル（Pythonの `claude-notify-telegram-bot` と
 - **THEN** `claude-notify-telegram-bot` はshellcheckに渡されない
 
 ## ADDED Requirements
+
+### Requirement: 受信の常駐プロセスの LaunchAgent の入れ直し
+入れ直しの対象は、LaunchAgent `com.claude.notify-telegram-bot` と、そのコマンド `claude-notify-telegram-bot` の1組である。
+macOSでこのLaunchAgentのplistがあり、コマンドの中身が前回入れたときと違うとき、syncはコマンドの `install` を実行しなければならない（MUST）。
+前回入れたときのコマンドの中身は、状態としてハッシュで残す。ハッシュが無いときは、違うものとして扱う。
+入れ直したときは `updated`、中身が同じときは `ok` と報告する。
+
+#### Scenario: コマンドが更新された
+- **WHEN** plistがあり、記録したハッシュが今のコマンドの中身と違う
+- **THEN** syncは `claude-notify-telegram-bot install` を実行し、ハッシュを記録して `updated` と報告する
+
+#### Scenario: ハッシュの記録が無い
+- **WHEN** plistがあり、ハッシュの記録が無い
+- **THEN** syncはコマンドの `install` を実行し、ハッシュを記録して `updated` と報告する
+
+#### Scenario: 変わっていない
+- **WHEN** plistがあり、記録したハッシュが今の `claude-notify-telegram-bot` と同じ
+- **THEN** `install` は実行されず、`ok` と報告される
+
+#### Scenario: Linux
+- **WHEN** Linuxでsyncを実行する
+- **THEN** LaunchAgentの手順は実行されず、出力にも現れない
 
 ### Requirement: 古い LaunchAgent の片付け
 古いLaunchAgentは、`com.claude.notify-daemon` と `com.claude.notify-ntfy-sub` の2つである。
@@ -119,3 +123,9 @@ checkoutのパスから直接実行されたとき、通知のコマンドは、
 #### Scenario: Windows ネイティブの常駐
 - **WHEN** Windowsでcheckoutの `claude-notify-telegram-bot install` を実行する
 - **THEN** ログイン時の登録はcheckoutのパスを指し、発話には同じディレクトリのPowerShell版のコマンドが使われる
+
+## REMOVED Requirements
+
+### Requirement: 既存の LaunchAgent の入れ直し
+**Reason**: 入れ直しの対象だった2つのLaunchAgentと、そのコマンドを削除する。対象は `com.claude.notify-daemon` と `com.claude.notify-ntfy-sub` である。
+**Migration**: 入れ直しは、要件 `受信の常駐プロセスの LaunchAgent の入れ直し` が受け持つ。古い2つのLaunchAgentは、要件 `古い LaunchAgent の片付け` に従ってsyncが外す。
