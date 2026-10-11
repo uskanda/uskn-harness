@@ -43,18 +43,18 @@
 
 - [x] 7.1 `openspec validate migrate-ai-config-to-harness --strict` と `make verify VERIFY_STRICT=1` が通ることを確かめる
 - [x] 7.2 WSLのこの端末で、作業ツリーのsyncを `--dry-run` で実行する。liveから `hooks`、`modelSettings`、捨てるallowを消す予定が出力され、liveは変わらないことを確かめる
-- [ ] 7.3 PRをmainへマージする
+- [x] 7.3 PRをmainへマージする
 
 ## 8. dotfiles（7.3の後に、dotfilesのmasterへ直接コミットする）
 
-- [ ] 8.1 chezmoi-mergeとsync-claude-settingsを、`dot_claude/skills/` からリポジトリ直下の `.claude/skills/` へ `git mv` する。chezmoi-mergeから、Unixのsettings.jsonの突合の手順を外す。`.claude/settings.json` を作り、`PowerShell(git *)` と `PowerShell(chezmoi …)` の3つを持たせる。`chezmoi managed` に `.claude/skills/chezmoi-merge` が出ないことを確かめる
-- [ ] 8.2 `dot_claude/skills/cleanup/` を消す。`.chezmoiignore` を、Windows以外で `.claude/`、通知のコマンドの名前、`.config/claude-notify/` を除外する形にする。Linuxで `chezmoi managed` にそれらが出ないことを確かめる
-- [ ] 8.3 `run_onchange_before_remove-migrated-claude-skills.sh.tmpl` に、4つのスキルの名前と通知のコマンドの名前を足す。一時的な `CHEZMOI_DEST_DIR` に実ファイルとsymlinkを置いて走らせ、実ファイルだけが消えることを確かめる
-- [ ] 8.4 dotfilesのrun_onceのスクリプトを消し、ハーネスの `templates/chezmoi/run_after_uskn-harness.sh.tmpl` を写す。`chezmoi execute-template` の結果に `bash -n` が通ることを確かめる
-- [ ] 8.5 `setup` から `INSTALL_VOICEVOX` と `INSTALL_NOTIFY_DAEMON` の節を消し、ハーネスの文書を案内する。`bash -n setup` が通ることを確かめる
-- [ ] 8.6 `openspec/changes/add-telegram-notify-transport/` を消す
-- [ ] 8.7 dotfilesの文書を、ハーネスへの案内とWindowsの凍結の説明に書き直す。対象は、`README.md` のClaude Codeの設定の節と発話の3節、`CLAUDE.md` の該当節、windows-voicevox.md、chezmoi-mergeの起動スクリプトのコメント。Markdownのリンク切れが無いことを確かめる
-- [ ] 8.8 dotfilesのmasterへコミットしてpushする
+- [x] 8.1 chezmoi-mergeとsync-claude-settingsを、`dot_claude/skills/` からリポジトリ直下の `.claude/skills/` へ `git mv` する。chezmoi-mergeから、Unixのsettings.jsonの突合の手順を外す。`.claude/settings.json` を作り、`PowerShell(git *)` と `PowerShell(chezmoi …)` の3つを持たせる。`chezmoi managed` に `.claude/skills/chezmoi-merge` が出ないことを確かめる
+- [x] 8.2 `dot_claude/skills/cleanup/` を消す。`.chezmoiignore` を、Windows以外で `.claude/`、通知のコマンドの名前、`.config/claude-notify/` を除外する形にする。Linuxで `chezmoi managed` にそれらが出ないことを確かめる
+- [x] 8.3 `run_onchange_before_remove-migrated-claude-skills.sh.tmpl` に、4つのスキルの名前と通知のコマンドの名前を足す。一時的な `CHEZMOI_DEST_DIR` に実ファイルとsymlinkを置いて走らせ、実ファイルだけが消えることを確かめる
+- [x] 8.4 dotfilesのrun_onceのスクリプトを消し、ハーネスの `templates/chezmoi/run_after_uskn-harness.sh.tmpl` を写す。`chezmoi execute-template` の結果に `bash -n` が通ることを確かめる
+- [x] 8.5 `setup` から `INSTALL_VOICEVOX` と `INSTALL_NOTIFY_DAEMON` の節を消し、ハーネスの文書を案内する。`bash -n setup` が通ることを確かめる
+- [x] 8.6 `openspec/changes/add-telegram-notify-transport/` を消す
+- [x] 8.7 dotfilesの文書を、ハーネスへの案内とWindowsの凍結の説明に書き直す。対象は、`README.md` のClaude Codeの設定の節と発話の3節、`CLAUDE.md` の該当節、windows-voicevox.md、chezmoi-mergeの起動スクリプトのコメント。Markdownのリンク切れが無いことを確かめる
+- [x] 8.8 dotfilesのmasterへコミットしてpushする
 
 ## 9. 移行の確認
 
