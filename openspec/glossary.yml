@@ -154,3 +154,7 @@ terms:
     definition: "syncが最後にマージした設定断片と端末別設定の合成の写し `~/.local/state/uskn-harness/settings-applied.json`。"
     aliases: ["前回の断片"]
     en: "applied record"
+  - term: "マウント"
+    definition: "ホストのディレクトリを、コピーせずにコンテナ内のパスへ見せること（bind mount）。"
+    aliases: []
+    en: "mount"
