@@ -14,6 +14,9 @@
 #   4. own skills       ~/.claude/skills/<name> -> skills/**/<name>   (real dirs left alone; dangling links pruned)
 #   5. plugins          ~/.claude/skills/<name> -> plugins/<name>, for each dir with .claude-plugin/plugin.json
 #   5a. notify commands ~/.local/bin/<command> -> plugins/uskn-notify/bin/<command>
+#   Links into the harness (3, 4, 5, 5a, 5b) are relative and go through the stable path, e.g.
+#   ~/.claude/skills/commit -> ../../.local/share/uskn-harness/skills/git/commit, so a copied ~/.claude keeps working
+#   wherever the harness sits at the stable path. While the stable path is not this checkout, they are absolute.
 #   5b. schema          ~/.local/share/openspec/schemas/uskn -> schemas/uskn (grilling-first workflow)
 #   6. third-party      deps.json skills with `via`: the skills CLI at the pinned ref (again when its lock records
 #                       another ref), Impeccable from its sha256-checked release asset, then its agents removed
@@ -55,7 +58,7 @@ export MISE_YES=1
 DRY=0 REMOVE=0 TOOLS=0 NO_PULL=0 FAILS=0 WARNS=0 CHANGED=0 HARNESS=""
 ORIG_ARGV=()   # what main was called with, so an update can re-execute the new script with the same request
 
-usage() { sed -n '2,28p' "$0"; }
+usage() { sed -n '2,31p' "$0"; }
 say() { printf '%-9s %s\n' "$1" "$2"; }
 note() {
   case "$1" in
@@ -109,12 +112,57 @@ run_step() { # [--soft] label, command...
 }
 
 # ------------------------------------------------------------------- links
-# link_status target source -> ok | missing | update | conflict-real | conflict-foreign
+# Links into the harness go through the stable path by a relative path, so a copy of ~/.claude next to a stable path
+# (another HOME, a container) still resolves. Paths are physical: the kernel resolves a relative link from the
+# physical directory it sits in.
+phys_dir() { # a directory's physical path; the missing tail is kept as written
+  local p="$1" rest="" d
+  while [ ! -d "$p" ]; do rest="/$(basename "$p")$rest"; p="$(dirname "$p")"; done
+  d="$(cd "$p" && pwd -P)"; [ "$d" = / ] && d=""
+  printf '%s%s\n' "$d" "$rest"
+}
+relpath() { # from-dir to-path, both absolute and physical -> to-path relative to from-dir
+  local common="$1" up=""
+  while [ "$common" != / ]; do
+    case "$2/" in "$common"/*) break ;; esac
+    common="$(dirname "$common")"; up="../$up"
+  done
+  if [ "$common" = / ]; then printf '%s%s\n' "$up" "${2#/}"; else printf '%s%s\n' "$up" "${2#"$common"/}"; fi
+}
+fold_path() { # an absolute path with . and .. folded as text
+  local IFS=/ part out=""
+  set -f
+  for part in $1; do
+    case "$part" in '' | .) ;; ..) out="${out%/*}" ;; *) out="$out/$part" ;; esac
+  done
+  set +f
+  printf '%s\n' "${out:-/}"
+}
+link_target_text() { # link -> the absolute path its text names, folded as text (works for a dangling link)
+  local t; t="$(readlink "$1")"
+  case "$t" in /*) ;; *) t="$(phys_dir "$(dirname "$1")")/$t" ;; esac
+  fold_path "$t"
+}
+stable_phys() { printf '%s/%s\n' "$(phys_dir "$(dirname "$STABLE")")" "$(basename "$STABLE")"; }
+stable_is_harness() { # the stable path resolves to this checkout (or, under --dry-run, sync is about to create it)
+  [ "$(realpath_f "$STABLE" 2>/dev/null)" = "$HARNESS" ] && return 0
+  [ "$DRY" = 1 ] && [ ! -e "$STABLE" ] && [ ! -L "$STABLE" ] && [ "$TOOLS" = 0 ]
+}
+link_text() { # target source -> what sync writes into the link: relative through the stable path, else the source
+  case "$2" in
+    "$HARNESS"/*) if stable_is_harness; then relpath "$(phys_dir "$(dirname "$1")")" "$(stable_phys)/${2#"$HARNESS"/}"; return; fi ;;
+  esac
+  printf '%s\n' "$2"
+}
+# link_status target source -> ok | missing | update | rewrite | conflict-real | conflict-foreign
+# rewrite: the link resolves to the source but its text is not what sync writes (an absolute link from before).
 link_status() {
   local t="$1" s="$2" real
   if [ -L "$t" ]; then
     real="$(realpath_f "$t" 2>/dev/null || true)"
-    if [ -n "$real" ] && [ "$real" = "$(realpath_f "$s")" ]; then echo ok
+    if [ -n "$real" ] && [ "$real" = "$(realpath_f "$s")" ]; then
+      case "$s" in "$HARNESS"/*) [ "$(readlink "$t")" = "$(link_text "$t" "$s")" ] || { echo rewrite; return; } ;; esac
+      echo ok
     elif [ -z "$real" ]; then echo update
     elif inside_harness "$real"; then echo update
     else echo conflict-foreign; fi
@@ -125,8 +173,8 @@ ensure_link() { # target source label
   local t="$1" s="$2" label="$3"
   case "$(link_status "$t" "$s")" in
     ok) note ok "$label" ;;
-    missing) do_link "$s" "$t" && note created "$label -> $s" ;;
-    update) do_relink "$s" "$t" && note updated "$label -> $s" ;;
+    missing) do_link "$(link_text "$t" "$s")" "$t" && note created "$label -> $s" ;;
+    update | rewrite) do_relink "$(link_text "$t" "$s")" "$t" && note updated "$label -> $s" ;;
     conflict-real) note conflict "$label: $t exists and is not a symlink (left untouched)" ;;
     conflict-foreign) note conflict "$label: $t points outside the harness ($(readlink "$t"))" ;;
   esac
@@ -574,16 +622,18 @@ prune_openspec_skills() { # the openspec-* skill copies an earlier sync installe
 }
 
 # stale_skill_links: symlinks in ~/.claude/skills that point into the harness skills/ (directly or through the
-# stable path) at something that no longer exists -- skills deleted from the harness. The names of current skills
-# are left out: ensure_link relinks those. The target is compared as text, since a dangling link cannot be resolved.
+# stable path, absolute or relative) at something that no longer exists -- skills deleted from the harness. The names
+# of current skills are left out: ensure_link relinks those. The target is folded as text, since a dangling link
+# cannot be resolved.
 stale_skill_links() {
-  local l name current
+  local l name current stable
+  stable="$(stable_phys)"
   current=" $(own_skills | while read -r d; do basename "$d"; done | tr '\n' ' ') "
   for l in "$SKILLS_DIR"/*; do
     if [ ! -L "$l" ] || [ -e "$l" ]; then continue; fi
     name="$(basename "$l")"
     case "$current" in *" $name "*) continue ;; esac
-    case "$(readlink "$l")" in "$HARNESS"/skills/* | "$STABLE"/skills/*) printf '%s\n' "$l" ;; esac
+    case "$(link_target_text "$l")" in "$HARNESS"/skills/* | "$STABLE"/skills/* | "$stable"/skills/*) printf '%s\n' "$l" ;; esac
   done
 }
 prune_stale_skill_links() {
@@ -684,9 +734,26 @@ check_link() { # target source label  (doctor)
     ok) note ok "$3" ;;
     missing) note warn "$3: missing (run uskn-harness sync)" ;;
     update) note warn "$3: stale symlink (run uskn-harness sync)" ;;
+    rewrite) note warn "$3: links by $(readlink "$1"), not the relative path through the stable path (run uskn-harness sync)" ;;
     conflict-real) note warn "$3: $1 is a real directory or file (chezmoi-managed copy? sync skips it)" ;;
     conflict-foreign) note fail "$3: $1 points outside the harness ($(readlink "$1"))" ;;
   esac
+}
+# check_skill_dir_links (doctor): every symlink directly under ~/.claude/skills that the checks above do not cover. A
+# dangling one is skipped by Claude Code; an absolute one points at nothing once ~/.claude is copied to another HOME
+# or a container. One warn per link at most: a dangling link is not also reported as absolute.
+check_skill_dir_links() {
+  local l name t reported
+  reported=" $(own_plugins | while read -r l; do basename "$l"; done | tr '\n' ' ') $(own_skills | while read -r l; do basename "$l"; done | tr '\n' ' ') $(stale_skill_links | while read -r l; do basename "$l"; done | tr '\n' ' ') "
+  for l in "$SKILLS_DIR"/*; do
+    [ -L "$l" ] || continue
+    name="$(basename "$l")"; t="$(readlink "$l")"
+    if [ ! -e "$l" ]; then
+      case "$reported" in *" $name "*) ;; *) note warn "dangling skill link $name -> $t (Claude Code skips it; remove it or restore its target)" ;; esac
+    else
+      case "$t" in /*) note warn "skill link $name -> $t is absolute: copied to another HOME or a container, it points at nothing" ;; esac
+    fi
+  done
 }
 check_npm_globals() { # doctor: every pinned npm cli, with the installed version when it differs
   have jq || return 0
@@ -796,6 +863,7 @@ cmd_doctor() {
   while IFS= read -r d; do
     [ -n "$d" ] && note warn "stale skill link $(basename "$d") -> $(readlink "$d") (the skill left the harness; run uskn-harness sync)"
   done < <(stale_skill_links)
+  check_skill_dir_links
   for d in $(own_plugins); do name="$(basename "$d")"; check_link "$SKILLS_DIR/$name" "$d" "plugin $name"; done
   check_notify_commands
   check_link "$SCHEMA_LINK" "$HARNESS/schemas/uskn" "openspec schema uskn"

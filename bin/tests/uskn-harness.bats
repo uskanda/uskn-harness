@@ -916,3 +916,100 @@ opsx_commands() { # <dir>: the six core workflow commands with the marker
   [ "$status" -eq 0 ]
   [[ "$output" == *"warn"*"retired-skill"*"sync"* ]] || false
 }
+
+# ---------------------------------------------------------------- relative links (spec: harness-sync, harness-doctor)
+
+# harness_copy <dir>: a checkout sync can install from, without the git history and the rest of the repository
+harness_copy() {
+  mkdir -p "$1/templates"
+  cp -R "$REPO/deps.json" "$REPO/skills" "$REPO/plugins" "$REPO/schemas" "$REPO/bin" "$1/"
+  cp -R "$REPO/templates/user" "$1/templates/"
+}
+
+@test "sync links into the harness by a relative path through the stable path" {
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+  [ "$(readlink "$SKILLS/commit")" = "../../.local/share/uskn-harness/skills/git/commit" ]
+  [ "$(readlink "$SKILLS/uskn-harness")" = "../../.local/share/uskn-harness/plugins/uskn-harness" ]
+  [ "$(readlink "$HOME/.local/bin/uskn-harness")" = "../share/uskn-harness/bin/uskn-harness" ]
+  [ "$(readlink "$HOME/.local/share/openspec/schemas/uskn")" = "../../uskn-harness/schemas/uskn" ]
+  [ "$(readlink "$STABLE")" = "$(cd "$REPO" && pwd -P)" ]
+}
+
+@test "sync relinks an absolute link into the harness as relative, then reports ok" {
+  "$CLI" sync >/dev/null
+  rm "$SKILLS/commit"; ln -s "$REPO/skills/git/commit" "$SKILLS/commit"
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"updated"*"skill commit"* ]] || false
+  [ "$(readlink "$SKILLS/commit")" = "../../.local/share/uskn-harness/skills/git/commit" ]
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"updated"* ]] || false
+}
+
+@test "sync links by the absolute checkout path while the stable path points at another checkout" {
+  mkdir -p "$BATS_TEST_TMPDIR/other" "$HOME/.local/share"; ln -s "$BATS_TEST_TMPDIR/other" "$STABLE"
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"conflict"*"stable path"* ]] || false
+  [ "$(readlink "$SKILLS/commit")" = "$(cd "$REPO" && pwd -P)/skills/git/commit" ]
+}
+
+@test "sync --tools links the schema by the absolute checkout path when there is no stable path" {
+  run "$CLI" sync --tools
+  [ "$status" -eq 0 ]
+  [ "$(readlink "$HOME/.local/share/openspec/schemas/uskn")" = "$(cd "$REPO" && pwd -P)/schemas/uskn" ]
+}
+
+@test "a HOME copied elsewhere with the harness at its stable path still resolves the skills and the plugin" {
+  harness_copy "$BATS_TEST_TMPDIR/h1"
+  USKN_HARNESS_DIR="$BATS_TEST_TMPDIR/h1" "$CLI" sync --no-pull >/dev/null
+  new="$BATS_TEST_TMPDIR/home2"; mkdir -p "$new/.local/share"
+  cp -RP "$HOME/.claude" "$new/"
+  mv "$BATS_TEST_TMPDIR/h1" "$BATS_TEST_TMPDIR/h2"; ln -s "$BATS_TEST_TMPDIR/h2" "$new/.local/share/uskn-harness"
+  [ -f "$new/.claude/skills/commit/SKILL.md" ]
+  [ -f "$new/.claude/skills/uskn-harness/hooks/hooks.json" ]
+}
+
+@test "a relative link to a skill that left the harness is removed by sync and reported by doctor; others stay" {
+  "$CLI" sync >/dev/null
+  ln -s ../../.local/share/uskn-harness/skills/git/gone "$SKILLS/gone"
+  ln -s ../nowhere/mine "$SKILLS/mine"
+  run "$CLI" doctor
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"warn"*"gone"*"sync"* ]] || false
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"removed"*"gone"* ]] || false
+  [ ! -L "$SKILLS/gone" ]
+  [ -L "$SKILLS/mine" ]
+}
+
+@test "doctor: an absolute link into the harness is warn with a pointer to sync" {
+  "$CLI" sync >/dev/null
+  rm "$SKILLS/commit"; ln -s "$REPO/skills/git/commit" "$SKILLS/commit"
+  run "$CLI" doctor
+  [ "$status" -eq 0 ]
+  grep -qE '^warn +skill commit: .*sync' <<<"$output"
+}
+
+@test "doctor: a dangling link outside the harness is one warn" {
+  "$CLI" sync >/dev/null
+  ln -s "$BATS_TEST_TMPDIR/nowhere/mine" "$SKILLS/mine"
+  run "$CLI" doctor
+  [ "$status" -eq 0 ]
+  [ "$(grep -c 'mine' <<<"$output")" -eq 1 ]
+  grep -qE '^warn .*mine' <<<"$output"
+}
+
+@test "doctor: an absolute link outside the harness is warn; right after sync there is none" {
+  "$CLI" sync >/dev/null
+  run "$CLI" doctor
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"absolute"* ]] || false
+  mkdir -p "$BATS_TEST_TMPDIR/elsewhere/mine"; ln -s "$BATS_TEST_TMPDIR/elsewhere/mine" "$SKILLS/mine"
+  run "$CLI" doctor
+  [ "$status" -eq 0 ]
+  grep -qE '^warn .*mine.*absolute' <<<"$output"
+}
