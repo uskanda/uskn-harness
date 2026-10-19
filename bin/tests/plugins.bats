@@ -33,8 +33,9 @@ refute() { ! "$@"; }
   mkdir -p "$FX/plugins/not-a-plugin"
   run "$CLI" sync --no-pull
   [ "$status" -eq 0 ]
-  [ "$(readlink "$SKILLS/uskn-harness")" = "$FX/plugins/uskn-harness" ]
-  [ "$(readlink "$SKILLS/zz-extra")" = "$FX/plugins/zz-extra" ]
+  [ "$(readlink "$SKILLS/uskn-harness")" = "../../.local/share/uskn-harness/plugins/uskn-harness" ]
+  [ "$(readlink "$SKILLS/zz-extra")" = "../../.local/share/uskn-harness/plugins/zz-extra" ]
+  [ "$SKILLS/zz-extra" -ef "$FX/plugins/zz-extra" ]
   [[ "$output" == *"created"*"plugin zz-extra"* ]] || false
   [ ! -e "$SKILLS/not-a-plugin" ]
 }
