@@ -34,7 +34,17 @@ tracked() { git -C "$REPO" ls-files -- "$@" | sed "s#^#$REPO/#"; }
     print "$ARGV:$.: $_" if /\bsed\b(?![^|;]*\s-[a-zA-Z]*[Er])[^|;]*\\[|+?]/
       || /\bgrep\b(?![^|;]*\s-[a-zA-Z]*[EP])[^|;]*\\[|+?]/
       || /\bsed\s+-i\s+[\x27"s]/ || /\bstat\s+-c\b/ || /\bdate\s+-d\b/;
-    close ARGV if eof' "$REPO/bin/uskn-harness" $(tracked 'plugins/uskn-harness/hooks/scripts/*.sh' 'plugins/uskn-harness/hooks/scripts/lib/*.sh' 'plugins/uskn-harness/bin/*')
+    close ARGV if eof' "$REPO/bin/uskn-harness" "$REPO/bin/uskn-loop" $(tracked 'plugins/uskn-harness/hooks/scripts/*.sh' 'plugins/uskn-harness/hooks/scripts/lib/*.sh' 'plugins/uskn-harness/bin/*' 'loop/lib/*.sh')
+  [ "$status" -eq 0 ]
+  [ -z "$output" ] || { printf '%s\n' "$output"; false; }
+}
+
+@test "no bats file runs sed -i without a suffix argument (BSD sed takes the script as the suffix and fails)" {
+  # bash-guard.bats passes such commands to the guard as input strings and never runs them.
+  run perl -ne '
+    next if /^\s*#/;
+    print "$ARGV:$.: $_" if /\bsed\s+-i\s+[\x27"s]/;
+    close ARGV if eof' $(tracked '*.bats' ':!plugins/uskn-harness/hooks/tests/bash-guard.bats')
   [ "$status" -eq 0 ]
   [ -z "$output" ] || { printf '%s\n' "$output"; false; }
 }

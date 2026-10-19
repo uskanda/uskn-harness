@@ -9,7 +9,9 @@ CLI="$REPO/bin/uskn-loop"
 FAKES="$BATS_TEST_DIRNAME/fixtures/loop-bin"
 
 setup() {
-  T="$BATS_TEST_TMPDIR"
+  # Physical, as git rev-parse --show-toplevel reports it: on macOS the temporary directory sits under /var, a link to
+  # /private/var, and the loop's worktree path would not match a logical one.
+  T="$(cd "$BATS_TEST_TMPDIR" && pwd -P)"
   export FAKE_DIR="$T/fake"
   mkdir -p "$FAKE_DIR"
   export XDG_STATE_HOME="$T/state"
@@ -82,7 +84,7 @@ step() { printf '%s\n' "$2" > "$FAKE_DIR/claude.$1.sh"; }
 # cost <k> <usd>: the total_cost_usd the k-th claude call reports.
 cost() { echo "$2" > "$FAKE_DIR/claude.$1.cost"; }
 # finish_tasks: a step body that checks every task and commits it.
-finish_tasks='sed -i "s/- \[ \]/- [x]/" openspec/changes/add-x/tasks.md && git commit -qam "tasks done"'
+finish_tasks='perl -pi -e "s/- \[ \]/- [x]/" openspec/changes/add-x/tasks.md && git commit -qam "tasks done"'
 # verdict <k> <pass|fail> [blocking-file ...] [?question]: the k-th claude call returns this verdict. Each file becomes
 # one blocking finding; an argument starting with ? becomes the question.
 verdict() {
@@ -476,9 +478,9 @@ ncomments() { find "$FAKE_DIR/comments" -name '*.body' 2>/dev/null | wc -l | tr 
 @test "stop: five rounds without meeting the criteria, and no sixth" {
   make_repo github
   step 2 "$finish_tasks && touch .fail-verify && git add .fail-verify && git commit -qm v"
-  step 3 'sed -i "s/- \[x\]/- [ ]/" openspec/changes/add-x/tasks.md && git rm -q .fail-verify && git commit -qam t'
+  step 3 'perl -pi -e "s/- \[x\]/- [ ]/" openspec/changes/add-x/tasks.md && git rm -q .fail-verify && git commit -qam t'
   step 4 "$finish_tasks && touch .fail-verify && git add .fail-verify && git commit -qm v"
-  step 5 'sed -i "s/- \[x\]/- [ ]/" openspec/changes/add-x/tasks.md && git rm -q .fail-verify && git commit -qam t'
+  step 5 'perl -pi -e "s/- \[x\]/- [ ]/" openspec/changes/add-x/tasks.md && git rm -q .fail-verify && git commit -qam t'
   run loop 12
   [ "$status" -eq 3 ]
   [ "$(cat "$FAKE_DIR/claude.count")" = 5 ]
