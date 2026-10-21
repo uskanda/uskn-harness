@@ -1,0 +1,33 @@
+{
+  "rules": {
+    "preset-ja-technical-writing": {
+      "no-mix-dearu-desumasu": {
+        "preferInHeader": "",
+        "preferInBody": "ですます",
+        "preferInList": "ですます",
+        "strict": false
+      }
+    },
+    "@textlint-ja/preset-ai-writing": true,
+    "preset-jtf-style": true,
+    "prh": {
+      "rulePaths": ["./prh.yml"]
+    },
+    "@textlint-rule/pattern": {
+      "patterns": [
+        {"message": "比喩の動詞「倒す」。何をどう扱うのかと、その対象を書く（ja-writing）", "pattern": "/に倒[さしすせそれ]/", "allowNodeTypes": ["BlockQuote"]},
+        {"message": "比喩の動詞「寄せる」。何をどう扱うのかと、その対象を書く（ja-writing）", "pattern": "/(?<![左右上下央])に寄せ/", "allowNodeTypes": ["BlockQuote"]},
+        {"message": "比喩の動詞「効く」。何をどう扱うのかと、その対象を書く（ja-writing）", "pattern": "/(?<![有無実])効[かきくけこい]/", "allowNodeTypes": ["BlockQuote"]},
+        {"message": "比喩の動詞「壊す」。何をどう扱うのかと、その対象を書く（ja-writing）", "pattern": "/(?<!破)壊[れさしすせそ]/", "allowNodeTypes": ["BlockQuote"]},
+        {"message": "比喩の動詞「添える」。何をどう扱うのかと、その対象を書く（ja-writing）", "pattern": "/添え(?!字)/", "allowNodeTypes": ["BlockQuote"]},
+        {"message": "比喩の動詞「刺さる」。何をどう扱うのかと、その対象を書く（ja-writing）", "pattern": "/刺さ/", "allowNodeTypes": ["BlockQuote"]},
+        {"message": "比喩の動詞「響く」。何をどう扱うのかと、その対象を書く（ja-writing）", "pattern": "/(?<!影)響[かきくけこい]/", "allowNodeTypes": ["BlockQuote"]},
+        {"message": "比喩の動詞「担保」。何をどう扱うのかと、その対象を書く（ja-writing）", "pattern": "/担保/", "allowNodeTypes": ["BlockQuote"]},
+        {"message": "比喩の動詞「回す」。何をどう扱うのかと、その対象を書く（ja-writing）", "pattern": "/を回[さしすせそ]/", "allowNodeTypes": ["BlockQuote"]},
+        {"message": "比喩の動詞「拾う」。何をどう扱うのかと、その対象を書く（ja-writing）", "pattern": "/拾[わいうえおっ]/", "allowNodeTypes": ["BlockQuote"]},
+        {"message": "比喩の動詞「落とす」。何をどう扱うのかと、その対象を書く（ja-writing）", "pattern": "/(?<!見)落と[さしすせそ]/", "allowNodeTypes": ["BlockQuote"]},
+        {"message": "比喩の動詞「握る」。何をどう扱うのかと、その対象を書く（ja-writing）", "pattern": "/握[らりるれろっ]/", "allowNodeTypes": ["BlockQuote"]}
+      ]
+    }
+  }
+}
