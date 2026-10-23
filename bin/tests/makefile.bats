@@ -139,6 +139,14 @@ count() { line "$1" | wc -w; }
   [ "$(line shellcheck)" = "bin/uskn-loop" ]
 }
 
+@test "verify-fast-plan: bin/uskn-cc-catchup and its schema map to its test" {
+  run plan CHANGED="bin/uskn-cc-catchup"
+  [ "$(line bats)" = "bin/tests/uskn-cc-catchup.bats" ]
+  [ "$(line shellcheck)" = "bin/uskn-cc-catchup" ]
+  run plan CHANGED="skills/cc-catchup/proposals.schema.json"
+  [[ "$(line bats)" == *"bin/tests/uskn-cc-catchup.bats"* ]] || false
+}
+
 @test "verify-fast-plan: hooks.json and the plugin's bin/ map to their own tests; a skill runs the all-skills tests" {
   run plan CHANGED="plugins/uskn-harness/hooks/hooks.json"
   [ "$(line bats)" = "plugins/uskn-harness/hooks/tests/hooks-json.bats" ]

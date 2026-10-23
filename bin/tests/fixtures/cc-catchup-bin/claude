@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Stand-in for `claude` in bin/tests/uskn-cc-catchup.bats. `claude --version` prints 9.9.9. Any other call is counted
+# in $FAKE_DIR/claude.count, writes its arguments to $FAKE_DIR/claude.args (one per line), its prompt to claude.prompt
+# and its working directory to claude.cwd, exits with $FAKE_DIR/claude.exit when that file exists, and prints the JSON
+# result with structured_output from $FAKE_DIR/claude.out (omitted when the file is absent).
+set -u
+if [ "${1:-}" = --version ]; then echo "9.9.9 (Claude Code)"; exit 0; fi
+echo $(($(cat "$FAKE_DIR/claude.count" 2>/dev/null || echo 0) + 1)) > "$FAKE_DIR/claude.count"
+printf '%s\n' "$@" > "$FAKE_DIR/claude.args"
+prev=""
+for a in "$@"; do
+  [ "$prev" = -p ] && printf '%s' "$a" > "$FAKE_DIR/claude.prompt"
+  prev="$a"
+done
+pwd > "$FAKE_DIR/claude.cwd"
+[ -f "$FAKE_DIR/claude.exit" ] && exit "$(cat "$FAKE_DIR/claude.exit")"
+if [ -f "$FAKE_DIR/claude.out" ]; then
+  jq -cn --slurpfile o "$FAKE_DIR/claude.out" '{type: "result", is_error: false, total_cost_usd: 2, structured_output: $o[0]}'
+else
+  jq -cn '{type: "result", is_error: false, total_cost_usd: 2, result: "no structured output"}'
+fi
