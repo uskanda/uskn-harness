@@ -93,6 +93,17 @@ dotfilesが配っていた `~/.claude/settings.json` がある端末では、初
 
 消える要素は、先に `uskn-harness sync --dry-run` で確かめる。残したい要素は、端末別設定に書いてから `chezmoi apply` を実行する。
 
+## Bash の sandbox
+
+ユーザー層のsettings.jsonは、Claude Codeのsandboxを有効にする（ADR-0009）。
+sandboxの中のBashが書けるのは、作業ディレクトリ、一時ディレクトリ、`/add-dir` で追加したディレクトリ、設定断片の挙げるキャッシュだけである。
+
+- UbuntuとWSL2では、`sudo apt install -y bubblewrap socat` で2つを入れる。無い端末では、Bashが制限なしで動き、doctorが `warn` を出す
+- macOSでは、何も入れなくてよい
+- ルートの外で作業するときは、ユーザーが `/allow-repo <path>` と `/add-dir <path>` を続けて打つ
+- sandboxと相性の悪い道具（`docker` など）は、端末別設定の `sandbox.excludedCommands` に足す。端末別設定の置き場は `~/.config/uskn-harness/settings.json` である。配列は設定断片の値を置き換えるので、設定断片の3つのパターンも書き写す
+- 端末でsandboxを切るときは、端末別設定で `sandbox.enabled` を `false` にしてsyncを実行する
+
 ## 読み上げ通知
 
 `sync` はプラグインuskn-notifyを `~/.claude/skills/uskn-notify` に置き、通知のコマンドを `~/.local/bin` にsymlinkする。
@@ -155,5 +166,6 @@ mise、npm globalのCLI、状態ディレクトリは残る。
 | `openspec commands opsx: missing ...` | `~/.claude/commands/opsx/` が無いか、コマンドが欠けている | `uskn-harness sync`。ネットワークを確認 |
 | `stale skill link <name>` | ハーネスから消したスキルの symlink が残っている | `uskn-harness sync` が消す |
 | `notify command <name>: ... is a real directory or file` | `~/.local/bin` に、dotfilesが以前配った通知のコマンドの実ファイルが残っている | dotfilesを更新して `chezmoi apply` を実行する。片付けのスクリプトが実ファイルを消す |
+| `sandbox: bwrap missing ...` / `sandbox: socat missing ...` | sandboxを有効にしたLinuxの端末に、`bwrap` か `socat` が無い。Bashは制限なしで動く | `sudo apt install -y bubblewrap socat` |
 | `user settings: sync would ...` | liveのsettings.jsonが、syncの書く値と違う。`/effort` や `/model` の後に出る | `uskn-harness sync` |
 | `user settings: ... is not a JSON object` | settings.jsonか端末別設定をJSONとして読めない。syncは何も書かない | ファイルを直してから `uskn-harness sync` |

@@ -318,6 +318,14 @@ check_user_settings() { # doctor: live against what sync would write; read-only
   fi
   rm -rf "$w"
 }
+check_sandbox_deps() { # doctor: the Linux sandbox runs on bwrap and socat; without them Bash runs unconfined (ADR-0009)
+  local missing="" t
+  [ "$(host_os)" = Linux ] || return 0
+  [ -e "$SETTINGS_FILE" ] && jqx -e '.sandbox.enabled == true' "$SETTINGS_FILE" >/dev/null 2>&1 || return 0
+  for t in bwrap socat; do have "$t" || missing="${missing:+$missing, }$t"; done
+  if [ -z "$missing" ]; then note ok "sandbox: bwrap and socat"
+  else note warn "sandbox: $missing missing, so Bash runs without limits (install the packages bubblewrap and socat)"; fi
+}
 
 # ------------------------------------------------------------ notify plugin
 # The uskn-notify commands also go into ~/.local/bin (openspec: notify-plugin): claude-notify-ntfy-sub and the
@@ -808,6 +816,7 @@ cmd_doctor() {
   check_third_party
   check_opsx_commands
   check_user_settings
+  check_sandbox_deps
   if is_managed_file "$CLAUDE_DIR/CLAUDE.md"; then note ok "user CLAUDE.md"
   elif [ -e "$CLAUDE_DIR/CLAUDE.md" ]; then note warn "user CLAUDE.md exists without the marker (sync will not touch it)"
   else note warn "user CLAUDE.md missing (run sync)"; fi

@@ -15,23 +15,23 @@
 
 ## 3. bash-guard
 
-- [ ] 3.1 `plugins/uskn-harness/hooks/tests/bash-guard.bats` の、ルートの外への書き込みが警告されるテストを、何も出力しないテストに書き換える。対象は、外へのコピー、移動、リダイレクト、`cd` の後の書き込み、`cwd` が別のリポジトリに移った後の書き込みである。状態ファイルへのリダイレクトが拒否されるテストは残す。走らせて失敗することを確かめる
-- [ ] 3.2 `plugins/uskn-harness/hooks/scripts/bash-guard.sh` から、警告の判定と出力を削除し、冒頭の説明を直す。design.mdのD3のとおりにする。3.1と残りのbatsが通り、`make verify-shell` が通ることを確かめる
-- [ ] 3.3 `openspec/specs/bash-guard/spec.md` のPurposeを、拒否だけを受け持つhookの説明に書き直す。ルートの外への書き込みはsandboxが制限すると書く。textlintが通ることを確かめる
+- [x] 3.1 `plugins/uskn-harness/hooks/tests/bash-guard.bats` の、ルートの外への書き込みが警告されるテストを、何も出力しないテストに書き換える。対象は、外へのコピー、移動、リダイレクト、`cd` の後の書き込み、`cwd` が別のリポジトリに移った後の書き込みである。状態ファイルへのリダイレクトが拒否されるテストは残す。走らせて失敗することを確かめる
+- [x] 3.2 `plugins/uskn-harness/hooks/scripts/bash-guard.sh` から、警告の判定と出力を削除し、冒頭の説明を直す。design.mdのD3のとおりにする。3.1と残りのbatsが通り、`make verify-shell` が通ることを確かめる
+- [x] 3.3 `openspec/specs/bash-guard/spec.md` のPurposeを、拒否だけを受け持つhookの説明に書き直す。ルートの外への書き込みはsandboxが制限すると書く。textlintが通ることを確かめる
 
 ## 4. doctor（harness-doctor）
 
-- [ ] 4.1 `bin/tests/uskn-harness.bats` にテストを先に足す。`USKN_HARNESS_OS` とPATHの差し替えで、Linuxで `bwrap` が無いときの `warn`、両方あるときの `ok`、macOSとsandboxの無効な端末で行が出ないことを確かめる。走らせて失敗することを確かめる
-- [ ] 4.2 `bin/uskn-harness` のdoctorに、design.mdのD4のとおりにsandboxの依存の検査を足す。4.1が通ることを確かめる。冒頭の説明の検査項目にも足す
+- [x] 4.1 `bin/tests/uskn-harness.bats` にテストを先に足す。`USKN_HARNESS_OS` とPATHの差し替えで、Linuxで `bwrap` が無いときの `warn`、両方あるときの `ok`、macOSとsandboxの無効な端末で行が出ないことを確かめる。走らせて失敗することを確かめる
+- [x] 4.2 `bin/uskn-harness` のdoctorに、design.mdのD4のとおりにsandboxの依存の検査を足す。4.1が通ることを確かめる。冒頭の説明の検査項目にも足す
 
 ## 5. allow-repo スキル（allow-repo-skill）
 
-- [ ] 5.1 `skills/allow-repo/SKILL.md` が `/add-dir` の案内を持つことのテストを先に足す。足す先は、スキルの本文を確かめる `bin/tests/` の既存のbatsから選ぶ。走らせて失敗することを確かめる
-- [ ] 5.2 `skills/allow-repo/SKILL.md` の手順3に、design.mdのD5のとおりに `/add-dir <resolved path>` の案内を足す。冒頭の説明に、sandboxの中のBashが追加したディレクトリにだけ書けることを書く。5.1が通ることを確かめる
+- [x] 5.1 `skills/allow-repo/SKILL.md` が `/add-dir` の案内を持つことのテストを先に足す。足す先は、Makefileがこのスキルに対応づける `bin/tests/allow-repo-skill.bats` である。走らせて失敗することを確かめる
+- [x] 5.2 `skills/allow-repo/SKILL.md` の手順3に、design.mdのD5のとおりに `/add-dir <resolved path>` の案内を足す。冒頭の説明に、sandboxの中のBashが追加したディレクトリにだけ書けることを書く。5.1が通ることを確かめる
 
 ## 6. 文書
 
-- [ ] 6.1 `docs/adr/0009-bash-sandbox.md` を、design.mdのD6のとおりに書く。ADR-0001の §7に、warnパターンをADR-0009で置き換えた旨の注記を足す。textlintとterms-checkが通ることを確かめる
+- [x] 6.1 `docs/adr/0009-bash-sandbox.md` を、design.mdのD6のとおりに書く。ADR-0001の §7に、warnパターンをADR-0009で置き換えた旨の注記を足す。textlintとterms-checkが通ることを確かめる
 - [ ] 6.2 `docs/setup-new-machine.md` に、Linuxの端末での `bubblewrap` と `socat` の導入と、1.1で控えたAppArmorの設定を書く。端末別設定で `excludedCommands` を足すときに3つのパターンも書き写すことと、sandboxを切る方法も書く。`README.md` のhookの説明のうち、bash-guardの警告の記述を直す。textlintとterms-checkが通ることを確かめる
 
 ## 7. 統合
