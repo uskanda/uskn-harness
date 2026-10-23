@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Stand-in for `crontab` in bin/tests/uskn-cc-catchup.bats: the table lives in $FAKE_DIR/crontab.
+set -u
+case "${1:-}" in
+  -l) if [ -f "$FAKE_DIR/crontab" ]; then cat "$FAKE_DIR/crontab"; else echo "no crontab for tester" >&2; exit 1; fi ;;
+  -) cat > "$FAKE_DIR/crontab" ;;
+  *) echo "fake crontab: unsupported: $*" >&2; exit 2 ;;
+esac

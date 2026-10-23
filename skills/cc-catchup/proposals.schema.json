@@ -1,0 +1,30 @@
+{
+  "title": "cc-catchup proposals",
+  "description": "What the cc-catchup skill returns when uskn-cc-catchup runs it. One proposal becomes one GitHub issue.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "proposals"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "Japanese, a few sentences: what was checked, which Claude Code versions the evidence covers, and what was left out because an issue already decided it"
+    },
+    "proposals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "kind", "body"],
+        "properties": {
+          "title": { "type": "string", "description": "Japanese issue title" },
+          "kind": {
+            "type": "string",
+            "enum": ["retire", "change"],
+            "description": "retire: Claude Code covers it, remove it from the harness; change: keep it but change the implementation or the guidance"
+          },
+          "body": { "type": "string", "description": "Japanese issue body in Markdown, with the sections the skill lists" }
+        }
+      }
+    }
+  }
+}

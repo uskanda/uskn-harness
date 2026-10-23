@@ -1,0 +1,220 @@
+#!/usr/bin/env bash
+# uskn-cc-catchup: ask the latest Opus whether Claude Code now covers what the harness does, and file each proposal
+# as a GitHub issue labelled cc-catchup (skill: skills/cc-catchup).
+#
+#   uskn-cc-catchup run [--if-due] [--dry-run]
+#   uskn-cc-catchup install-cron [--wrap <command>]
+#   uskn-cc-catchup remove-cron
+#
+# run clones the harness repository into the state dir (or brings that clone to origin's default branch), lists the
+# cc-catchup issues of every state with their comments, and runs `claude -p` there with the latest Opus at effort high,
+# read-only tools, and the skill as its procedure. A proposal whose title an issue already has is skipped; the skill
+# itself skips what an issue already decided. --if-due runs only when no run succeeded this month and fewer than three
+# failed; --dry-run prints the proposals and files and records nothing.
+# install-cron adds a daily `run --if-due` line to the user's crontab, so the run happens once a month even on a
+# machine that was off on the 1st; it calls the script through the stable path and logs to <state>/cron.log.
+# --wrap puts a command in front, e.g. a wrapper that reports failures.
+#
+# Environment
+#   USKN_CC_CATCHUP_URL         the repository to clone (default: origin of this checkout)
+#   USKN_CC_CATCHUP_BUDGET_USD  cap for the claude call (default 15)
+#   USKN_CC_CATCHUP_MINUTES     time cap for the claude call (default 60)
+#   USKN_CC_CATCHUP_MONTH       the current month as YYYY-MM (tests)
+#   USKN_STATE_DIR              state root (default ${XDG_STATE_HOME:-~/.local/state}/uskn-harness); this tool uses
+#                               <state>/cc-catchup/: clone/, runs/<time>/, last-run.json, attempts, lock, cron.log
+#
+# Exit codes: 0 done (or not due, or another run holds the lock), 1 the run failed, 2 usage error.
+set -uo pipefail
+
+# The harness checkout: follow symlinks from this file to bin/, then go up one.
+src="${BASH_SOURCE[0]}"
+while [ -L "$src" ]; do
+  dir="$(cd -P "$(dirname "$src")" && pwd)"
+  src="$(readlink "$src")"
+  case "$src" in /*) ;; *) src="$dir/$src" ;; esac
+done
+HARNESS="$(cd -P "$(dirname "$src")/.." && pwd)"
+SKILL_DIR="$HARNESS/skills/cc-catchup"
+
+# shellcheck source=../plugins/uskn-harness/hooks/scripts/lib/common.sh
+. "$HARNESS/plugins/uskn-harness/hooks/scripts/lib/common.sh"
+
+STATE="$USKN_STATE/cc-catchup"
+CLONE="$STATE/clone"
+LABEL=cc-catchup
+MONTH="${USKN_CC_CATCHUP_MONTH:-$(date +%Y-%m)}"
+BUDGET="${USKN_CC_CATCHUP_BUDGET_USD:-15}"
+MINUTES="${USKN_CC_CATCHUP_MINUTES:-60}"
+MAX_ATTEMPTS=3
+STABLE_BIN="$HOME/.local/share/uskn-harness/bin/uskn-cc-catchup"
+CRON_MARK="# uskn-cc-catchup: monthly Claude Code catch-up (uskn-cc-catchup install-cron)"
+QUESTION="現状の最新のClaude Codeの実装を鑑みて、Claude Code側で十分にケアされており、このハーネスで対応する必要のなくなった、もしくは実装・指針を変えるべき機能があるか調査して"
+
+log() { printf 'uskn-cc-catchup: %s\n' "$*" >&2; }
+
+usage() {
+  echo "usage: uskn-cc-catchup run [--if-due] [--dry-run]" >&2
+  echo "       uskn-cc-catchup install-cron [--wrap <command>]" >&2
+  echo "       uskn-cc-catchup remove-cron" >&2
+}
+
+# attempts: the failed attempts recorded for this month.
+attempts() {
+  local m="" n=0
+  [ -f "$STATE/attempts" ] && read -r m n < "$STATE/attempts"
+  if [ "$m" = "$MONTH" ]; then echo "${n:-0}"; else echo 0; fi
+}
+
+# prepare_clone: a clean checkout of origin's default branch at $CLONE.
+prepare_clone() {
+  local url="${USKN_CC_CATCHUP_URL:-$(git -C "$HARNESS" remote get-url origin)}"
+  if [ -d "$CLONE/.git" ]; then
+    git -C "$CLONE" remote set-url origin "$url" &&
+      git -C "$CLONE" fetch -q --prune origin &&
+      git -C "$CLONE" reset -q --hard origin/HEAD &&
+      git -C "$CLONE" clean -qfdx
+  else
+    rm -rf "$CLONE" && git clone -q "$url" "$CLONE"
+  fi
+}
+
+# prompt <run dir> <slug> <version>
+prompt() {
+  local prev
+  printf '%s\n\n' "$QUESTION"
+  echo "Follow the cc-catchup procedure in your system prompt."
+  echo "The current directory is a fresh clone of $2 at $(git -C "$CLONE" rev-parse --short HEAD)."
+  echo "Claude Code installed on this machine: $3."
+  prev="$(jq -r '"\(.month), with Claude Code \(.claude_version)"' "$STATE/last-run.json" 2>/dev/null)"
+  echo "The previous run that succeeded: ${prev:-none recorded}."
+  echo "The issues labelled $LABEL, every state, with their comments: $1/issues.json."
+  echo "Return the proposals as the structured output."
+}
+
+# file_proposals <run dir> <slug> <version> <dry>: file each proposal not already an issue. Fails when a filing failed.
+file_proposals() {
+  local rd="$1" slug="$2" ver="$3" dry="$4" n i title kind dup url bad=0
+  n="$(jq '.proposals | length' "$rd/answer.json")"
+  i=0
+  while [ "$i" -lt "$n" ]; do
+    title="$(jq -r --argjson i "$i" '.proposals[$i].title' "$rd/answer.json")"
+    kind="$(jq -r --argjson i "$i" '.proposals[$i].kind' "$rd/answer.json")"
+    dup="$(jq -r --arg t "$title" \
+      '[.[] | select((.title | ascii_downcase) == ($t | ascii_downcase)) | .number][0] // empty' "$rd/issues.json")"
+    {
+      jq -r --argjson i "$i" '.proposals[$i].body' "$rd/answer.json"
+      printf '\n---\n\n'
+      echo "uskn-cc-catchup が $(date +%Y-%m-%d) に Claude Code $ver で調べて作成しました（種別: $kind）。"
+      echo "見送る場合は、理由をコメントに書いてから not planned で閉じてください。同等の提案は以後出しません。"
+    } > "$rd/issue-$i.md"
+    if [ -n "$dup" ]; then
+      echo "skipped: $title (already #$dup)"
+    elif [ "$dry" = 1 ]; then
+      echo "would file [$kind]: $title"
+      sed 's/^/    /' "$rd/issue-$i.md"
+    elif url="$(gh issue create --repo "$slug" --title "$title" --body-file "$rd/issue-$i.md" --label "$LABEL")"; then
+      echo "filed [$kind]: $url $title"
+      printf '%s\n' "$url" >> "$rd/filed.txt"
+    else
+      log "could not file: $title"
+      bad=1
+    fi
+    i=$((i + 1))
+  done
+  return "$bad"
+}
+
+cmd_run() {
+  local if_due=0 dry=0 rd slug ver
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --if-due) if_due=1 ;;
+      --dry-run) dry=1 ;;
+      *) usage; return 2 ;;
+    esac
+    shift
+  done
+  if [ "$if_due" = 1 ]; then
+    [ "$(jq -r '.month // empty' "$STATE/last-run.json" 2>/dev/null)" = "$MONTH" ] && return 0
+    [ "$(attempts)" -lt "$MAX_ATTEMPTS" ] || return 0
+  fi
+  mkdir -p "$STATE"
+  # A lock left by a run that was killed outright is gone after a day.
+  [ -n "$(find "$STATE/lock" -maxdepth 0 -mmin +1440 2>/dev/null)" ] && rmdir "$STATE/lock"
+  if ! mkdir "$STATE/lock" 2>/dev/null; then log "another run holds $STATE/lock; leaving it alone"; return 0; fi
+  trap 'rmdir "$STATE/lock" 2>/dev/null' EXIT
+  trap 'exit 143' TERM INT HUP
+  [ "$dry" = 1 ] || echo "$MONTH $(($(attempts) + 1))" > "$STATE/attempts"
+
+  rd="$STATE/runs/$(date +%Y%m%dT%H%M%S)"
+  mkdir -p "$rd"
+  log "run $rd"
+  prepare_clone || { log "could not prepare the clone at $CLONE"; return 1; }
+  slug="$(cd "$CLONE" && gh repo view --json nameWithOwner --jq .nameWithOwner)" || { log "gh repo view failed"; return 1; }
+  ver="$(claude --version 2>/dev/null | head -n 1)"
+  if [ "$dry" = 0 ]; then
+    gh label create "$LABEL" --repo "$slug" --force --color 5319e7 \
+      --description "uskn-cc-catchup: Claude Code catch-up proposals" > /dev/null || { log "gh label create failed"; return 1; }
+  fi
+  gh issue list --repo "$slug" --label "$LABEL" --state all --limit 500 \
+    --json number,title,state,stateReason,url,body,comments > "$rd/issues.json" || { log "gh issue list failed"; return 1; }
+
+  prompt "$rd" "$slug" "$ver" > "$rd/prompt.txt"
+  (cd "$CLONE" && with_timeout "$((MINUTES * 60))" claude -p "$(cat "$rd/prompt.txt")" \
+    --model opus --effort high --tools Read,Grep,Glob,WebFetch,WebSearch --allowedTools WebFetch,WebSearch \
+    --restricted --strict-mcp-config --permission-mode dontAsk --no-session-persistence --add-dir "$rd" \
+    --max-budget-usd "$BUDGET" --json-schema "$(cat "$SKILL_DIR/proposals.schema.json")" --output-format json \
+    --append-system-prompt-file "$SKILL_DIR/SKILL.md") > "$rd/claude.json" 2> "$rd/claude.err" ||
+    { log "claude exited with status $? (see $rd/claude.err)"; return 1; }
+  log "cost: \$$(jq -r '.total_cost_usd // 0' "$rd/claude.json")"
+  jq -e '.structured_output | select(type == "object" and (.summary | type) == "string" and (.proposals | type) == "array"
+      and all(.proposals[]; (.title | type) == "string" and (.title | length) > 0 and (.body | type) == "string"))' \
+    "$rd/claude.json" > "$rd/answer.json" 2>/dev/null || { log "no valid structured output in $rd/claude.json"; return 1; }
+
+  jq -r .summary "$rd/answer.json"
+  file_proposals "$rd" "$slug" "$ver" "$dry" || return 1
+  [ "$dry" = 1 ] && return 0
+  jq -n --arg m "$MONTH" --arg v "$ver" --arg d "$(date +%Y-%m-%d)" --arg r "$rd" \
+    --rawfile f <(cat "$rd/filed.txt" 2>/dev/null) \
+    '{month: $m, date: $d, claude_version: $v, run: $r, filed: ($f | split("\n") | map(select(. != "")))}' \
+    > "$STATE/last-run.json"
+  rm -f "$STATE/attempts"
+}
+
+# crontab_without_ours: the user's crontab minus this tool's entry, trailing blank lines dropped.
+crontab_without_ours() {
+  { crontab -l 2>/dev/null || true; } | awk -v mark="$CRON_MARK" '
+    $0 == mark || /uskn-cc-catchup run --if-due/ { next }
+    { lines[++n] = $0 }
+    END { while (n > 0 && lines[n] == "") n--; for (i = 1; i <= n; i++) print lines[i] }'
+}
+
+cmd_install_cron() {
+  local wrap="" rest line
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --wrap) [ $# -ge 2 ] || { usage; return 2; }; wrap="$2 "; shift 2 ;;
+      *) usage; return 2 ;;
+    esac
+  done
+  mkdir -p "$STATE"
+  line="17 9 * * * [ -x $STABLE_BIN ] && PATH='$PATH' $wrap$STABLE_BIN run --if-due >> $STATE/cron.log 2>&1"
+  rest="$(crontab_without_ours)"
+  { [ -n "$rest" ] && printf '%s\n\n' "$rest"; echo "$CRON_MARK"; echo "${line//%/\\%}"; } | crontab - || return 1
+  echo "installed: ${line//%/\\%}"
+}
+
+cmd_remove_cron() {
+  local rest
+  # Read the whole table before writing it back: `crontab -l | crontab -` can race.
+  rest="$(crontab_without_ours)"
+  { [ -n "$rest" ] && echo "$rest"; } | crontab - || return 1
+  echo "removed the uskn-cc-catchup entry"
+}
+
+case "${1:-}" in
+  run) shift; cmd_run "$@"; exit $? ;;
+  install-cron) shift; cmd_install_cron "$@"; exit $? ;;
+  remove-cron) shift; cmd_remove_cron "$@"; exit $? ;;
+  *) usage; exit 2 ;;
+esac
