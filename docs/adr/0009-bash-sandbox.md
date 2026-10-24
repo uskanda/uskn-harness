@@ -24,7 +24,7 @@ hook、Write、Editはsandboxの外で動く。
 4. `npx` のキャッシュ `~/.npm` は、`sandbox.filesystem.allowWrite` で書けるようにする。状態ディレクトリは含めない
 5. ネットワークは、`permissions.allow` の `WebFetch(domain:*)` で、ドメインごとの確認なしに通す。sandboxはこのルールを、Bashの接続先にも全ホストの許可として使う（2026-10-24に実機で確認）
 6. `bwrap` か `socat` の無いLinuxの端末では、doctorが `warn` を出す。syncはどちらもインストールしない
-7. `/allow-repo` は、許可を記録した後に `/add-dir <path>` を打つようユーザーに案内する。2つを1つにまとめる作業はissue #6で行う
+7. `/allow-repo` は、許可を記録した後に `/add-dir <path>` を打つようユーザーに案内する。2つを1つにまとめる作業はissue #6で行う。この決定はADR-0010が差し替えた（`/add-dir` の1つにまとめる）
 
 ADR-0001 §7の表のうち、差し替える行は次のとおり。ほかの行はそのまま。
 

@@ -42,3 +42,10 @@ handlers() {
   run jq -r '[.hooks.SessionStart[], .hooks.Stop[] | .hooks[] | select(.if)] | length' "$HOOKS"
   [ "$output" = 0 ]
 }
+
+@test "DirectoryAdded: one handler, directory-added.sh, with no matcher and no if" {
+  run jq -r '[.hooks.DirectoryAdded[]? | .hooks[]] | length' "$HOOKS"
+  [ "$output" = 1 ]
+  run handlers DirectoryAdded directory-added.sh
+  [ "$output" = "$(printf '\t')" ]
+}

@@ -2,7 +2,7 @@
 # write-guard.sh: PreToolUse hook (Write | Edit | NotebookEdit). Denies writes outside the project roots
 # (CLAUDE_PROJECT_DIR, plus cwd's checkout when it is a worktree of the same repository: project_roots) unless the
 # path is on the fixed allowlist (scratchpad / tmp, auto-memory, harness state) or the session's
-# allow file (/allow-repo).
+# allow file (the directories the user added with /add-dir: directory-added.sh).
 # A session allow file and the verify gate's state files are denied whatever the lists say. Silent otherwise.
 # Contract (openspec: write-guard): exit 0 always.
 set -u
@@ -15,10 +15,10 @@ ROOTS="$(project_roots "${CWD:-$PWD}")"
 case "$FILE" in /*) ABS="$FILE" ;; *) ABS="${CWD:-$PWD}/$FILE" ;; esac
 ABS="$(realpath_m "$ABS")"
 if is_allow_file "$ABS"; then
-  deny_json "uskn-harness: $ABS is a session allow file. Only the allow-repo skill (/allow-repo <path>) writes it, and only when the user asks for it in this session; nothing lifts this restriction."
+  deny_json "uskn-harness: $ABS is a session allow file. Only the DirectoryAdded hook writes it, when the user runs /add-dir <path> in this session; nothing lifts this restriction."
   exit 0
 fi
 if is_gate_file "$ABS"; then deny_json "uskn-harness: $ABS $GATE_DENY"; exit 0; fi
 path_allowed "$ABS" "$ROOTS" "$SID" && exit 0
-deny_json "uskn-harness: writing outside the project roots is not allowed. Target: $ABS. Roots: $(roots_text "$ROOTS"). Changes another repository needs go through a pull request made from a fresh clone in the scratchpad, whose body carries the handoff. If the user explicitly allowed editing that location in this session, run the allow-repo skill (/allow-repo <path>) first."
+deny_json "uskn-harness: writing outside the project roots is not allowed. Target: $ABS. Roots: $(roots_text "$ROOTS"). Changes another repository needs go through a pull request made from a fresh clone in the scratchpad, whose body carries the handoff. If the user explicitly allowed editing that location in this session, ask the user to run /add-dir <path> (only the user can)."
 exit 0
