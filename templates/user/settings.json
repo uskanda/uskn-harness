@@ -62,7 +62,13 @@
     "excludedCommands": [
       "*/allow-repo.sh *",
       "uskn-harness *",
-      "chezmoi *"
+      "chezmoi *",
+      "git push *",
+      "git switch *",
+      "git checkout *",
+      "git branch *",
+      "git config *",
+      "git remote *"
     ],
     "filesystem": {
       "allowWrite": [

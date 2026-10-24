@@ -19,11 +19,17 @@
 設定断片の `sandbox.excludedCommands` は、3つのコマンドに当たるパターンを持たなければならない（MUST）。
 3つとは、`allow-repo.sh`、`uskn-harness`、`chezmoi` である。
 3つは、状態ディレクトリ、`~/.claude`、`$HOME` へ書くため、sandboxの中では動かない。
+同じく、`.git/config` に書くgitの下位コマンド（`push`、`switch`、`checkout`、`branch`、`config`、`remote`）に当たるパターンも持つ。
+sandboxの中では、作業ディレクトリのリポジトリの `.git/config` に書けないため。
 `chezmoi` は、sandboxの外でもbash-guardの拒否の対象のままである。
 
 #### Scenario: allow-repo の実行
 - **WHEN** sandboxの有効な端末で、`/allow-repo` スキルが `allow-repo.sh --session <sid8> <path>` を実行する
 - **THEN** 許可ファイルに1行追加される
+
+#### Scenario: 上流を設定する push
+- **WHEN** sandboxの有効な端末のセッションで、新しいブランチを `git push -u origin HEAD` でpushする
+- **THEN** pushが通り、`.git/config` に上流が記録される
 
 #### Scenario: セッションからの sync
 - **WHEN** sandboxの有効な端末のセッションで、`uskn-harness sync --dry-run` を実行する
