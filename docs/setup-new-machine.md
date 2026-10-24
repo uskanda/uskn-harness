@@ -111,6 +111,8 @@ sudo apparmor_parser -r /etc/apparmor.d/bwrap
 - macOSでは、何も入れなくてよい
 - ルートの外で作業するときは、ユーザーが `/add-dir <path>` を打つ。hookがセッションの許可ファイルにも記録する（ADR-0010）
 - sandboxと相性の悪い道具（`docker` など）は、端末別設定の `sandbox.excludedCommands` に足す。端末別設定の置き場は `~/.config/uskn-harness/settings.json` である。配列は設定断片の値を置き換えるので、設定断片の3つのパターンも書き写す
+- `excludedCommands` は、コマンドの先頭がパターンに当たるときだけ、そのコマンドをsandboxの外で動かす。`cd <dir> && uskn-harness sync` ではなく、`uskn-harness sync` を単独で実行する
+- sandboxの中では、作業ディレクトリの `.bashrc` などに空のファイルが被さる。`git add -A` は失敗するので、`git add <paths>` で足す
 - 端末でsandboxを切るときは、端末別設定で `sandbox.enabled` を `false` にしてsyncを実行する
 
 ## 読み上げ通知

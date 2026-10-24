@@ -37,7 +37,8 @@
     "enabled": true,
     "failIfUnavailable": false,
     "allowUnsandboxedCommands": true,
-    "excludedCommands": ["*/allow-repo.sh *", "uskn-harness *", "chezmoi *"],
+    "excludedCommands": ["*/allow-repo.sh *", "uskn-harness *", "chezmoi *",
+                         "git push *", "git switch *", "git checkout *", "git branch *", "git config *", "git remote *"],
     "filesystem": { "allowWrite": ["~/.npm"] }
   }
 }
@@ -123,3 +124,14 @@ ADR-0001の §7（hook）に、ADR-0009でwarnパターンを置き換えた旨�
 - `gl.uskan.dev` は、この端末自身のIPに解決されるため、sandboxが拒否した（`resolved to one of this host's addresses`）。`allowedDomains` に足しても通らなかった。この端末からのGitLabへの接続は、sandboxの外での再実行に任せる
 - `excludedCommands` の `*/sbx-writer.sh *` は、絶対パスで起動したコマンドに当たった。`sbx-writer.sh *` は当たらなかった。`allow-repo.sh` のパターンは `*/allow-repo.sh *` にする
 - ルートの中の `make verify` は通った。`git commit` も通った
+
+## 実機の確認（2026-10-24、sandboxを有効にした後のセッション）
+
+syncでこの端末のsandboxを有効にした後、このセッションのBashで次のことが分かった。
+
+- 作業ディレクトリのリポジトリの `.git/config` は、sandboxの中では書けない。`$TMPDIR` のリポジトリの `.git/config` には書けた。`allowWrite` でも外せない
+- そのため、`git switch -c <branch> origin/main`、`git push -u`、`git branch --set-upstream-to` が失敗する。`git switch -c` は作業ツリーを切り替えた後、HEADを動かさずに止まった
+- 対処として、`.git/config` に書くgitの下位コマンドを `excludedCommands` に足す（grilling.mdの該当の行）。`claude -p` で、`git config --local` の書き込みと取り消しがsandboxの外で通り、`~/` への書き込みは拒否されたままであることを確かめた
+- `excludedCommands` は、コマンドの先頭がパターンに当たるときだけ、そのコマンドをsandboxの外で動かす。`cd <dir> && uskn-harness sync` はsandboxの中で動いて失敗し、`uskn-harness sync` だけなら外で動いた
+- sandboxの中のセッションから起動した `claude -p` は、外側のsandboxの中で動く。内側の `excludedCommands` は外側の制限を外せない
+- sandboxは、作業ディレクトリの `.bashrc`、`.gitconfig`、`.mcp.json` などに空のファイルを被せる。sandboxの中の `git add -A` は、それを足そうとして失敗する。`commit` スキルのとおり、`git add <paths>` で足す

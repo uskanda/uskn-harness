@@ -19,6 +19,7 @@ sandboxの振る舞いは、Claude Codeの文書（sandboxing、settings-referen
 | 変える仕様 | `bash-guard`、`user-settings`、`harness-doctor`、`allow-repo-skill` | 第3ラウンド（最終確認） |
 | ADR | ADR-0009に、決定と捨てた案を残す。ADR-0008はnotify-via-telegramが使う | 第3ラウンド（最終確認） |
 | sandboxの配列のマージ | `allowWrite`、`excludedCommands`、`allowedDomains` は、今のsyncの規則どおり設定断片の値で置き換える。集合として扱うのは `permissions` の下の4つの配列だけのままにする | 第3ラウンド（最終確認） |
+| `.git/config` に書くgitのコマンド | sandboxの中では作業ディレクトリのリポジトリの `.git/config` に書けないため、`git push`、`git switch`、`git checkout`、`git branch`、`git config`、`git remote` を `excludedCommands` に足す。別のリポジトリへの書き込みは、今と同じくbash-guardが拒否する | 実装中の確認（実機で見つかった問題への対処。ユーザーがAを選んだ） |
 | 実機での確認の前提 | 最初のtaskで、ユーザーがこの端末に `bubblewrap` と `socat` を入れる | 第3ラウンド（最終確認） |
 
 ## 後回しにしたもの
