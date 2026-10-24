@@ -99,6 +99,15 @@ dotfilesが配っていた `~/.claude/settings.json` がある端末では、初
 sandboxの中のBashが書けるのは、作業ディレクトリ、一時ディレクトリ、`/add-dir` で追加したディレクトリ、設定断片の挙げるキャッシュだけである。
 
 - UbuntuとWSL2では、`sudo apt install -y bubblewrap socat` で2つを入れる。無い端末では、Bashが制限なしで動き、doctorが `warn` を出す
+- Ubuntu 24.04以降では、AppArmorが `bwrap` のユーザー名前空間を拒否する（`bwrap: setting up uid map: Permission denied`）。次の2つで `bwrap` に許可を与える
+
+```bash
+printf 'abi <abi/4.0>,\ninclude <tunables/global>\n\nprofile bwrap /usr/bin/bwrap flags=(unconfined) {\n  userns,\n  include if exists <local/bwrap>\n}\n' | sudo tee /etc/apparmor.d/bwrap
+sudo apparmor_parser -r /etc/apparmor.d/bwrap
+```
+
+- 確認は `bwrap --ro-bind / / --dev /dev --proc /proc true` が終了コード0で終わること
+- この端末自身のIPに解決されるホスト（同じ端末で動かすGitLabなど）へは、sandboxの中から接続できない。sandboxの外での再実行で接続する
 - macOSでは、何も入れなくてよい
 - ルートの外で作業するときは、ユーザーが `/allow-repo <path>` と `/add-dir <path>` を続けて打つ
 - sandboxと相性の悪い道具（`docker` など）は、端末別設定の `sandbox.excludedCommands` に足す。端末別設定の置き場は `~/.config/uskn-harness/settings.json` である。配列は設定断片の値を置き換えるので、設定断片の3つのパターンも書き写す

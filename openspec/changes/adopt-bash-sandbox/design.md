@@ -37,8 +37,8 @@
     "enabled": true,
     "failIfUnavailable": false,
     "allowUnsandboxedCommands": true,
-    "excludedCommands": ["<allow-repo.sh のパターン>", "uskn-harness *", "chezmoi *"],
-    "filesystem": { "allowWrite": ["~/.npm", "~/.cache", "~/.local/share/mise"] }
+    "excludedCommands": ["*/allow-repo.sh *", "uskn-harness *", "chezmoi *"],
+    "filesystem": { "allowWrite": ["~/.npm"] }
   }
 }
 ```
@@ -111,3 +111,15 @@ ADR-0001の §7（hook）に、ADR-0009でwarnパターンを置き換えた旨�
 1. ユーザーが、Linuxの端末に `bubblewrap` と `socat` を入れる
 2. この変更をmainへマージした後、各端末で `uskn-harness sync` を実行する。doctorの `ok` を確かめる
 3. 戻すときは、端末別設定で `sandbox.enabled` を `false` にしてsyncを実行する。全端末で戻すときは、設定断片から `sandbox` を消す。syncの3方向の片付けがliveから消す
+
+## 実機の確認（2026-10-24、Ubuntu 24.04、Claude Code 2.1.296）
+
+`claude -p --settings <file>` に設定を渡し、sandboxの中のBashで確かめた。結果は次のとおり。
+
+- `bwrap` はAppArmorに拒否された（`setting up uid map: Permission denied`）。`/etc/apparmor.d/bwrap` に `userns` を許すAppArmorの規則を置き、`apparmor_parser -r` で読み込むと動いた
+- ルートの外と状態ディレクトリへの書き込みは `Read-only file system` で失敗した。ルートの中と `/tmp`（`permissions.additionalDirectories`）には書けた
+- `npx` は `~/.npm` に書けないと失敗し、`~/.npm` を `allowWrite` に足すと動いた。`~/.cache` と `~/.local/share/mise` は要らなかった。`allowWrite` は `~/.npm` だけにする
+- `WebFetch(domain:*)` を許可しただけで、Bashからexample.com、api.github.com、`gh api`、github.comへの `git ls-remote` が通った。`sandbox.network.allowedDomains` は要らない
+- `gl.uskan.dev` は、この端末自身のIPに解決されるため、sandboxが拒否した（`resolved to one of this host's addresses`）。`allowedDomains` に足しても通らなかった。この端末からのGitLabへの接続は、sandboxの外での再実行に任せる
+- `excludedCommands` の `*/sbx-writer.sh *` は、絶対パスで起動したコマンドに当たった。`sbx-writer.sh *` は当たらなかった。`allow-repo.sh` のパターンは `*/allow-repo.sh *` にする
+- ルートの中の `make verify` は通った。`git commit` も通った

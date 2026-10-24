@@ -21,8 +21,8 @@ hook、Write、Editはsandboxの外で動く。
 1. 設定断片で、全端末のsandboxを有効にする。`failIfUnavailable` は `false`、`allowUnsandboxedCommands` は `true` にする
 2. bash-guardから、ルートの外への書き込みの警告を削除する。denyパターン（別のリポジトリへのgitの書き込み、chezmoi）と、許可ファイルとverify gateの状態ファイルの保護は残す
 3. ルートの外へ書くハーネスのコマンド（`allow-repo.sh`、`uskn-harness`、`chezmoi`）は、`excludedCommands` でsandboxの外で動かす
-4. `npx`、mise、pipのキャッシュは、`sandbox.filesystem.allowWrite` で書けるようにする。状態ディレクトリは含めない
-5. ネットワークは、`permissions.allow` の `WebFetch(domain:*)` で、ドメインごとの確認なしに通す。Bashの接続先が全ホストにならないときは、gitのホスティングとパッケージの取得元を `sandbox.network.allowedDomains` に並べる
+4. `npx` のキャッシュ `~/.npm` は、`sandbox.filesystem.allowWrite` で書けるようにする。状態ディレクトリは含めない
+5. ネットワークは、`permissions.allow` の `WebFetch(domain:*)` で、ドメインごとの確認なしに通す。sandboxはこのルールを、Bashの接続先にも全ホストの許可として使う（2026-10-24に実機で確認）
 6. `bwrap` か `socat` の無いLinuxの端末では、doctorが `warn` を出す。syncはどちらもインストールしない
 7. `/allow-repo` は、許可を記録した後に `/add-dir <path>` を打つようユーザーに案内する。2つを1つにまとめる作業はissue #6で行う
 
@@ -47,5 +47,5 @@ ADR-0001 §7の表のうち、差し替える行は次のとおり。ほかの�
 ## 結果
 
 - 良い点：Bashのルートの外への書き込みは、推測でなくOSの仕組みで止まる。間接の書き込みも止まる
-- 引き受けるコスト：LinuxとWSL2の端末には、ユーザーが `bubblewrap` と `socat` を入れる。sandboxと相性の悪い道具は、端末別設定の `excludedCommands` に足す。sandboxの外での再実行はauto modeのclassifierが判定し、classifierが通した書き込みは止まらない
+- 引き受けるコスト：LinuxとWSL2の端末には、ユーザーが `bubblewrap` と `socat` を入れる。sandboxと相性の悪い道具は、端末別設定の `excludedCommands` に足す。sandboxの外での再実行はauto modeのclassifierが判定し、classifierが通した書き込みは止まらない。この端末自身のIPに解決されるホストへは、sandboxの中から接続できない
 - 後回し：`/allow-repo` と `/add-dir` を1つにまとめること（issue #6）。sandboxの外での再実行の禁止
