@@ -11,7 +11,6 @@ setup() {
 }
 call() { jq -c -n --arg c "$1" --arg cwd "$ROOT" '{session_id:"sid12345678", cwd:$cwd, tool_name:"Bash", tool_input:{command:$c}}' | "$SCRIPT"; }
 denied() { echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null; }
-warned() { echo "$output" | jq -e '(.hookSpecificOutput.permissionDecision // "none") == "none" and (.hookSpecificOutput.additionalContext | length) > 0' >/dev/null; }
 reason() { echo "$output" | jq -r '.hookSpecificOutput.permissionDecisionReason'; }
 # refute <command...>: fails when the command succeeds (a bare `! cmd` mid-test never fails a bats test).
 refute() { ! "$@"; }
@@ -98,19 +97,19 @@ path_without() {
   run call "cd $ROOT && git commit -m x"; [ -z "$output" ]
 }
 
-@test "copies, moves, redirects to outside paths only warn" {
-  run call "cp x.md $OTHER/"; [ "$status" -eq 0 ]; warned
-  run call "echo hi > $OTHER/f.txt"; warned
-  run call "sed -i 's/a/b/' ~/dotfiles/x"; warned
+@test "copies, moves, redirects to outside paths are silent: the sandbox limits them" {
+  run call "cp x.md $OTHER/"; [ "$status" -eq 0 ]; [ -z "$output" ]
+  run call "echo hi > $OTHER/f.txt"; [ -z "$output" ]
+  run call "sed -i 's/a/b/' ~/dotfiles/x"; [ -z "$output" ]
   run call "cp a b"; [ -z "$output" ]
 }
 
-@test "quoted redirect targets and writes after cd into an outside directory warn" {
-  run call "echo hi > \"$OTHER/f\""; warned
-  run call "make 2>>'$OTHER/log'"; warned
-  run call "cd $OTHER && touch f"; warned
-  run call "mv $OTHER/a.txt ./"; warned
-  run call "tee -a $OTHER/x < in.txt"; warned
+@test "quoted redirect targets and writes after cd into an outside directory are silent" {
+  run call "echo hi > \"$OTHER/f\""; [ -z "$output" ]
+  run call "make 2>>'$OTHER/log'"; [ -z "$output" ]
+  run call "cd $OTHER && touch f"; [ -z "$output" ]
+  run call "mv $OTHER/a.txt ./"; [ -z "$output" ]
+  run call "tee -a $OTHER/x < in.txt"; [ -z "$output" ]
 }
 
 @test "sed expressions, copies from outside, and links to outside targets are not outside writes" {
@@ -173,12 +172,12 @@ path_without() {
   run wt "git -C $OTHER push"; denied
 }
 
-@test "cwd moved into another repository: git writes and outside writes there are denied or warned" {
+@test "cwd moved into another repository: git writes are denied, other writes there are silent" {
   git -C "$OTHER" init -q -b main
   at() { jq -c -n --arg c "$1" --arg cwd "$OTHER" '{session_id:"sid12345678", cwd:$cwd, tool_name:"Bash", tool_input:{command:$c}}' | "$SCRIPT"; }
   run at "git commit -m x"; [ "$status" -eq 0 ]; denied
   run at "git push origin main"; denied
-  run at "echo x > notes.md"; warned
+  run at "echo x > notes.md"; [ -z "$output" ]
   run at "git log --oneline -3"; [ -z "$output" ]
   run at "cp x.md $ROOT/"; [ -z "$output" ]
 }

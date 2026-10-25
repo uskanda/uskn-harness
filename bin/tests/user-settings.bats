@@ -39,6 +39,35 @@ settings_lines() { grep -E '^[a-z]+ +user settings' <<<"$output" || true; }
   [ "$status" -eq 0 ]
 }
 
+@test "the settings fragment turns the sandbox on, never fails to start without it, and keeps the retry" {
+  [ "$(jq -r '.sandbox.enabled' "$FRAGMENT")" = true ]
+  [ "$(jq -r '.sandbox.failIfUnavailable' "$FRAGMENT")" = false ]
+  [ "$(jq -r '.sandbox.allowUnsandboxedCommands' "$FRAGMENT")" = true ]
+}
+
+@test "the sandbox leaves allow-repo.sh (by absolute path), uskn-harness, and chezmoi outside" {
+  for p in '*/allow-repo.sh *' 'uskn-harness *' 'chezmoi *'; do
+    jq -e --arg p "$p" 'any(.sandbox.excludedCommands[]?; . == $p)' "$FRAGMENT" >/dev/null || { echo "missing: $p"; false; }
+  done
+}
+
+@test "the sandbox leaves the git commands that write .git/config outside: it cannot write there" {
+  for p in 'git push *' 'git switch *' 'git checkout *' 'git branch *' 'git config *' 'git remote *'; do
+    jq -e --arg p "$p" 'any(.sandbox.excludedCommands[]?; . == $p)' "$FRAGMENT" >/dev/null || { echo "missing: $p"; false; }
+  done
+}
+
+@test "the sandbox may write the npm cache but never the harness state or the home directory itself" {
+  jq -e 'any(.sandbox.filesystem.allowWrite[]?; . == "~/.npm")' "$FRAGMENT" >/dev/null
+  jq -e 'any(.sandbox.filesystem.allowWrite[]?; . == "~/.cache/gh")' "$FRAGMENT" >/dev/null
+  run jq -r '.sandbox.filesystem.allowWrite[]? | select(test("uskn-harness|^~/?$|^~/\\.local/state"))' "$FRAGMENT"
+  [ -z "$output" ]
+}
+
+@test "the settings fragment lets WebFetch, and through it sandboxed Bash, reach any host" {
+  has_allow "$FRAGMENT" 'WebFetch(domain:*)'
+}
+
 @test "the settings fragment has neither hooks nor modelSettings" {
   run jq -r '[keys[] | select(. == "hooks" or . == "modelSettings")] | join(" ")' "$FRAGMENT"
   [ "$status" -eq 0 ]

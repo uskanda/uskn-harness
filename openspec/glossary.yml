@@ -154,3 +154,7 @@ terms:
     definition: "syncが最後にマージした設定断片と端末別設定の合成の写し `~/.local/state/uskn-harness/settings-applied.json`。"
     aliases: ["前回の断片"]
     en: "applied record"
+  - term: "sandbox"
+    definition: "Claude CodeのBashの書き込み先とネットワークの接続先を、OSの仕組みで制限する機能。設定は `sandbox` の下に置く。"
+    aliases: ["サンドボックス"]
+    en: "sandbox"

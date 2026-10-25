@@ -916,3 +916,53 @@ opsx_commands() { # <dir>: the six core workflow commands with the marker
   [ "$status" -eq 0 ]
   [[ "$output" == *"warn"*"retired-skill"*"sync"* ]] || false
 }
+
+# ---- sandbox dependencies (spec: harness-doctor)
+
+# path_hiding <name>...: PATH with every listed command hidden, the way path_without_claude hides claude
+path_hiding() {
+  local IFS=: dir f out="" shadow n=0 name hit
+  for dir in $PATH; do
+    hit=0
+    for name in "$@"; do [ -e "$dir/$name" ] && hit=1; done
+    if [ "$hit" = 1 ]; then
+      n=$((n + 1)); shadow="$BATS_TEST_TMPDIR/hide$n"; mkdir -p "$shadow"
+      for f in "$dir"/*; do
+        hit=0; for name in "$@"; do [ "${f##*/}" = "$name" ] && hit=1; done
+        [ "$hit" = 1 ] || ln -s "$f" "$shadow/"
+      done
+      dir="$shadow"
+    fi
+    out="${out:+$out:}$dir"
+  done
+  printf '%s' "$out"
+}
+live_sandbox() { printf '{"sandbox":{"enabled":%s}}\n' "$1" > "$CLAUDE_CONFIG_DIR/settings.json"; }
+fake_tool() { printf '#!/bin/sh\nexit 0\n' > "$HOME/.local/bin/$1"; chmod +x "$HOME/.local/bin/$1"; }
+sandbox_lines() { grep -E '^(ok|warn|fail) +sandbox' <<<"$output" || true; }
+
+@test "doctor: sandbox on Linux without bwrap is warn naming it and how to install" {
+  live_sandbox true; fake_tool socat
+  PATH="$(path_hiding bwrap)" USKN_HARNESS_OS=Linux run "$CLI" doctor
+  [ "$(sandbox_lines | grep -c '^warn')" -eq 1 ] || false
+  [[ "$(sandbox_lines)" == *bwrap* ]] || false
+  [[ "$(sandbox_lines)" != *"socat,"* ]] || false
+  [[ "$(sandbox_lines)" == *bubblewrap* ]] || false
+  [[ "$(sandbox_lines)" == *"without limits"* ]] || false
+}
+
+@test "doctor: sandbox on Linux with bwrap and socat is ok" {
+  live_sandbox true; fake_tool bwrap; fake_tool socat
+  USKN_HARNESS_OS=Linux run "$CLI" doctor
+  [ "$(sandbox_lines | grep -c '^ok')" -eq 1 ] || false
+  [ "$(sandbox_lines | grep -c '^warn')" -eq 0 ] || false
+}
+
+@test "doctor: no sandbox line on macOS or when the sandbox is off" {
+  live_sandbox true
+  PATH="$(path_hiding bwrap socat)" USKN_HARNESS_OS=Darwin run "$CLI" doctor
+  [ -z "$(sandbox_lines)" ] || false
+  live_sandbox false
+  PATH="$(path_hiding bwrap socat)" USKN_HARNESS_OS=Linux run "$CLI" doctor
+  [ -z "$(sandbox_lines)" ] || false
+}
