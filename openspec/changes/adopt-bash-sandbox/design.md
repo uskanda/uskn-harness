@@ -39,7 +39,7 @@
     "allowUnsandboxedCommands": true,
     "excludedCommands": ["*/allow-repo.sh *", "uskn-harness *", "chezmoi *",
                          "git push *", "git switch *", "git checkout *", "git branch *", "git config *", "git remote *"],
-    "filesystem": { "allowWrite": ["~/.npm"] }
+    "filesystem": { "allowWrite": ["~/.npm", "~/.cache/gh"] }
   }
 }
 ```
@@ -135,3 +135,5 @@ syncでこの端末のsandboxを有効にした後、このセッションのBas
 - `excludedCommands` は、コマンドの先頭がパターンに当たるときだけ、そのコマンドをsandboxの外で動かす。`cd <dir> && uskn-harness sync` はsandboxの中で動いて失敗し、`uskn-harness sync` だけなら外で動いた
 - sandboxの中のセッションから起動した `claude -p` は、外側のsandboxの中で動く。内側の `excludedCommands` は外側の制限を外せない
 - sandboxは、作業ディレクトリの `.bashrc`、`.gitconfig`、`.mcp.json` などに空のファイルを被せる。sandboxの中の `git add -A` は、それを足そうとして失敗する。`commit` スキルのとおり、`git add <paths>` で足す
+- `gh run view --log-failed` は `~/.cache/gh` にログを置くため、sandboxの中では失敗した。`allowWrite` に `~/.cache/gh` を足す
+- sandboxが被せる空のファイルは、terms-checkの名前の検査にも見える。sandboxの中では、実在しない `.mcp.json` が実在すると判定され、手元の検査が通ってCIで落ちた。sandboxの外のCIの結果を正とする

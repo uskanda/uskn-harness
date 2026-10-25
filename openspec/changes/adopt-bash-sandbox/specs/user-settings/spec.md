@@ -37,7 +37,7 @@ sandboxの中では、作業ディレクトリのリポジトリの `.git/config
 
 ### Requirement: sandbox で書けるキャッシュ
 設定断片の `sandbox.filesystem.allowWrite` は、`npx`、mise、pipがsandboxの中で動くのに要るキャッシュのディレクトリだけを持たなければならない（MUST）。
-候補は `~/.npm`、`~/.cache`、`~/.local/share/mise` で、実機で要ると確かめたものだけを残す。
+候補は `~/.npm`、`~/.cache`（`gh` が使う `~/.cache/gh` を含む）、`~/.local/share/mise` で、実機で要ると確かめたものだけを残す。
 ハーネスの状態ディレクトリと、別のリポジトリを含めてはならない（MUST NOT）。
 
 #### Scenario: npx の取得
