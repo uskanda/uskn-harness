@@ -29,3 +29,4 @@ api.github.com
 gl.uskan.dev
 pypi.org
 files.pythonhosted.org
+.mcp.json

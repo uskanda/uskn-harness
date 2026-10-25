@@ -59,6 +59,7 @@ settings_lines() { grep -E '^[a-z]+ +user settings' <<<"$output" || true; }
 
 @test "the sandbox may write the npm cache but never the harness state or the home directory itself" {
   jq -e 'any(.sandbox.filesystem.allowWrite[]?; . == "~/.npm")' "$FRAGMENT" >/dev/null
+  jq -e 'any(.sandbox.filesystem.allowWrite[]?; . == "~/.cache/gh")' "$FRAGMENT" >/dev/null
   run jq -r '.sandbox.filesystem.allowWrite[]? | select(test("uskn-harness|^~/?$|^~/\\.local/state"))' "$FRAGMENT"
   [ -z "$output" ]
 }

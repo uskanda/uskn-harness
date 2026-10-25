@@ -72,7 +72,8 @@
     ],
     "filesystem": {
       "allowWrite": [
-        "~/.npm"
+        "~/.npm",
+        "~/.cache/gh"
       ]
     }
   }
