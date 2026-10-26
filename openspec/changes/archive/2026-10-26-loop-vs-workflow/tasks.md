@@ -8,4 +8,4 @@
 ## 2. 統合
 
 - [x] 2.1 `openspec validate loop-vs-workflow --strict` と `make verify VERIFY_STRICT=1` が通ることを確かめる
-- [ ] 2.2 PRをmainへマージする
+- [x] 2.2 PRをmainへマージする（archive-pushの手順で完了とみなした）
