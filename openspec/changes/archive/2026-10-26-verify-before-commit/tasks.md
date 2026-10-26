@@ -12,4 +12,4 @@
 ## 3. 統合
 
 - [x] 3.1 `openspec validate verify-before-commit --strict` と `make verify VERIFY_STRICT=1` が通ることを確かめる
-- [ ] 3.2 PRをmainへマージする
+- [x] 3.2 PRをmainへマージする（archive-pushの手順で完了とみなした）
