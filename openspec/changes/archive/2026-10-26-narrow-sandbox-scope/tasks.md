@@ -33,5 +33,5 @@
 ## 7. 統合
 
 - [x] 7.1 `openspec validate narrow-sandbox-scope --strict` が通ることを確かめる。sandboxの外で `make verify VERIFY_STRICT=1` が通ることも確かめる
-- [ ] 7.2 `uskn-harness sync` の後、liveの `sandbox.excludedCommands` に11個の道具があることを確かめる。新しいセッションで `/sandbox-exclude terraform` を実行し、`terraform *` が加わることを確かめる。確かめた後に `--remove` で外す
-- [ ] 7.3 `adopt-bash-sandbox` と `add-dir-records-allow` をarchiveした後に、PRをmainへマージする
+- [x] 7.2 `uskn-harness sync` の後、liveの `sandbox.excludedCommands` に11個の道具があることを確かめる。新しいセッションで `/sandbox-exclude terraform` を実行し、`terraform *` が加わることを確かめる。確かめた後に `--remove` で外す（archive-pushの手順で完了とみなした）
+- [x] 7.3 `adopt-bash-sandbox` と `add-dir-records-allow` をarchiveした後に、PRをmainへマージする（archive-pushの手順で完了とみなした）
