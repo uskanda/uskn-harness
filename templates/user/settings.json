@@ -60,19 +60,28 @@
     "failIfUnavailable": false,
     "allowUnsandboxedCommands": true,
     "excludedCommands": [
+      "git *",
+      "gh *",
+      "glab *",
+      "docker *",
+      "mise *",
+      "claude *",
       "uskn-harness *",
+      "uskn-loop *",
       "chezmoi *",
-      "git push *",
-      "git switch *",
-      "git checkout *",
-      "git branch *",
-      "git config *",
-      "git remote *"
+      "ssh *",
+      "scp *"
     ],
     "filesystem": {
       "allowWrite": [
+        "~/.cache",
         "~/.npm",
-        "~/.cache/gh"
+        "~/.local/share/mise",
+        "~/.local/share/pnpm",
+        "~/.local/state"
+      ],
+      "denyWrite": [
+        "~/.local/state/uskn-harness"
       ]
     }
   }

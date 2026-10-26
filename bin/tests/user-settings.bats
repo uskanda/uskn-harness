@@ -45,25 +45,41 @@ settings_lines() { grep -E '^[a-z]+ +user settings' <<<"$output" || true; }
   [ "$(jq -r '.sandbox.allowUnsandboxedCommands' "$FRAGMENT")" = true ]
 }
 
-@test "the sandbox leaves uskn-harness and chezmoi outside, and nothing that writes the allow file" {
-  for p in 'uskn-harness *' 'chezmoi *'; do
-    jq -e --arg p "$p" 'any(.sandbox.excludedCommands[]?; . == $p)' "$FRAGMENT" >/dev/null || { echo "missing: $p"; false; }
+@test "the sandbox leaves the eleven well-known tools outside, git as a whole" {
+  for t in git gh glab docker mise claude uskn-harness uskn-loop chezmoi ssh scp; do
+    jq -e --arg p "$t *" 'any(.sandbox.excludedCommands[]?; . == $p)' "$FRAGMENT" >/dev/null || { echo "missing: $t *"; false; }
   done
-  run jq -r '.sandbox.excludedCommands[] | select(test("allow-repo"))' "$FRAGMENT"
+  run jq -r '.sandbox.excludedCommands[] | select(test("^git [a-z]+ \\*$") or test("allow-repo"))' "$FRAGMENT"
   [ -z "$output" ]
 }
 
-@test "the sandbox leaves the git commands that write .git/config outside: it cannot write there" {
-  for p in 'git push *' 'git switch *' 'git checkout *' 'git branch *' 'git config *' 'git remote *'; do
-    jq -e --arg p "$p" 'any(.sandbox.excludedCommands[]?; . == $p)' "$FRAGMENT" >/dev/null || { echo "missing: $p"; false; }
-  done
+@test "execution whose effect cannot be read beforehand stays inside the sandbox" {
+  run jq -r '.sandbox.excludedCommands[] | select(test("^(npm|pnpm|npx|make|python3?|node|curl|bash|sh) "))' "$FRAGMENT"
+  [ -z "$output" ]
 }
 
-@test "the sandbox may write the npm cache but never the harness state or the home directory itself" {
-  jq -e 'any(.sandbox.filesystem.allowWrite[]?; . == "~/.npm")' "$FRAGMENT" >/dev/null
-  jq -e 'any(.sandbox.filesystem.allowWrite[]?; . == "~/.cache/gh")' "$FRAGMENT" >/dev/null
-  run jq -r '.sandbox.filesystem.allowWrite[]? | select(test("uskn-harness|^~/?$|^~/\\.local/state"))' "$FRAGMENT"
+@test "the sandbox may write caches and tool data, but never the harness state" {
+  for d in '~/.cache' '~/.npm' '~/.local/share/mise' '~/.local/share/pnpm' '~/.local/state'; do
+    jq -e --arg d "$d" 'any(.sandbox.filesystem.allowWrite[]?; . == $d)' "$FRAGMENT" >/dev/null || { echo "missing: $d"; false; }
+  done
+  jq -e 'any(.sandbox.filesystem.denyWrite[]?; . == "~/.local/state/uskn-harness")' "$FRAGMENT" >/dev/null
+  run jq -r '.sandbox.filesystem.allowWrite[]? | select(test("uskn-harness|chezmoi|repos|^~/?$"))' "$FRAGMENT"
   [ -z "$output" ]
+}
+
+@test "sandbox arrays are sets: what the machine adds survives sync next to the fragment" {
+  write_overlay '{"sandbox":{"excludedCommands":["terraform *"],"filesystem":{"allowWrite":["~/.terraform.d"]}}}'
+  "$CLI" sync --no-pull >/dev/null
+  jq -e '.sandbox.excludedCommands | (index("terraform *") != null) and (index("git *") != null)' "$LIVE" >/dev/null
+  jq -e '.sandbox.filesystem.allowWrite | (index("~/.terraform.d") != null) and (index("~/.npm") != null)' "$LIVE" >/dev/null
+  run "$CLI" sync --no-pull
+  jq -e '[.sandbox.excludedCommands[] | select(. == "terraform *")] | length == 1' "$LIVE" >/dev/null
+}
+
+@test "an element Claude Code's /sandbox put into live stays after sync" {
+  write_live '{"sandbox":{"excludedCommands":["kubectl *"]}}'
+  "$CLI" sync --no-pull >/dev/null
+  jq -e '.sandbox.excludedCommands | (index("kubectl *") != null) and (index("gh *") != null)' "$LIVE" >/dev/null
 }
 
 @test "the settings fragment lets WebFetch, and through it sandboxed Bash, reach any host" {

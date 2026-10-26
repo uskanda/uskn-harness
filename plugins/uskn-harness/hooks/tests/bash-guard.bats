@@ -8,6 +8,8 @@ setup() {
   SCRATCH="$BATS_TEST_TMPDIR/scratch"; export USKN_GUARD_ALLOW_DIRS="$SCRATCH"
   ROOT="$BATS_TEST_TMPDIR/repos/a"; OTHER="$BATS_TEST_TMPDIR/repos/b"; mkdir -p "$ROOT" "$OTHER" "$SCRATCH"; ( cd "$ROOT" && git init -q -b main )
   export CLAUDE_PROJECT_DIR="$ROOT"
+  # The live settings the notice reads: a fresh one per test, never the real ~/.claude.
+  export CLAUDE_CONFIG_DIR="$HOME/.claude"
 }
 call() { jq -c -n --arg c "$1" --arg cwd "$ROOT" '{session_id:"sid12345678", cwd:$cwd, tool_name:"Bash", tool_input:{command:$c}}' | "$SCRIPT"; }
 denied() { echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null; }
@@ -198,4 +200,39 @@ path_without() {
 @test "redirects to /dev/null are not outside paths" {
   run call "make verify > /dev/null 2>&1"; [ "$status" -eq 0 ]; [ -z "$output" ]
   run call "cp a.txt /dev/null"; [ -z "$output" ]
+}
+
+# ---- notice for a tool the sandbox would let out, placed where excludedCommands cannot match (spec: bash-guard)
+live_excluded() { mkdir -p "$CLAUDE_CONFIG_DIR"; jq -n --args '{sandbox:{excludedCommands:$ARGS.positional}}' "$@" > "$CLAUDE_CONFIG_DIR/settings.json"; }
+noticed() { echo "$output" | jq -e --arg t "$1" '(.hookSpecificOutput.permissionDecision // "none") == "none" and (.hookSpecificOutput.additionalContext | contains($t))' >/dev/null; }
+
+@test "a listed tool after cd && is noticed, not denied, and the notice says to run it on its own" {
+  live_excluded 'git *' 'gh *'
+  mkdir -p "$ROOT/sub"
+  run call "cd sub && git push -u origin HEAD"
+  [ "$status" -eq 0 ]
+  noticed "git push"
+  echo "$output" | jq -r '.hookSpecificOutput.additionalContext' | grep -qi 'on its own'
+}
+
+@test "a listed tool before a pipe, or behind sudo or an assignment, is noticed too" {
+  live_excluded 'git *' 'gh *'
+  run call "git push -u origin HEAD 2>&1 | tail -1"; noticed "git push"
+  run call "(gh pr view 1)"; noticed "gh pr"
+  run call "FOO=1 gh pr view 1"; noticed "gh pr"
+}
+
+@test "a listed tool alone, or an unlisted tool after cd, says nothing" {
+  live_excluded 'git *' 'gh *'
+  mkdir -p "$ROOT/sub"
+  run call "git push -u origin HEAD"; [ -z "$output" ]
+  run call "cd sub && make test"; [ -z "$output" ]
+}
+
+@test "no live settings: no notice; a deny wins over a notice" {
+  mkdir -p "$ROOT/sub"
+  run call "cd sub && git push"; [ -z "$output" ]
+  live_excluded 'git *'
+  run call "cd $OTHER && git push"; denied
+  [ "$(echo "$output" | jq -r '.hookSpecificOutput.additionalContext // empty')" = "" ]
 }

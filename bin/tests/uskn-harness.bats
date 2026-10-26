@@ -966,3 +966,61 @@ sandbox_lines() { grep -E '^(ok|warn|fail) +sandbox' <<<"$output" || true; }
   PATH="$(path_hiding bwrap socat)" USKN_HARNESS_OS=Linux run "$CLI" doctor
   [ -z "$(sandbox_lines)" ] || false
 }
+
+# ---- sandbox-exclude (spec: harness-sync)
+
+overlay_excluded() { jq -r '.sandbox.excludedCommands // [] | .[]' "$HOME/.config/uskn-harness/settings.json"; }
+live_excluded() { jq -r '.sandbox.excludedCommands // [] | .[]' "$CLAUDE_CONFIG_DIR/settings.json"; }
+
+@test "sandbox-exclude adds a pattern to the machine overlay once and applies it to live" {
+  run "$CLI" sandbox-exclude 'terraform *'
+  [ "$status" -eq 0 ]
+  [ "$(overlay_excluded)" = 'terraform *' ]
+  live_excluded | grep -qxF 'terraform *'
+  live_excluded | grep -qxF 'git *'
+  run "$CLI" sandbox-exclude 'terraform *'
+  [ "$status" -eq 0 ]
+  [ "$(overlay_excluded | grep -cxF 'terraform *')" -eq 1 ]
+}
+
+@test "sandbox-exclude keeps the rest of the overlay" {
+  mkdir -p "$HOME/.config/uskn-harness"
+  printf '{"model":"sonnet","sandbox":{"excludedCommands":["kubectl *"]}}\n' > "$HOME/.config/uskn-harness/settings.json"
+  run "$CLI" sandbox-exclude 'terraform *'
+  [ "$status" -eq 0 ]
+  [ "$(jq -r .model "$HOME/.config/uskn-harness/settings.json")" = sonnet ]
+  [ "$(overlay_excluded | tr '\n' ,)" = 'kubectl *,terraform *,' ]
+}
+
+@test "sandbox-exclude refuses an empty pattern and a bare *, changing nothing" {
+  for p in '' '*' ' * '; do
+    run "$CLI" sandbox-exclude "$p"
+    [ "$status" -eq 2 ]
+  done
+  [ ! -e "$HOME/.config/uskn-harness/settings.json" ]
+}
+
+@test "sandbox-exclude --list names where each live pattern comes from" {
+  "$CLI" sandbox-exclude 'terraform *' >/dev/null
+  run "$CLI" sandbox-exclude --list
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -qE '^fragment +git \*$'
+  echo "$output" | grep -qE '^machine +terraform \*$'
+}
+
+@test "sandbox-exclude --remove takes a machine pattern out of the overlay and live" {
+  "$CLI" sandbox-exclude 'terraform *' >/dev/null
+  run "$CLI" sandbox-exclude --remove 'terraform *'
+  [ "$status" -eq 0 ]
+  [ -z "$(overlay_excluded)" ]
+  run live_excluded
+  [[ "$output" != *"terraform *"* ]] || false
+}
+
+@test "sandbox-exclude --remove refuses a fragment pattern and asks for a pull request" {
+  "$CLI" sync --no-pull >/dev/null
+  run "$CLI" sandbox-exclude --remove 'git *'
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"pull request"* ]] || false
+  live_excluded | grep -qxF 'git *'
+}

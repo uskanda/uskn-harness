@@ -95,8 +95,10 @@ dotfilesが配っていた `~/.claude/settings.json` がある端末では、初
 
 ## Bash の sandbox
 
-ユーザー層のsettings.jsonは、Claude Codeのsandboxを有効にする（ADR-0009）。
-sandboxの中のBashが書けるのは、作業ディレクトリ、一時ディレクトリ、`/add-dir` で追加したディレクトリ、設定断片の挙げるキャッシュだけである。
+ユーザー層のsettings.jsonは、Claude Codeのsandboxを有効にする（ADR-0009、ADR-0011）。
+sandboxに残るのは、中身を前もって読めない実行（`npm`、`make`、`python` など）である。
+`git`、`gh`、`glab`、`docker`、`mise`、`claude`、`uskn-harness`、`uskn-loop`、`chezmoi`、`ssh`、`scp` は、sandboxの外で動く。
+sandboxの中のBashが書けるのは、作業ディレクトリ、一時ディレクトリ、`/add-dir` で追加したディレクトリ、設定断片の挙げるキャッシュとツールのデータだけである。
 
 - UbuntuとWSL2では、`sudo apt install -y bubblewrap socat` で2つを入れる。無い端末では、Bashが制限なしで動き、doctorが `warn` を出す
 - Ubuntu 24.04以降では、AppArmorが `bwrap` のユーザー名前空間を拒否する（`bwrap: setting up uid map: Permission denied`）。次の2つで `bwrap` に許可を与える
@@ -107,11 +109,11 @@ sudo apparmor_parser -r /etc/apparmor.d/bwrap
 ```
 
 - 確認は `bwrap --ro-bind / / --dev /dev --proc /proc true` が終了コード0で終わること
-- この端末自身のIPに解決されるホスト（同じ端末で動かすGitLabなど）へは、sandboxの中から接続できない。sandboxの外での再実行で接続する
+- この端末自身のIPに解決されるホスト（同じ端末で動かすGitLabなど）へは、sandboxの中から接続できない。`git` と `glab` はsandboxの外で動くので、この制限を受けない
 - macOSでは、何も入れなくてよい
 - ルートの外で作業するときは、ユーザーが `/add-dir <path>` を打つ。hookがセッションの許可ファイルにも記録する（ADR-0010）
-- sandboxと相性の悪い道具（`docker` など）は、端末別設定の `sandbox.excludedCommands` に足す。端末別設定の置き場は `~/.config/uskn-harness/settings.json` である。配列は設定断片の値を置き換えるので、設定断片の3つのパターンも書き写す
-- `excludedCommands` は、コマンドの先頭がパターンに当たるときだけ、そのコマンドをsandboxの外で動かす。`cd <dir> && uskn-harness sync` ではなく、`uskn-harness sync` を単独で実行する
+- sandboxの中で動かない道具を見つけたら、ユーザーが `/sandbox-exclude <tool>` を打つ。その端末の端末別設定 `~/.config/uskn-harness/settings.json` に足され、syncの後も残る。一覧は `uskn-harness sandbox-exclude --list`、外すのは `--remove <pattern>` で行う
+- `excludedCommands` は、1つの単純なコマンドだけから成り、先頭がパターンと一致するコマンドだけを、sandboxの外で動かす。`cd <dir> && uskn-harness sync` や `git push | tail` はsandboxの中で動くので、単独で実行する。bash-guardがこの形を見つけて知らせる
 - sandboxの中では、作業ディレクトリの `.bashrc` などに空のファイルが被さる。`git add -A` は失敗するので、`git add <paths>` で足す
 - 端末でsandboxを切るときは、端末別設定で `sandbox.enabled` を `false` にしてsyncを実行する
 

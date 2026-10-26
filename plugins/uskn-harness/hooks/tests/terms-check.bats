@@ -183,3 +183,13 @@ path_without_python() {
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }
+
+@test "an untracked entry that is neither a file nor a directory does not make a name real (the sandbox's /dev/null overlays)" {
+  mkfifo "$R/.mcp.json"
+  printf '# 被せたファイル\n\n追跡していない通常のファイル `notes.txt` は実在とみなす。\n通常のファイルでない `.mcp.json` は実在とみなさない。\n' > "$R/docs/overlay.md"
+  printf 'x\n' > "$R/notes.txt"
+  run cli docs/overlay.md
+  [ "$status" -eq 1 ]
+  [[ "$output" == *".mcp.json"* ]] || false
+  [[ "$output" != *"notes.txt"* ]] || false
+}
