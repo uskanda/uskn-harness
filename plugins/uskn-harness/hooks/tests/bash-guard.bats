@@ -48,7 +48,7 @@ path_without() {
   fake="$BATS_TEST_TMPDIR/bin"; mkdir -p "$fake"
   printf '#!/usr/bin/env bash\n[ "$1" = source-path ] && echo "%s"\n' "$HOME/dotfiles" > "$fake/chezmoi"; chmod +x "$fake/chezmoi"
   PATH="$fake:$PATH" run call "chezmoi apply"; denied
-  reason | grep -qF "/allow-repo $HOME/dotfiles"
+  reason | grep -qF "/add-dir $HOME/dotfiles"
   echo "$HOME/dotfiles" > "$USKN_STATE_DIR/sessions/sid12345678/allow"
   PATH="$fake:$PATH" run call "chezmoi apply --force"; [ -z "$output" ]
   PATH="$fake:$PATH" run call "chezmoi -v re-add"; [ -z "$output" ]
@@ -59,7 +59,7 @@ path_without() {
   mkdir -p "$HOME/.local/share"; ln -s "$HOME/dotfiles" "$HOME/.local/share/chezmoi"
   P="$(path_without chezmoi)"
   PATH="$P" run call "chezmoi apply"; denied
-  reason | grep -qF "/allow-repo $HOME/.local/share/chezmoi"
+  reason | grep -qF "/add-dir $HOME/.local/share/chezmoi"
   echo "$HOME/dotfiles" > "$USKN_STATE_DIR/sessions/sid12345678/allow"
   PATH="$P" run call "chezmoi apply"; [ -z "$output" ]
 }
@@ -122,7 +122,7 @@ path_without() {
   run call "make verify 2>&1 | tail -n 40"; [ -z "$output" ]
 }
 
-@test "the session allow file: naming it or writing to it is denied; running allow-repo.sh is silent" {
+@test "the session allow file: naming it or writing to it is denied; allow-repo.sh --list is silent" {
   A="$USKN_STATE_DIR/sessions/sid12345678/allow"
   run call "echo $OTHER >> $A"; denied
   reason | grep -qF "allow-repo.sh --list"
@@ -134,7 +134,9 @@ path_without() {
   run call "cd $USKN_STATE_DIR/sessions/sid12345678 && echo /x >> allow"; denied
   echo "$USKN_STATE_DIR" > "$A"
   run call "echo /x >> $A"; denied
-  run call "\"\$HOME/.local/share/uskn-harness/plugins/uskn-harness/hooks/scripts/allow-repo.sh\" --session sid12345 $OTHER"; [ -z "$output" ]
+  run call "\"\$HOME/.local/share/uskn-harness/plugins/uskn-harness/hooks/scripts/allow-repo.sh\" --list --session sid12345"; [ -z "$output" ]
+  reason_mentions_hook() { reason | grep -qF "DirectoryAdded"; }
+  run call "echo $OTHER >> $A"; reason_mentions_hook
   run call "cat $USKN_STATE_DIR/sessions/sid12345678/verify.log"; [ -z "$output" ]
 }
 

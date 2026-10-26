@@ -19,8 +19,8 @@ denied() { echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "de
   run call "src/b.ts"; [ -z "$output" ]
 }
 
-@test "outside the root: denied, reason mentions /allow-repo" {
-  run call "$OTHER/x.md"; [ "$status" -eq 0 ]; denied; echo "$output" | jq -r '.hookSpecificOutput.permissionDecisionReason' | grep -q "/allow-repo"
+@test "outside the root: denied, reason asks the user for /add-dir" {
+  run call "$OTHER/x.md"; [ "$status" -eq 0 ]; denied; echo "$output" | jq -r '.hookSpecificOutput.permissionDecisionReason' | grep -q "/add-dir"
   run call "$OTHER/x.md" Edit; denied
   run call "$OTHER/n.ipynb" NotebookEdit; denied
 }
@@ -41,7 +41,7 @@ denied() { echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "de
   run call "$USKN_STATE_DIR/sessions/sid12345678/allow"
   [ "$status" -eq 0 ]
   denied
-  echo "$output" | jq -r '.hookSpecificOutput.permissionDecisionReason' | grep -q "/allow-repo"
+  echo "$output" | jq -r '.hookSpecificOutput.permissionDecisionReason' | grep -q "/add-dir"
   run call "$USKN_STATE_DIR/sessions/another-session/allow" Edit; denied
   ln -s "$USKN_STATE_DIR" "$SCRATCH/state-link"
   run call "$SCRATCH/state-link/sessions/sid12345678/allow" Edit; denied
@@ -100,7 +100,7 @@ denied() { echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "de
   at() { printf '{"session_id":"sid12345678","cwd":"%s","tool_name":"Write","tool_input":{"file_path":"%s"}}' "$1" "$2" | "$SCRIPT"; }
   run at "$OTHER/src" "$OTHER/x.md"; [ "$status" -eq 0 ]; denied
   run at "$OTHER/src" "x.md"; denied
-  echo "$output" | jq -r '.hookSpecificOutput.permissionDecisionReason' | grep -q "/allow-repo"
+  echo "$output" | jq -r '.hookSpecificOutput.permissionDecisionReason' | grep -q "/add-dir"
   run at "$OTHER" "$ROOT/y.md"; [ -z "$output" ]
 }
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# Tests for hooks/scripts/allow-repo.sh (spec: allow-repo-skill).
+# Tests for hooks/scripts/allow-repo.sh (spec: directory-added-hook, which runs it).
 SCRIPT="$BATS_TEST_DIRNAME/../scripts/allow-repo.sh"
 setup() { export USKN_STATE_DIR="$BATS_TEST_TMPDIR/state"; mkdir -p "$USKN_STATE_DIR/sessions/abcdef12-full" "$BATS_TEST_TMPDIR/target"; }
 

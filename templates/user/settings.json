@@ -60,7 +60,6 @@
     "failIfUnavailable": false,
     "allowUnsandboxedCommands": true,
     "excludedCommands": [
-      "*/allow-repo.sh *",
       "uskn-harness *",
       "chezmoi *",
       "git push *",

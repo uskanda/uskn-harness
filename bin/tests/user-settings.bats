@@ -45,10 +45,12 @@ settings_lines() { grep -E '^[a-z]+ +user settings' <<<"$output" || true; }
   [ "$(jq -r '.sandbox.allowUnsandboxedCommands' "$FRAGMENT")" = true ]
 }
 
-@test "the sandbox leaves allow-repo.sh (by absolute path), uskn-harness, and chezmoi outside" {
-  for p in '*/allow-repo.sh *' 'uskn-harness *' 'chezmoi *'; do
+@test "the sandbox leaves uskn-harness and chezmoi outside, and nothing that writes the allow file" {
+  for p in 'uskn-harness *' 'chezmoi *'; do
     jq -e --arg p "$p" 'any(.sandbox.excludedCommands[]?; . == $p)' "$FRAGMENT" >/dev/null || { echo "missing: $p"; false; }
   done
+  run jq -r '.sandbox.excludedCommands[] | select(test("allow-repo"))' "$FRAGMENT"
+  [ -z "$output" ]
 }
 
 @test "the sandbox leaves the git commands that write .git/config outside: it cannot write there" {

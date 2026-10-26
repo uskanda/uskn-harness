@@ -23,7 +23,7 @@
 | ループ | `bin/uskn-loop` が1つの仕様PRについて、実装役と監査役を完了基準か停止条件に達するまで交互に動かす。ラウンドごとにpushし、PRの進捗コメントを書き換える。補助ファイルは `loop/` にある（ADR-0007） | 計算的センサー（検証規約、`openspec validate`、tasks.md、テストの削除とskip）、監査役の判定 |
 | 実装と検証 | `skills/verify/`（完了の根拠を示す規則と、検証規約が無いときにCIの設定から確認する手順を含む。Claude Code 2.1.286以降はcommitの直前にこのスキルを呼び、スキルは `verify-fast` を走らせる）、obra/superpowersからforkした方法論スキル2件（TDD、系統的デバッグ） | Stop hook `verify-gate`、`make verify`、CI |
 | git運用 | ワークフローのスキル9個（commit、push、pr、rebase、releaseほか）。旧名は1行のエイリアスで残す | SessionStart hookが `<repo-context>` を注入する |
-| 安全 | `skills/allow-repo/`。ルート外への書き込み、`chezmoi apply`、他リポジトリへのgit操作を止める | PreToolUse hook `write-guard` と `bash-guard`、Claude Codeのsandbox（Bashの書き込み先） |
+| 安全 | ユーザーの `/add-dir` が、ルートの外の書き込みをセッション限定で許す。ルート外への書き込み、`chezmoi apply`、他リポジトリへのgit操作を止める | PreToolUse hook `write-guard` と `bash-guard`、DirectoryAdded hook、Claude Codeのsandbox（Bashの書き込み先） |
 | 文章 | `skills/ja-writing/`（JTF準拠の表記、成果物ごとの文体）、`skills/en-writing/`（agent-styleとhumanizer） | PostToolUse hook `textlint-check`、`make verify` |
 | 用語 | 用語集 `openspec/glossary.yml`。名前の出所を3つに限る。`skills/audit-writing/` が既存リポジトリを一括で直す | PostToolUse hook `terms-check`、`make verify` |
 | UI | `skills/ui-guidelines/` と `templates/repo/DESIGN.md`。正本はGoogle DESIGN.md形式とPRODUCT.md | `designmd lint` |

@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# allow-repo.sh: let the current session write to a path outside the project root.
+# allow-repo.sh: let the current session write to a path outside the project root. The DirectoryAdded hook
+# (directory-added.sh) runs it when the user adds a directory with /add-dir.
 #   allow-repo.sh --session <sid8> <path>     append the resolved path to sessions/<session>/allow
 #   allow-repo.sh --session <sid8> --list     show what this session allows
 # <sid8> is the first 8 characters of the session id. Without --session (or with an empty one) the first 8
 # characters of $CLAUDE_CODE_SESSION_ID are used. The write-guard and bash-guard hooks read that file. Only the user
-# may ask for this (see the allow-repo skill).
+# grants this, through /add-dir.
 set -u
 # shellcheck source=lib/common.sh
 . "$(dirname "$0")/lib/common.sh"
