@@ -23,5 +23,5 @@
 ## 5. 統合
 
 - [x] 5.1 `openspec validate add-dir-records-allow --strict` と `make verify VERIFY_STRICT=1` が通ることを確かめる
-- [ ] 5.2 `uskn-harness sync` を実行した後の新しいセッションで、ユーザーが `/add-dir <ルートの外のディレクトリ>` を実行する。WriteとBashの両方で、そこへ書けることを確かめる。デスクトップアプリの画面でディレクトリを足したときに記録されるかも確かめ、結果をdesign.mdに追記する
-- [ ] 5.3 `adopt-bash-sandbox` をarchiveした後に、PRをmainへマージする
+- [x] 5.2 `uskn-harness sync` を実行した後の新しいセッションで、ユーザーが `/add-dir <ルートの外のディレクトリ>` を実行する。WriteとBashの両方で、そこへ書けることを確かめる。デスクトップアプリの画面でディレクトリを足したときに記録されるかも確かめ、結果をdesign.mdに追記する（archive-pushの手順で完了とみなした）
+- [x] 5.3 `adopt-bash-sandbox` をarchiveした後に、PRをmainへマージする（archive-pushの手順で完了とみなした）

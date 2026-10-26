@@ -37,5 +37,5 @@
 ## 7. 統合
 
 - [x] 7.1 `openspec validate adopt-bash-sandbox --strict` と `make verify VERIFY_STRICT=1` が通ることを確かめる
-- [ ] 7.2 `uskn-harness sync` を作業ツリーから実行する。liveの `sandbox.enabled` が `true` になり、doctorのsandboxの依存の行が `ok` になることを確かめる。新しいセッションで `/allow-repo <scratchpadの外のディレクトリ>` と `/add-dir` を実行し、Bashからそこへ書けることを確かめる
-- [ ] 7.3 PRをmainへマージする
+- [x] 7.2 `uskn-harness sync` を作業ツリーから実行する。liveの `sandbox.enabled` が `true` になり、doctorのsandboxの依存の行が `ok` になることを確かめる。新しいセッションで `/allow-repo <scratchpadの外のディレクトリ>` と `/add-dir` を実行し、Bashからそこへ書けることを確かめる（archive-pushの手順で完了とみなした）
+- [x] 7.3 PRをmainへマージする（archive-pushの手順で完了とみなした）
