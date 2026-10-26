@@ -20,8 +20,8 @@ hook、Write、Editはsandboxの外で動く。
 
 1. 設定断片で、全端末のsandboxを有効にする。`failIfUnavailable` は `false`、`allowUnsandboxedCommands` は `true` にする
 2. bash-guardから、ルートの外への書き込みの警告を削除する。denyパターン（別のリポジトリへのgitの書き込み、chezmoi）と、許可ファイルとverify gateの状態ファイルの保護は残す
-3. `excludedCommands` で、2種類のコマンドをsandboxの外で動かす。1つ目は、ルートの外へ書くハーネスのコマンド（`allow-repo.sh`、`uskn-harness`、`chezmoi`）である。2つ目は、`.git/config` に書くgitの下位コマンド（`push`、`switch`、`checkout`、`branch`、`config`、`remote`）である。sandboxの中では、作業ディレクトリのリポジトリの `.git/config` に書けないため
-4. `npx` のキャッシュ `~/.npm` と `gh` のキャッシュ `~/.cache/gh` は、`sandbox.filesystem.allowWrite` で書けるようにする。状態ディレクトリは含めない
+3. `excludedCommands` で、2種類のコマンドをsandboxの外で動かす。1つ目は、ルートの外へ書くハーネスのコマンド（`allow-repo.sh`、`uskn-harness`、`chezmoi`）である。2つ目は、`.git/config` に書くgitの下位コマンド（`push`、`switch`、`checkout`、`branch`、`config`、`remote`）である。sandboxの中では、作業ディレクトリのリポジトリの `.git/config` に書けないため。この決定はADR-0011が差し替えた
+4. `npx` のキャッシュ `~/.npm` と `gh` のキャッシュ `~/.cache/gh` は、`sandbox.filesystem.allowWrite` で書けるようにする。状態ディレクトリは含めない。この決定はADR-0011が差し替えた
 5. ネットワークは、`permissions.allow` の `WebFetch(domain:*)` で、ドメインごとの確認なしに通す。sandboxはこのルールを、Bashの接続先にも全ホストの許可として使う（2026-10-24に実機で確認）
 6. `bwrap` か `socat` の無いLinuxの端末では、doctorが `warn` を出す。syncはどちらもインストールしない
 7. `/allow-repo` は、許可を記録した後に `/add-dir <path>` を打つようユーザーに案内する。2つを1つにまとめる作業はissue #6で行う。この決定はADR-0010が差し替えた（`/add-dir` の1つにまとめる）
