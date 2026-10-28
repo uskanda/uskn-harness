@@ -1,18 +1,23 @@
 #!/usr/bin/env bash
-# bash-guard.sh: PreToolUse hook (Bash). Denies the typical ways of changing another repository from the shell and
-# warns, via additionalContext, about writes to paths outside the project roots (CLAUDE_PROJECT_DIR, plus cwd's
-# checkout when it is a worktree of the same repository: project_roots; a cd into another repository adds nothing).
+# bash-guard.sh: PreToolUse hook (Bash). Denies the typical ways of changing another repository from the shell. The
+# project roots are CLAUDE_PROJECT_DIR, plus cwd's checkout when it is a worktree of the same repository
+# (project_roots; a cd into another repository adds nothing). Other writes outside the roots are left to the Claude
+# Code sandbox, which limits where Bash can write (ADR-0009); this hook says nothing about them.
 #   deny  chezmoi apply|add|update|edit|re-add|merge, unless the session allow file covers the chezmoi source dir
 #         a git write subcommand whose repository (-C, --git-dir, --work-tree, GIT_DIR, cd, pushd) is outside
-#         a command that names or writes a session allow file (sessions/<id>/allow): only allow-repo.sh writes those
+#         a command that names or writes a session allow file (sessions/<id>/allow): only the DirectoryAdded hook
+#         writes those, through allow-repo.sh
 #         a command that names, writes, or removes the verify gate's state (GATE_FILES, a session dir, and for
 #         rm | rmdir | mv the sessions dir, the state dir, or above): only the hooks write those
-#   warn  redirects and cp|mv|rm|rmdir|ln|tee|mkdir|touch|rsync|install|sed -i whose target is outside the roots
+# Write targets (redirects and cp|mv|rm|rmdir|ln|tee|mkdir|touch|rsync|install|sed -i) are still parsed, for the
+# allow file and the gate's state.
+#   note  a tool that the live sandbox.excludedCommands lets out of the sandbox, where that cannot match: in a
+#         compound command (a pipe, &&, ;, parentheses) or behind an assignment or a wrapper such as sudo. It then
+#         runs inside the sandbox; additionalContext says to run it on its own (ADR-0011). A deny says nothing else.
 # The command is first split into words and operators (the awk program below): quotes removed, heredoc bodies
 # dropped, `$(...)` kept inside its word. Each simple command is then judged on its own, with the working directory
 # followed through cd / pushd and restored after a `( ... )` subshell. Words that start with `$` are not guessed.
-# Contract (openspec: bash-guard): exit 0 always; silent for commands that stay inside the root; a miss is
-# preferred to a false alarm.
+# Contract (openspec: bash-guard): exit 0 always; silent unless denying or noting; a miss is preferred to a false alarm.
 set -u
 # shellcheck source=lib/common.sh
 . "$(dirname "$0")/lib/common.sh"
@@ -24,14 +29,20 @@ ROOTS="$(project_roots "${CWD:-$PWD}")"   # CLAUDE_PROJECT_DIR, plus cwd's check
 CMDX="$(printf '%s' "$CMD" | sed -E "s#(^|[[:space:]=\"'])~/#\1$HOME/#g; s#\\\$HOME/#$HOME/#g; s#\\\$\\{HOME\\}/#$HOME/#g")"
 GIT_WRITES=' push commit reset checkout switch rebase merge cherry-pick apply am '
 CHEZMOI_WRITES=' apply add update edit re-add merge '
-DENY=""; WARN=""; GIT_DENIED=0; ALLOW_DENIED=0; GATE_DENIED=0; REMOVING=0
+# The patterns Claude Code runs outside the sandbox, from the live user settings; none without jq or the file.
+EXCLUDED=()
+SETTINGS_LIVE="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
+if have jq && [ -f "$SETTINGS_LIVE" ]; then
+  while IFS= read -r p; do [ -n "$p" ] && EXCLUDED+=("$p"); done < <(jq -r '.sandbox.excludedCommands // [] | .[]' "$SETTINGS_LIVE" 2>/dev/null)
+fi
+NOTE_ANY=""; NOTE_ALWAYS=""; OPS=0
+DENY=""; GIT_DENIED=0; ALLOW_DENIED=0; GATE_DENIED=0; REMOVING=0
 add_deny() { DENY="${DENY:+$DENY }$1"; }
-add_warn() { case " $WARN " in *" $1 "*) ;; *) WARN="${WARN:+$WARN }$1" ;; esac; }
 outside() { ! path_allowed "$1" "$ROOTS" "$SID"; }   # <abs path>
 deny_allow_file() {
   [ "$ALLOW_DENIED" = 1 ] && return 0
   ALLOW_DENIED=1
-  add_deny "This command names or writes a session allow file ($USKN_STATE/sessions/<id>/allow). Only the allow-repo skill writes it, when the user asks in this session; to read it, run allow-repo.sh --list --session <sid8>."
+  add_deny "This command names or writes a session allow file ($USKN_STATE/sessions/<id>/allow). Only the DirectoryAdded hook writes it, when the user runs /add-dir <path> in this session; to read it, run allow-repo.sh --list --session <sid8>."
 }
 deny_gate_state() {
   [ "$GATE_DENIED" = 1 ] && return 0
@@ -158,7 +169,6 @@ write_target() { # <word>: a path this command writes
   if is_allow_file "$p"; then deny_allow_file; return 0; fi
   # the gate's state: a state file, a session dir as the target (cp f <dir>/), or a removal of what holds them all
   if is_gate_file "$p" || is_session_dir "$p" || { [ "$REMOVING" = 1 ] && holds_state "$p"; }; then deny_gate_state; return 0; fi
-  outside "$p" && add_warn "$p"
   return 0
 }
 redirect_target() { # <operator> <word>
@@ -243,7 +253,7 @@ do_chezmoi() { # <first index>
   case "$CHEZMOI_WRITES" in *" $sub "*) ;; *) return 0 ;; esac
   chezmoi_source "$src"
   chezmoi_allowed && return 0
-  add_deny "chezmoi $sub changes the live dotfiles and home; dotfiles are changed through a pull request to the dotfiles repository and applied by the user. If the user explicitly allowed changing the dotfiles in this session, run /allow-repo $CHEZMOI_SRC first (the chezmoi source directory)."
+  add_deny "chezmoi $sub changes the live dotfiles and home; dotfiles are changed through a pull request to the dotfiles repository and applied by the user. If the user explicitly allowed changing the dotfiles in this session, ask the user to run /add-dir $CHEZMOI_SRC (the chezmoi source directory; only the user can)."
 }
 do_copy() { # <first index> <cmd>: cp / install take -t DIR; otherwise the last argument is the destination
   local i="$1" n=${#WORDS[@]} w tdir="" last="" count=0
@@ -303,6 +313,20 @@ do_sed() { # <first index>: only with -i; the script (first argument unless -e /
   [ "${#files[@]}" -gt 0 ] || return 0
   for f in "${files[@]}"; do write_target "$f"; done
 }
+note_excluded() { # <index of the command word>: remember a tool the live excludedCommands names
+  local line p tool
+  [ "${#EXCLUDED[@]}" -gt 0 ] || return 0
+  line="${WORDS[*]:$1}"
+  for p in "${EXCLUDED[@]}"; do
+    # shellcheck disable=SC2053  # the pattern is a glob on purpose
+    if [[ "$line" == $p ]]; then
+      tool="${WORDS[$1]##*/}${WORDS[$(($1 + 1))]:+ ${WORDS[$(($1 + 1))]}}"
+      NOTE_ANY="${NOTE_ANY:+$NOTE_ANY, }$tool"
+      [ "$1" -gt 0 ] && NOTE_ALWAYS="${NOTE_ALWAYS:+$NOTE_ALWAYS, }$tool"
+      return 0
+    fi
+  done
+}
 simple_command() {
   local n=${#WORDS[@]} i=0 w wrap=0 gd="" wt="" cmd
   [ "$n" -gt 0 ] || return 0
@@ -320,6 +344,7 @@ simple_command() {
     i=$((i + 1))
   done
   [ "$i" -lt "$n" ] || return 0
+  note_excluded "$i"
   cmd="${WORDS[$i]##*/}"; i=$((i + 1))
   case "$cmd" in
     cd | pushd) do_cd "$i" ;;
@@ -366,7 +391,7 @@ while IFS= read -r line; do
     W) if [ -n "$PENDING" ]; then redirect_target "$PENDING" "$v"; PENDING=""; else WORDS+=("$v"); fi ;;
     R) PENDING="$v" ;;
     O)
-      PENDING=""; simple_command; WORDS=()
+      OPS=$((OPS + 1)); PENDING=""; simple_command; WORDS=()
       case "$v" in
         '(') DIRS+=("$DIR") ;;
         ')') if [ "${#DIRS[@]}" -gt 0 ]; then DIR="${DIRS[$((${#DIRS[@]} - 1))]}"; unset "DIRS[$((${#DIRS[@]} - 1))]"; fi ;;
@@ -377,12 +402,13 @@ simple_command
 
 if [ -n "$DENY" ]; then
   MSG="uskn-harness: $DENY"
-  [ "$GIT_DENIED" = 1 ] && MSG="$MSG Other repositories are changed through a pull request from a fresh clone in the scratchpad, or a handoff document. If the user explicitly allowed it in this session, run /allow-repo <path> first."
+  [ "$GIT_DENIED" = 1 ] && MSG="$MSG Other repositories are changed through a pull request from a fresh clone in the scratchpad, or a handoff document. If the user explicitly allowed it in this session, ask the user to run /add-dir <path> (only the user can)."
   deny_json "$MSG Project roots: $(roots_text "$ROOTS")."
   exit 0
 fi
-if [ -n "$WARN" ]; then
-  MSG="uskn-harness: this command touches paths outside the project roots ($(roots_text "$ROOTS")): $WARN. Other repositories are changed through a PR or a handoff document; if the user explicitly allowed writing there in this session, run /allow-repo <path>."
+if [ "$OPS" -gt 0 ]; then NOTE="$NOTE_ANY"; else NOTE="$NOTE_ALWAYS"; fi
+if [ -n "$NOTE" ]; then
+  MSG="uskn-harness: $NOTE runs inside the sandbox here, because sandbox.excludedCommands only matches a command that is a single simple command starting with the tool. If it fails on a sandbox restriction, run it again on its own (no cd &&, pipe, ;, parentheses, or prefix)."
   if have jq; then jq -c -n --arg m "$MSG" '{hookSpecificOutput:{hookEventName:"PreToolUse",additionalContext:$m}}'
   else printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":"%s"}}\n' "$(printf '%s' "$MSG" | sed 's/\\/\\\\/g; s/"/\\"/g')"; fi
 fi

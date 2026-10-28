@@ -12,14 +12,14 @@
 `CLAUDE_PROJECT_DIR` が無ければ `cwd` のgitルート、それも無ければ `cwd` をルートとする。
 対象パスは `file_path` または `notebook_path` である。
 対象パスの実体がどのルートの外にもあるとき、hookは `permissionDecision: deny` と理由を返さなければならない（MUST）。
-理由にはルートと、`/allow-repo <path>` で解除できる旨を書く。
+理由にはルートと、ユーザーが `/add-dir <path>` を実行すれば解除できる旨を書く。
 ルート内と許可リスト内は何も出力しない。
 許可リストは `/tmp`、`$TMPDIR`、`~/.claude/projects/*/memory`、ハーネスの状態ディレクトリ、`$CLAUDE_PLUGIN_DATA`。
 状態ディレクトリのうち、セッションの許可ファイル `sessions/<session_id>/allow` は許可リストに含めない。
 
 #### Scenario: 他のリポジトリ
 - **WHEN** ルートが `~/repos/a` のセッションで `~/repos/b/x.md` をWriteする
-- **THEN** 拒否され、理由に `/allow-repo` が含まれる
+- **THEN** 拒否され、理由に `/add-dir` が含まれる
 
 #### Scenario: scratchpad
 - **WHEN** `/tmp/claude-1000/.../scratchpad/x` をWriteする
@@ -70,11 +70,11 @@
 ### Requirement: 許可ファイルの保護
 対象パスの実体が状態ディレクトリの `sessions/<session_id>/allow` のとき、hookは `permissionDecision: deny` を返さなければならない（MUST）。
 セッションの許可ファイルに何が書かれていても、この拒否は解除しない。
-理由には、許可ファイルを書くのは `/allow-repo` だけで、ユーザーの依頼があるときに限る旨を書く。
+理由には、許可ファイルを書くのは `DirectoryAdded` のhookだけで、ユーザーが `/add-dir` を実行したときに限る旨を書く。
 
 #### Scenario: エージェントが自分で許可を足す
 - **WHEN** `~/.local/state/uskn-harness/sessions/<session_id>/allow` をWriteする
-- **THEN** 拒否され、理由に `/allow-repo` が含まれる
+- **THEN** 拒否され、理由に `/add-dir` が含まれる
 
 #### Scenario: symlink 経由
 - **WHEN** 状態ディレクトリを指すsymlinkを通して許可ファイルをEditする

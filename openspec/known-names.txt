@@ -18,3 +18,17 @@ com.claude.notify-daemon
 com.claude.notify-ntfy-sub
 window.title
 workbench.colorTheme
+sandbox.network.allowedDomains
+sandbox.filesystem.allowWrite
+sandbox.enabled
+sandbox.excludedCommands
+sandbox.failIfUnavailable
+sandbox.allowUnsandboxedCommands
+permissions.additionalDirectories
+api.github.com
+gl.uskan.dev
+pypi.org
+files.pythonhosted.org
+.mcp.json
+sandbox.filesystem.denyWrite
+docker.sock

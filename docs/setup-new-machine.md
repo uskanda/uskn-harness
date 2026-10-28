@@ -93,6 +93,30 @@ dotfilesが配っていた `~/.claude/settings.json` がある端末では、初
 
 消える要素は、先に `uskn-harness sync --dry-run` で確かめる。残したい要素は、端末別設定に書いてから `chezmoi apply` を実行する。
 
+## Bash の sandbox
+
+ユーザー層のsettings.jsonは、Claude Codeのsandboxを有効にする（ADR-0009、ADR-0011）。
+sandboxに残るのは、中身を前もって読めない実行（`npm`、`make`、`python` など）である。
+`git`、`gh`、`glab`、`docker`、`mise`、`claude`、`uskn-harness`、`uskn-loop`、`chezmoi`、`ssh`、`scp` は、sandboxの外で動く。
+sandboxの中のBashが書けるのは、作業ディレクトリ、一時ディレクトリ、`/add-dir` で追加したディレクトリ、設定断片の挙げるキャッシュとツールのデータだけである。
+
+- UbuntuとWSL2では、`sudo apt install -y bubblewrap socat` で2つを入れる。無い端末では、Bashが制限なしで動き、doctorが `warn` を出す
+- Ubuntu 24.04以降では、AppArmorが `bwrap` のユーザー名前空間を拒否する（`bwrap: setting up uid map: Permission denied`）。次の2つで `bwrap` に許可を与える
+
+```bash
+printf 'abi <abi/4.0>,\ninclude <tunables/global>\n\nprofile bwrap /usr/bin/bwrap flags=(unconfined) {\n  userns,\n  include if exists <local/bwrap>\n}\n' | sudo tee /etc/apparmor.d/bwrap
+sudo apparmor_parser -r /etc/apparmor.d/bwrap
+```
+
+- 確認は `bwrap --ro-bind / / --dev /dev --proc /proc true` が終了コード0で終わること
+- この端末自身のIPに解決されるホスト（同じ端末で動かすGitLabなど）へは、sandboxの中から接続できない。`git` と `glab` はsandboxの外で動くので、この制限を受けない
+- macOSでは、何も入れなくてよい
+- ルートの外で作業するときは、ユーザーが `/add-dir <path>` を打つ。hookがセッションの許可ファイルにも記録する（ADR-0010）
+- sandboxの中で動かない道具を見つけたら、ユーザーが `/sandbox-exclude <tool>` を打つ。その端末の端末別設定 `~/.config/uskn-harness/settings.json` に足され、syncの後も残る。一覧は `uskn-harness sandbox-exclude --list`、外すのは `--remove <pattern>` で行う
+- `excludedCommands` は、1つの単純なコマンドだけから成り、先頭がパターンと一致するコマンドだけを、sandboxの外で動かす。`cd <dir> && uskn-harness sync` や `git push | tail` はsandboxの中で動くので、単独で実行する。bash-guardがこの形を見つけて知らせる
+- sandboxの中では、作業ディレクトリの `.bashrc` などに空のファイルが被さる。`git add -A` は失敗するので、`git add <paths>` で足す
+- 端末でsandboxを切るときは、端末別設定で `sandbox.enabled` を `false` にしてsyncを実行する
+
 ## 読み上げ通知
 
 `sync` はプラグインuskn-notifyを `~/.claude/skills/uskn-notify` に置き、通知のコマンドを `~/.local/bin` にsymlinkする。
@@ -155,5 +179,6 @@ mise、npm globalのCLI、状態ディレクトリは残る。
 | `openspec commands opsx: missing ...` | `~/.claude/commands/opsx/` が無いか、コマンドが欠けている | `uskn-harness sync`。ネットワークを確認 |
 | `stale skill link <name>` | ハーネスから消したスキルの symlink が残っている | `uskn-harness sync` が消す |
 | `notify command <name>: ... is a real directory or file` | `~/.local/bin` に、dotfilesが以前配った通知のコマンドの実ファイルが残っている | dotfilesを更新して `chezmoi apply` を実行する。片付けのスクリプトが実ファイルを消す |
+| `sandbox: bwrap missing ...` / `sandbox: socat missing ...` | sandboxを有効にしたLinuxの端末に、`bwrap` か `socat` が無い。Bashは制限なしで動く | `sudo apt install -y bubblewrap socat` |
 | `user settings: sync would ...` | liveのsettings.jsonが、syncの書く値と違う。`/effort` や `/model` の後に出る | `uskn-harness sync` |
 | `user settings: ... is not a JSON object` | settings.jsonか端末別設定をJSONとして読めない。syncは何も書かない | ファイルを直してから `uskn-harness sync` |

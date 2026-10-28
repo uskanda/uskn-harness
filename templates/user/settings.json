@@ -48,10 +48,41 @@
       "Read(//etc/**)",
       "Read(//usr/lib/**)",
       "Read(//tmp/**)",
-      "Read(//sys/devices/system/cpu/**)"
+      "Read(//sys/devices/system/cpu/**)",
+      "WebFetch(domain:*)"
     ]
   },
   "remoteControlAtStartup": true,
   "theme": "auto",
-  "tui": "fullscreen"
+  "tui": "fullscreen",
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": false,
+    "allowUnsandboxedCommands": true,
+    "excludedCommands": [
+      "git *",
+      "gh *",
+      "glab *",
+      "docker *",
+      "mise *",
+      "claude *",
+      "uskn-harness *",
+      "uskn-loop *",
+      "chezmoi *",
+      "ssh *",
+      "scp *"
+    ],
+    "filesystem": {
+      "allowWrite": [
+        "~/.cache",
+        "~/.npm",
+        "~/.local/share/mise",
+        "~/.local/share/pnpm",
+        "~/.local/state"
+      ],
+      "denyWrite": [
+        "~/.local/state/uskn-harness"
+      ]
+    }
+  }
 }

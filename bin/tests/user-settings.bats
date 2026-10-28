@@ -39,6 +39,53 @@ settings_lines() { grep -E '^[a-z]+ +user settings' <<<"$output" || true; }
   [ "$status" -eq 0 ]
 }
 
+@test "the settings fragment turns the sandbox on, never fails to start without it, and keeps the retry" {
+  [ "$(jq -r '.sandbox.enabled' "$FRAGMENT")" = true ]
+  [ "$(jq -r '.sandbox.failIfUnavailable' "$FRAGMENT")" = false ]
+  [ "$(jq -r '.sandbox.allowUnsandboxedCommands' "$FRAGMENT")" = true ]
+}
+
+@test "the sandbox leaves the eleven well-known tools outside, git as a whole" {
+  for t in git gh glab docker mise claude uskn-harness uskn-loop chezmoi ssh scp; do
+    jq -e --arg p "$t *" 'any(.sandbox.excludedCommands[]?; . == $p)' "$FRAGMENT" >/dev/null || { echo "missing: $t *"; false; }
+  done
+  run jq -r '.sandbox.excludedCommands[] | select(test("^git [a-z]+ \\*$") or test("allow-repo"))' "$FRAGMENT"
+  [ -z "$output" ]
+}
+
+@test "execution whose effect cannot be read beforehand stays inside the sandbox" {
+  run jq -r '.sandbox.excludedCommands[] | select(test("^(npm|pnpm|npx|make|python3?|node|curl|bash|sh) "))' "$FRAGMENT"
+  [ -z "$output" ]
+}
+
+@test "the sandbox may write caches and tool data, but never the harness state" {
+  for d in '~/.cache' '~/.npm' '~/.local/share/mise' '~/.local/share/pnpm' '~/.local/state'; do
+    jq -e --arg d "$d" 'any(.sandbox.filesystem.allowWrite[]?; . == $d)' "$FRAGMENT" >/dev/null || { echo "missing: $d"; false; }
+  done
+  jq -e 'any(.sandbox.filesystem.denyWrite[]?; . == "~/.local/state/uskn-harness")' "$FRAGMENT" >/dev/null
+  run jq -r '.sandbox.filesystem.allowWrite[]? | select(test("uskn-harness|chezmoi|repos|^~/?$"))' "$FRAGMENT"
+  [ -z "$output" ]
+}
+
+@test "sandbox arrays are sets: what the machine adds survives sync next to the fragment" {
+  write_overlay '{"sandbox":{"excludedCommands":["terraform *"],"filesystem":{"allowWrite":["~/.terraform.d"]}}}'
+  "$CLI" sync --no-pull >/dev/null
+  jq -e '.sandbox.excludedCommands | (index("terraform *") != null) and (index("git *") != null)' "$LIVE" >/dev/null
+  jq -e '.sandbox.filesystem.allowWrite | (index("~/.terraform.d") != null) and (index("~/.npm") != null)' "$LIVE" >/dev/null
+  run "$CLI" sync --no-pull
+  jq -e '[.sandbox.excludedCommands[] | select(. == "terraform *")] | length == 1' "$LIVE" >/dev/null
+}
+
+@test "an element Claude Code's /sandbox put into live stays after sync" {
+  write_live '{"sandbox":{"excludedCommands":["kubectl *"]}}'
+  "$CLI" sync --no-pull >/dev/null
+  jq -e '.sandbox.excludedCommands | (index("kubectl *") != null) and (index("gh *") != null)' "$LIVE" >/dev/null
+}
+
+@test "the settings fragment lets WebFetch, and through it sandboxed Bash, reach any host" {
+  has_allow "$FRAGMENT" 'WebFetch(domain:*)'
+}
+
 @test "the settings fragment has neither hooks nor modelSettings" {
   run jq -r '[keys[] | select(. == "hooks" or . == "modelSettings")] | join(" ")' "$FRAGMENT"
   [ "$status" -eq 0 ]

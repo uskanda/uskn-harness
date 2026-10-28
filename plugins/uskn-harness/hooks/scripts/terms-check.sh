@@ -74,8 +74,13 @@ def git(*args):
     except Exception:
         return []
 
+def real_entry(rel):
+    # a regular file or a directory; the Claude Code sandbox lays /dev/null over some names (.mcp.json, .bashrc)
+    full = os.path.join(root, rel)
+    return os.path.isfile(full) or os.path.isdir(full)
+
 # untracked files count too: a document may name a file added in the same change
-tracked = git("ls-files") + git("ls-files", "--others", "--exclude-standard")
+tracked = git("ls-files") + [p for p in git("ls-files", "--others", "--exclude-standard") if real_entry(p)]
 paths = set(tracked)
 for p in tracked:
     paths.add(os.path.basename(p))
@@ -146,7 +151,7 @@ def name_exists(tok):
         return True
     # a file or directory that exists in the working tree counts even when git does not track it yet
     for cand in (tok, bare):
-        if cand and not cand.startswith("/") and os.path.exists(os.path.join(root, cand)):
+        if cand and not cand.startswith("/") and real_entry(cand):
             return True
     if tok in corpus or bare in corpus:
         return True

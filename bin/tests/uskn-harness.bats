@@ -1013,3 +1013,111 @@ harness_copy() {
   [ "$status" -eq 0 ]
   grep -qE '^warn .*mine.*absolute' <<<"$output"
 }
+
+# ---- sandbox dependencies (spec: harness-doctor)
+
+# path_hiding <name>...: PATH with every listed command hidden, the way path_without_claude hides claude
+path_hiding() {
+  local IFS=: dir f out="" shadow n=0 name hit
+  for dir in $PATH; do
+    hit=0
+    for name in "$@"; do [ -e "$dir/$name" ] && hit=1; done
+    if [ "$hit" = 1 ]; then
+      n=$((n + 1)); shadow="$BATS_TEST_TMPDIR/hide$n"; mkdir -p "$shadow"
+      for f in "$dir"/*; do
+        hit=0; for name in "$@"; do [ "${f##*/}" = "$name" ] && hit=1; done
+        [ "$hit" = 1 ] || ln -s "$f" "$shadow/"
+      done
+      dir="$shadow"
+    fi
+    out="${out:+$out:}$dir"
+  done
+  printf '%s' "$out"
+}
+live_sandbox() { printf '{"sandbox":{"enabled":%s}}\n' "$1" > "$CLAUDE_CONFIG_DIR/settings.json"; }
+fake_tool() { printf '#!/bin/sh\nexit 0\n' > "$HOME/.local/bin/$1"; chmod +x "$HOME/.local/bin/$1"; }
+sandbox_lines() { grep -E '^(ok|warn|fail) +sandbox' <<<"$output" || true; }
+
+@test "doctor: sandbox on Linux without bwrap is warn naming it and how to install" {
+  live_sandbox true; fake_tool socat
+  PATH="$(path_hiding bwrap)" USKN_HARNESS_OS=Linux run "$CLI" doctor
+  [ "$(sandbox_lines | grep -c '^warn')" -eq 1 ] || false
+  [[ "$(sandbox_lines)" == *bwrap* ]] || false
+  [[ "$(sandbox_lines)" != *"socat,"* ]] || false
+  [[ "$(sandbox_lines)" == *bubblewrap* ]] || false
+  [[ "$(sandbox_lines)" == *"without limits"* ]] || false
+}
+
+@test "doctor: sandbox on Linux with bwrap and socat is ok" {
+  live_sandbox true; fake_tool bwrap; fake_tool socat
+  USKN_HARNESS_OS=Linux run "$CLI" doctor
+  [ "$(sandbox_lines | grep -c '^ok')" -eq 1 ] || false
+  [ "$(sandbox_lines | grep -c '^warn')" -eq 0 ] || false
+}
+
+@test "doctor: no sandbox line on macOS or when the sandbox is off" {
+  live_sandbox true
+  PATH="$(path_hiding bwrap socat)" USKN_HARNESS_OS=Darwin run "$CLI" doctor
+  [ -z "$(sandbox_lines)" ] || false
+  live_sandbox false
+  PATH="$(path_hiding bwrap socat)" USKN_HARNESS_OS=Linux run "$CLI" doctor
+  [ -z "$(sandbox_lines)" ] || false
+}
+
+# ---- sandbox-exclude (spec: harness-sync)
+
+overlay_excluded() { jq -r '.sandbox.excludedCommands // [] | .[]' "$HOME/.config/uskn-harness/settings.json"; }
+live_excluded() { jq -r '.sandbox.excludedCommands // [] | .[]' "$CLAUDE_CONFIG_DIR/settings.json"; }
+
+@test "sandbox-exclude adds a pattern to the machine overlay once and applies it to live" {
+  run "$CLI" sandbox-exclude 'terraform *'
+  [ "$status" -eq 0 ]
+  [ "$(overlay_excluded)" = 'terraform *' ]
+  live_excluded | grep -qxF 'terraform *'
+  live_excluded | grep -qxF 'git *'
+  run "$CLI" sandbox-exclude 'terraform *'
+  [ "$status" -eq 0 ]
+  [ "$(overlay_excluded | grep -cxF 'terraform *')" -eq 1 ]
+}
+
+@test "sandbox-exclude keeps the rest of the overlay" {
+  mkdir -p "$HOME/.config/uskn-harness"
+  printf '{"model":"sonnet","sandbox":{"excludedCommands":["kubectl *"]}}\n' > "$HOME/.config/uskn-harness/settings.json"
+  run "$CLI" sandbox-exclude 'terraform *'
+  [ "$status" -eq 0 ]
+  [ "$(jq -r .model "$HOME/.config/uskn-harness/settings.json")" = sonnet ]
+  [ "$(overlay_excluded | tr '\n' ,)" = 'kubectl *,terraform *,' ]
+}
+
+@test "sandbox-exclude refuses an empty pattern and a bare *, changing nothing" {
+  for p in '' '*' ' * '; do
+    run "$CLI" sandbox-exclude "$p"
+    [ "$status" -eq 2 ]
+  done
+  [ ! -e "$HOME/.config/uskn-harness/settings.json" ]
+}
+
+@test "sandbox-exclude --list names where each live pattern comes from" {
+  "$CLI" sandbox-exclude 'terraform *' >/dev/null
+  run "$CLI" sandbox-exclude --list
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -qE '^fragment +git \*$'
+  echo "$output" | grep -qE '^machine +terraform \*$'
+}
+
+@test "sandbox-exclude --remove takes a machine pattern out of the overlay and live" {
+  "$CLI" sandbox-exclude 'terraform *' >/dev/null
+  run "$CLI" sandbox-exclude --remove 'terraform *'
+  [ "$status" -eq 0 ]
+  [ -z "$(overlay_excluded)" ]
+  run live_excluded
+  [[ "$output" != *"terraform *"* ]] || false
+}
+
+@test "sandbox-exclude --remove refuses a fragment pattern and asks for a pull request" {
+  "$CLI" sync --no-pull >/dev/null
+  run "$CLI" sandbox-exclude --remove 'git *'
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"pull request"* ]] || false
+  live_excluded | grep -qxF 'git *'
+}

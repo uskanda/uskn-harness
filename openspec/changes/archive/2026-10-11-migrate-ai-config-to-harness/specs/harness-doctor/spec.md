@@ -6,6 +6,7 @@
 - 参照点の存在と向き先
 - mise、node、jqの有無
 - `deps.json` でピン止めしたnpmのCLIの版
+- `~/.local/bin` の実行ファイルのsymlink（`uskn-harness` と `uskn-loop`）の存在と向き先
 - `~/.claude/skills` の各symlinkの存在と向き先
 - chezmoi管理の同名スキルとの衝突
 - 各プラグインのsymlinkと `claude plugin validate` の結果
@@ -21,6 +22,10 @@
 #### Scenario: 向き先が違う symlink
 - **WHEN** `~/.claude/skills/commit` が別のパスを指すsymlink
 - **THEN** その項目は `fail` で、終了コードは1
+
+#### Scenario: ループのコマンドが無い
+- **WHEN** `sync` のあとで `~/.local/bin/uskn-loop` を消してから `doctor` を実行する
+- **THEN** その項目は `warn` で、`uskn-harness sync` の実行を促す
 
 ### Requirement: 鮮度警告の設定の確認
 環境変数 `IMPECCABLE_NO_STALENESS_CHECK=1` がどこにも設定されていないとき、`doctor` は `warn` を報告しなければならない（MUST）。

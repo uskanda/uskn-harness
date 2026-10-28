@@ -11,11 +11,14 @@
 - 参照点の存在と向き先
 - mise、node、jqの有無
 - `deps.json` でピン止めしたnpmのCLIの版
+- `~/.local/bin` の実行ファイルのsymlink（`uskn-harness` と `uskn-loop`）の存在と向き先
 - `~/.claude/skills` の各symlinkの存在と向き先
 - chezmoi管理の同名スキルとの衝突
-- プラグインsymlinkと `claude plugin validate` の結果
+- 各プラグインのsymlinkと `claude plugin validate` の結果
 - サードパーティスキルの有無
 - `~/.claude/CLAUDE.md` の管理印
+- ユーザー層のsettings.jsonと、syncが書く値とのずれ
+- `~/.local/bin` の通知のコマンドのsymlink
 
 #### Scenario: 健全な環境
 - **WHEN** `sync` 直後に `doctor` を実行する
@@ -24,6 +27,10 @@
 #### Scenario: 向き先が違う symlink
 - **WHEN** `~/.claude/skills/commit` が別のパスを指すsymlink
 - **THEN** その項目は `fail` で、終了コードは1
+
+#### Scenario: ループのコマンドが無い
+- **WHEN** `sync` のあとで `~/.local/bin/uskn-loop` を消してから `doctor` を実行する
+- **THEN** その項目は `warn` で、`uskn-harness sync` の実行を促す
 
 ### Requirement: 終了コード
 `fail` が1つでもあれば終了コード1、`warn` のみなら0で終わらなければならない（MUST）。
@@ -111,11 +118,11 @@ Impeccableの `SKILL.md` の `version` がピンと違うとき、`doctor` は `
 ### Requirement: 鮮度警告の設定の確認
 環境変数 `IMPECCABLE_NO_STALENESS_CHECK=1` がどこにも設定されていないとき、`doctor` は `warn` を報告しなければならない（MUST）。
 確かめる場所は、`~/.claude/settings.json` の `env` と、`doctor` 自身の環境の2つ。
-この設定はdotfilesが管理するので、`sync` は書かない。
+この設定は設定断片が持ち、`sync` がliveへ書く。
 
 #### Scenario: 設定が無い
 - **WHEN** `~/.claude/settings.json` の `env` に `IMPECCABLE_NO_STALENESS_CHECK` が無い
-- **THEN** `warn` に変数の名前が含まれ、終了コードは0
+- **THEN** `warn` に変数の名前と `sync` の案内が含まれ、終了コードは0
 
 #### Scenario: 設定がある
 - **WHEN** `~/.claude/settings.json` の `env` で `IMPECCABLE_NO_STALENESS_CHECK` が `"1"`
@@ -201,3 +208,52 @@ Claude Codeのインストールが1つも見つからないとき、`doctor` �
 #### Scenario: sync 直後
 - **WHEN** 参照点がcheckoutを指す環境で、`sync` 直後に `doctor` を実行する
 - **THEN** 絶対パスの `warn` は出ない
+
+### Requirement: ユーザー層の設定の検査
+`doctor` は、syncが今の状態から書くはずの値を求め、liveの `~/.claude/settings.json` と比べなければならない（MUST）。
+求め方は、合成のマージ、3方向の片付け、effortの消去をsyncと同じ規則で行う。
+一致すれば `ok`、違えば `warn` と報告し、`warn` には違うキーのパスと `sync` の案内を含める。
+liveか端末別設定がJSONとして読めないときは `warn` とし、ファイルの名前を含める。
+
+#### Scenario: /effort の後
+- **WHEN** 端末で `/effort` を使い、liveの `modelSettings` に `effortLevel` が書かれている
+- **THEN** `warn` に `modelSettings` のパスと `sync` の案内が含まれ、終了コードは0
+
+#### Scenario: sync の直後
+- **WHEN** `sync` の直後に `doctor` を実行する
+- **THEN** その項目は `ok`
+
+### Requirement: 通知のコマンドの検査
+`doctor` は、`plugins/uskn-notify/bin/` の各コマンドについて、`~/.local/bin/<name>` の状態を報告しなければならない（MUST）。
+そのコマンドを指すsymlinkなら `ok`、実ファイルなら `warn`（`conflict`）、無ければ `warn` とする。
+
+#### Scenario: dotfiles のコピーが残っている
+- **WHEN** `~/.local/bin/claude-notify-hook` が実ファイル
+- **THEN** `warn` にファイルのパスが含まれ、終了コードは0
+
+### Requirement: sandbox の依存の検査
+liveの `sandbox.enabled` が `true` のLinuxの端末で、`doctor` はsandboxの依存を1行で報告しなければならない（MUST）。
+WSL2もLinuxの端末として扱う。
+`bwrap` と `socat` の両方がPATHにあれば `ok`、どちらかが無ければ `warn` とする。
+`warn` には、無いコマンドの名前と、`bubblewrap` と `socat` を入れる案内と、無いあいだBashが制限なしで動くことを含める。
+`doctor` はどちらもインストールしない。
+
+#### Scenario: bwrap の無い端末
+- **WHEN** liveの `sandbox.enabled` が `true` のLinuxの端末に `bwrap` が無く、`socat` はある
+- **THEN** `warn` に `bwrap` と案内が含まれ、終了コードは0
+
+#### Scenario: 両方ある端末
+- **WHEN** liveの `sandbox.enabled` が `true` のLinuxの端末に `bwrap` と `socat` がある
+- **THEN** その行は `ok`
+
+### Requirement: sandbox の依存を検査しない端末
+macOSの端末と、liveの `sandbox.enabled` が `true` でない端末で、`doctor` はsandboxの依存を報告してはならない（MUST NOT）。
+macOSのsandboxは、OSに付属する仕組みで動くため。
+
+#### Scenario: macOS
+- **WHEN** liveの `sandbox.enabled` が `true` のmacOSの端末で `doctor` を実行する
+- **THEN** sandboxの依存の行は報告に現れない
+
+#### Scenario: sandbox を切った端末
+- **WHEN** 端末別設定で `sandbox.enabled` を `false` にし、sync後に `doctor` を実行する
+- **THEN** sandboxの依存の行は報告に現れない

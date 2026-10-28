@@ -79,6 +79,7 @@ schemaはuser-levelの `~/.local/share/openspec/schemas/uskn/` に置く。
 | SessionEnd | journal を最終更新し、sessions リポジトリに commit して push する |
 
 journalに関わる行（SessionStartの直近要約、許可リストの `~/.ai-sessions`、Stopのjournal、SessionEnd）はADR-0004で差し替えた。
+PreToolUse Bashの行の「他のパターンは警告」は、ADR-0009でClaude Codeのsandboxによる制限に差し替えた。
 
 ### 8. 既存スキルの移管
 gitワークフロー系のスキルをハーネスへ移す。

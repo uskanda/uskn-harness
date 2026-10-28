@@ -5,6 +5,11 @@
 #   uskn-harness sync --tools [--dry-run]      steps 2 and 5b only: runtime, pinned CLIs, schema link (CI)
 #   uskn-harness doctor                        report the state; exit 1 when something is broken
 #   uskn-harness onboard-check [dir]           report what a product repo still needs (read-only, always exit 0)
+#   uskn-harness sandbox-exclude <pattern>     run commands matching <pattern> outside the Claude Code sandbox on this
+#                                              machine: add it to the overlay's sandbox.excludedCommands, then apply
+#                                              the user settings (step 8) only
+#   uskn-harness sandbox-exclude --list        the live patterns, each marked fragment, machine, or live
+#   uskn-harness sandbox-exclude --remove <p>  take a machine pattern out again (fragment patterns need a pull request)
 #
 # What sync does (openspec: harness-sync)
 #   0. update           git pull --ff-only in the checkout, then re-exec the new script (--no-pull skips it)
@@ -58,7 +63,7 @@ export MISE_YES=1
 DRY=0 REMOVE=0 TOOLS=0 NO_PULL=0 FAILS=0 WARNS=0 CHANGED=0 HARNESS=""
 ORIG_ARGV=()   # what main was called with, so an update can re-execute the new script with the same request
 
-usage() { sed -n '2,31p' "$0"; }
+usage() { sed -n '2,36p' "$0"; }
 say() { printf '%-9s %s\n' "$1" "$2"; }
 note() {
   case "$1" in
@@ -233,7 +238,8 @@ SETTINGS_OVERLAY="$HOME/.config/uskn-harness/settings.json"
 SETTINGS_RECORD="$STATE_DIR/settings-applied.json"
 # shellcheck disable=SC2016  # a jq program: its $names are jq variables
 SETTINGS_JQ='
-def is_set($p): ($p | length) == 2 and $p[0] == "permissions" and ($p[1] | IN("allow", "deny", "ask", "additionalDirectories"));
+def is_set($p): (($p | length) == 2 and $p[0] == "permissions" and ($p[1] | IN("allow", "deny", "ask", "additionalDirectories")))
+  or $p == ["sandbox", "excludedCommands"] or $p == ["sandbox", "filesystem", "allowWrite"];
 def has_elem($e): any(.[]; . == $e);
 def merge($a; $b; $p):
   if ($a | type) == "object" and ($b | type) == "object" then
@@ -365,6 +371,14 @@ check_user_settings() { # doctor: live against what sync would write; read-only
     note warn "user settings: sync would $diff (run uskn-harness sync)"
   fi
   rm -rf "$w"
+}
+check_sandbox_deps() { # doctor: the Linux sandbox runs on bwrap and socat; without them Bash runs unconfined (ADR-0009)
+  local missing="" t
+  [ "$(host_os)" = Linux ] || return 0
+  [ -e "$SETTINGS_FILE" ] && jqx -e '.sandbox.enabled == true' "$SETTINGS_FILE" >/dev/null 2>&1 || return 0
+  for t in bwrap socat; do have "$t" || missing="${missing:+$missing, }$t"; done
+  if [ -z "$missing" ]; then note ok "sandbox: bwrap and socat"
+  else note warn "sandbox: $missing missing, so Bash runs without limits (install the packages bubblewrap and socat)"; fi
 }
 
 # ------------------------------------------------------------ notify plugin
@@ -876,6 +890,7 @@ cmd_doctor() {
   check_third_party
   check_opsx_commands
   check_user_settings
+  check_sandbox_deps
   if is_managed_file "$CLAUDE_DIR/CLAUDE.md"; then note ok "user CLAUDE.md"
   elif [ -e "$CLAUDE_DIR/CLAUDE.md" ]; then note warn "user CLAUDE.md exists without the marker (sync will not touch it)"
   else note warn "user CLAUDE.md missing (run sync)"; fi
@@ -951,12 +966,60 @@ cmd_onboard_check() { # <dir>
   return 0
 }
 
+# ------------------------------------------------------------ sandbox-exclude
+# The commands that run outside the sandbox are data, not code (openspec: harness-sync, sandbox-exclude-skill;
+# ADR-0011): the fragment holds the defaults, the machine overlay what this machine adds. sync treats the array as a
+# set, so an added pattern survives the next sync, and its three-way prune takes a removed one out of live.
+excluded_in() { [ -f "$1" ] && jqx -r '.sandbox.excludedCommands // [] | .[]' "$1" 2>/dev/null; } # <settings file>
+cmd_sandbox_exclude() {
+  local mode=add pattern="" w
+  case "${1:-}" in
+    --list) mode=list ;;
+    --remove) mode=remove; pattern="${2:-}" ;;
+    *) pattern="${1:-}" ;;
+  esac
+  if [ "$mode" = list ]; then
+    excluded_in "$SETTINGS_FILE" | while IFS= read -r pattern; do
+      if excluded_in "$HARNESS/templates/user/settings.json" | grep -qxF -- "$pattern"; then printf '%-9s %s\n' fragment "$pattern"
+      elif excluded_in "$SETTINGS_OVERLAY" | grep -qxF -- "$pattern"; then printf '%-9s %s\n' machine "$pattern"
+      else printf '%-9s %s\n' live "$pattern"; fi
+    done
+    return 0
+  fi
+  case "$(printf '%s' "$pattern" | tr -d '[:space:]')" in
+    '' | '*') echo "sandbox-exclude: give a pattern such as 'terraform *'; an empty one or a bare * would take every command out of the sandbox" >&2; return 2 ;;
+  esac
+  if [ -e "$SETTINGS_OVERLAY" ] && ! is_json_object "$SETTINGS_OVERLAY"; then
+    echo "sandbox-exclude: $SETTINGS_OVERLAY is not a JSON object; fix it first" >&2; return 1
+  fi
+  w="$(mktemp -d)"
+  if [ -e "$SETTINGS_OVERLAY" ]; then cp "$SETTINGS_OVERLAY" "$w/overlay.json"; else echo '{}' > "$w/overlay.json"; fi
+  # shellcheck disable=SC2016  # jq programs: their $p is a jq variable
+  if [ "$mode" = remove ]; then
+    if excluded_in "$HARNESS/templates/user/settings.json" | grep -qxF -- "$pattern"; then
+      echo "sandbox-exclude: '$pattern' is a default in templates/user/settings.json; removing it needs a pull request to the harness" >&2
+      rm -rf "$w"; return 2
+    fi
+    jqx --arg p "$pattern" 'if .sandbox.excludedCommands then .sandbox.excludedCommands -= [$p] else . end' "$w/overlay.json" > "$w/new.json"
+  else
+    jqx --arg p "$pattern" '.sandbox.excludedCommands = ((.sandbox.excludedCommands // []) | if index($p) then . else . + [$p] end)' "$w/overlay.json" > "$w/new.json"
+  fi
+  mkdir -p "$(dirname "$SETTINGS_OVERLAY")"
+  if [ -e "$SETTINGS_OVERLAY" ] && same_json "$SETTINGS_OVERLAY" "$w/new.json"; then note ok "overlay: $SETTINGS_OVERLAY"
+  elif write_json_atomic "$SETTINGS_OVERLAY" "$w/new.json"; then note updated "overlay: $SETTINGS_OVERLAY ($mode '$pattern')"
+  else note fail "overlay: could not write $SETTINGS_OVERLAY"; rm -rf "$w"; return 1; fi
+  rm -rf "$w"
+  ensure_user_settings
+  [ "$FAILS" -eq 0 ]
+}
+
 main() {
   ORIG_ARGV=("$@")
   local cmd="${1:-}"; shift || true
   case "$cmd" in
     -h | --help | help | "") usage; [ -n "$cmd" ] && exit 0 || exit 2 ;;
     sync | init | doctor | onboard-check) ;;
+    sandbox-exclude) resolve_harness_dir; cmd_sandbox_exclude "$@"; exit $? ;;
     *) echo "unknown command: $cmd" >&2; usage >&2; exit 2 ;;
   esac
   local target=""

@@ -35,7 +35,7 @@
 
 ### Requirement: 自作スキルの symlink
 `sync` は `skills/**/SKILL.md` を持つ各ディレクトリについて `~/.claude/skills/<name>` へのsymlinkを張らなければならない（MUST）。`<name>` はディレクトリ名。既に同名の実ディレクトリ（symlinkでないもの）があるときは上書きせず、`conflict` として警告し、他の項目の処理を続ける。既にハーネス内を指すsymlinkなら `ok`。
-`uskn-harness` はプラグインの名前なので、スキルの名前には使えない。
+`plugins/` の下のプラグインの名前は、スキルの名前には使えない。
 
 #### Scenario: chezmoi 管理の同名スキルがある
 - **WHEN** `~/.claude/skills/commit` が実ディレクトリとして存在する
@@ -49,12 +49,26 @@
 - **WHEN** `skills/` 配下に `uskn-harness` という名前のスキルがある
 - **THEN** `sync` は何も書かずに終了コード2で停止する
 
+#### Scenario: 通知のプラグインの名前
+- **WHEN** `skills/` 配下に `uskn-notify` という名前のスキルがある
+- **THEN** `sync` は何も書かずに終了コード2で停止する
+
 ### Requirement: プラグインの symlink
-`sync` は `~/.claude/skills/uskn-harness` を `plugins/uskn-harness` へのsymlinkにしなければならない（MUST）。
+`sync` は、`plugins/` の下の各プラグインについて、`~/.claude/skills/<name>` をそのディレクトリへのsymlinkにしなければならない（MUST）。
+プラグインとは `.claude-plugin/plugin.json` を持つディレクトリで、`<name>` はディレクトリ名。
+同名の実ディレクトリがあるときは上書きせず、`conflict` と報告する。
 
 #### Scenario: 初回
 - **WHEN** `~/.claude/skills/uskn-harness` が無い
 - **THEN** symlinkが作られ、`claude plugin list` に `uskn-harness@skills-dir` が現れる
+
+#### Scenario: 通知のプラグイン
+- **WHEN** `~/.claude/skills/uskn-notify` が無い状態で `sync` を実行する
+- **THEN** `~/.claude/skills/uskn-notify` が `plugins/uskn-notify` へのsymlinkとして作られ、`created` と報告される
+
+#### Scenario: 取り除く
+- **WHEN** `sync --remove` を実行する
+- **THEN** `~/.claude/skills/uskn-harness` と `~/.claude/skills/uskn-notify` のsymlinkが消える
 
 ### Requirement: サードパーティスキル
 `sync` は、`deps.json` の `skills` のうち `via` が `skills` の項目を導入しなければならない（MUST）。
@@ -97,10 +111,16 @@ OpenSpecのスキル（`openspec-*`）はユーザー層にコピーしない（
 
 ### Requirement: 実行ファイルの公開
 `sync` は `~/.local/bin/uskn-harness` を `bin/uskn-harness` へのsymlinkにしなければならない（MUST）。
+`sync` は `~/.local/bin/uskn-loop` を `bin/uskn-loop` へのsymlinkにしなければならない（MUST）。
+`sync --remove` は、この2つのsymlinkを取り除かなければならない（MUST）。
 
 #### Scenario: PATH から呼べる
 - **WHEN** `sync` 後に新しいシェルを開く
 - **THEN** `uskn-harness doctor` が実行できる
+
+#### Scenario: ループのコマンド
+- **WHEN** `sync` 後に新しいシェルを開く
+- **THEN** `uskn-loop` が実行できる
 
 ### Requirement: dry-run と報告
 `--dry-run` を付けたとき、`sync` はファイルシステムを変更せず、行う予定の操作を1行ずつ出力しなければならない（MUST）。通常実行では各項目を `ok` / `created` / `updated` / `conflict` / `skipped` のいずれかで報告する。
@@ -141,12 +161,13 @@ OpenSpecのスキル（`openspec-*`）はユーザー層にコピーしない（
 
 ### Requirement: 道具だけの導入（--tools）
 `uskn-harness sync --tools` は3つだけを用意しなければならない（MUST）。ランタイム（mise、node、jq）、`deps.json` でピンしたnpm globalのCLI、OpenSpec schemaのsymlink。
-参照点、実行ファイル、スキルとプラグインのsymlink、サードパーティスキル、OpenSpecのユーザー層、ユーザー層CLAUDE.mdには触らない。古いセッションの状態も削除しない。
+参照点、実行ファイル、スキルとプラグインのsymlink、サードパーティスキル、OpenSpecのユーザー層、ユーザー層CLAUDE.mdには触らない。
+ユーザー層のsettings.jsonと適用記録、`~/.local/bin` の通知のコマンドにも触らない。古いセッションの状態も削除しない。
 `--dry-run` と組み合わせられる。`--remove` と組み合わせたときは終了コード2で止まる。
 
 #### Scenario: CI の runner
 - **WHEN** 何も導入されていないマシンで `sync --tools` を実行する
-- **THEN** miseの道具とnpm globalの導入が実行され、schemaのsymlinkが作られる。`~/.claude/skills` と `~/.claude/CLAUDE.md` は作られない
+- **THEN** miseの道具とnpm globalの導入が実行され、schemaのsymlinkが作られる。`~/.claude/skills`、`~/.claude/CLAUDE.md`、`~/.claude/settings.json` は作られない
 
 #### Scenario: 2 回目
 - **WHEN** 導入済みの環境で `sync --tools` を再実行する
@@ -203,7 +224,7 @@ mergeとrebaseは行わない（MUST NOT）。fast-forwardできないときは�
 
 #### Scenario: npm global の導入に失敗
 - **WHEN** ネットワークが無く、`npm install -g` が失敗する
-- **THEN** 他の手順は続き、`sync` は終了コード1で終わる。chezmoiのrun_onceスクリプトも非ゼロで終わり、次回の `chezmoi apply` で再実行される
+- **THEN** 他の手順は続き、`sync` は終了コード1で終わる。dotfilesの `run_after_` のスクリプトも非ゼロで終わり、`chezmoi apply` が失敗を報告する
 
 #### Scenario: CI の runner
 - **WHEN** `sync --tools` でピンしたCLIの導入が失敗する
@@ -405,3 +426,32 @@ skills CLIは `ref` を `git clone --branch` に渡すので、12桁などの短
 #### Scenario: 絶対パスの既存 symlink
 - **WHEN** `~/.claude/skills/commit` がcheckoutの絶対パス `skills/git/commit` を指し、参照点がcheckoutを指す
 - **THEN** `sync` はsymlinkを相対パスに張り直して `updated` と報告し、続けて実行した `sync` は `ok` と報告する
+
+### Requirement: sandbox の外で動かすコマンドの追加
+`uskn-harness sandbox-exclude <pattern>` は、端末別設定の `sandbox.excludedCommands` にパターンを1つ足さなければならない（MUST）。
+端末別設定の置き場は `~/.config/uskn-harness/settings.json` である。
+既にあるパターンは足さない。端末別設定が無ければ作る。
+続けて、ユーザー層の設定の手順だけをsyncと同じ規則で実行し、liveに反映する。
+`<pattern>` が空のときと、`*` だけのときは、何も変えずに終了コード2で終える。
+
+#### Scenario: terraform を足す
+- **WHEN** `uskn-harness sandbox-exclude 'terraform *'` を実行する
+- **THEN** 端末別設定とliveの `sandbox.excludedCommands` に `terraform *` があり、設定断片の要素もliveに残る
+
+#### Scenario: すべてを外に出そうとする
+- **WHEN** `uskn-harness sandbox-exclude '*'` を実行する
+- **THEN** 端末別設定は変わらず、終了コードは2
+
+### Requirement: sandbox の外で動かすコマンドの一覧と削除
+`uskn-harness sandbox-exclude --list` は、liveの `sandbox.excludedCommands` を1行ずつ出力しなければならない（MUST）。
+各行には、設定断片の要素か端末別設定の要素かを示す。
+`uskn-harness sandbox-exclude --remove <pattern>` は、端末別設定からそのパターンを消し、liveに反映しなければならない（MUST）。
+設定断片の要素は `--remove` で消してはならない（MUST NOT）。消そうとしたときは、設定断片を直すPRが要ることを出力し、終了コード2で終える。
+
+#### Scenario: 端末で足したものを外す
+- **WHEN** `terraform *` を足した後に `uskn-harness sandbox-exclude --remove 'terraform *'` を実行する
+- **THEN** 端末別設定とliveの `sandbox.excludedCommands` から `terraform *` が消える
+
+#### Scenario: 既定値を外そうとする
+- **WHEN** `uskn-harness sandbox-exclude --remove 'git *'` を実行する
+- **THEN** 何も変わらず、出力に設定断片を直すPRの案内が含まれ、終了コードは2

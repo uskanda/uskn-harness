@@ -51,6 +51,7 @@ hookの共通部品（`plugins/uskn-harness/hooks/scripts/lib/`）が変わっ�
 - hookの共通部品とテストのfixtureには、hookのテストすべて
 - `hooks.json` には `hooks/tests/hooks-json.bats`、プラグインの `bin/` には `hooks/tests/plugin-bin.bats`
 - `bin/uskn-harness` には `bin/tests/uskn-harness.bats`、`Makefile` には `bin/tests/makefile.bats`
+- `bin/uskn-loop` と `loop/` の下のファイルには `bin/tests/uskn-loop.bats`
 - `skills/` の下のファイルには `bin/tests/skill-*.bats`、`skills/<name>/SKILL.md` にはあれば `bin/tests/<name>-skill.bats`
 
 関わるテストが無ければ、batsは実行しない。
@@ -62,6 +63,10 @@ hookの共通部品（`plugins/uskn-harness/hooks/scripts/lib/`）が変わっ�
 #### Scenario: hook を1つ変えた
 - **WHEN** `plugins/uskn-harness/hooks/scripts/verify-gate.sh` だけを変えて `make verify-fast` を実行する
 - **THEN** batsは `plugins/uskn-harness/hooks/tests/verify-gate.bats` だけを実行する
+
+#### Scenario: ループの指示を変えた
+- **WHEN** `loop/prompts/auditor.md` だけを変えて `make verify-fast` を実行する
+- **THEN** batsは `bin/tests/uskn-loop.bats` だけを実行する
 
 ### Requirement: 結果と道具の欠如
 `verify-fast` は、どれかの検査が失敗したとき非ゼロで終わらなければならない（MUST）。

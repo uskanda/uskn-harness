@@ -34,6 +34,14 @@ narrower command (one test file) while a verify convention exists, is not eviden
 With neither a convention nor CI configuration, say both are missing, suggest the `verify` target, and do not
 claim to have verified anything.
 
+## Right before a commit
+
+Claude Code (2.1.286 and later) runs this skill right before each commit, except for changes to docs or tests.
+In that case, run `make verify-fast` when the Makefile has a `verify-fast` target; otherwise run the convention
+found above. On failure, do not commit: fix it as in "Run and fix", then commit.
+This run only decides whether the commit goes ahead. It is not evidence that the work is done: that claim still
+needs the convention itself, run in the same turn (Evidence before claims).
+
 ## Run and fix
 
 1. Run the command from the repository root and read the whole output, not only the exit code.
