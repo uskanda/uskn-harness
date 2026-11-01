@@ -28,3 +28,9 @@ fire() { printf '{"session_id":"%s","cwd":"%s","hook_event_name":"SessionStart",
   fire sid3 "$R" compact
   [ "$(cat "$USKN_STATE_DIR/sessions/sid3/baseline")" = "$first" ]
 }
+
+@test "the placeholders the sandbox puts in the tree leave the recorded fingerprint as it was" {
+  fire sid4 "$R"
+  : > "$R/.bashrc"; mkdir -p "$R/.claude"; : > "$R/.claude/agents"
+  [ "$(cat "$USKN_STATE_DIR/sessions/sid4/baseline")" = "$(bash -c ". '$BATS_TEST_DIRNAME/../scripts/lib/common.sh'; tree_fingerprint '$R'")" ]
+}

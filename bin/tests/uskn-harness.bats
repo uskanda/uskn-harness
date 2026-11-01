@@ -392,6 +392,11 @@ npm_specs() {
   head -1 "$REPO/templates/user/CLAUDE.md" | grep -q "managed by uskn-harness"
 }
 
+@test "templates/user/CLAUDE.md has one line on the sandbox's placeholders" {
+  [ "$(grep -c 'placeholder' "$REPO/templates/user/CLAUDE.md")" -eq 1 ]
+  grep 'placeholder' "$REPO/templates/user/CLAUDE.md" | grep -qF '.claude/agents'
+}
+
 @test "templates/user/CLAUDE.md names no skill the harness has retired" {
   for s in verification-before-completion using-git-worktrees pre-merge nessun-dorma; do
     refute grep -q -- "$s" "$REPO/templates/user/CLAUDE.md"
