@@ -75,6 +75,27 @@ uskn-harness doctor                                    # 状態レポート。�
 `sync` は冪等で、既存の実ディレクトリ（chezmoi管理のスキルなど）は `conflict` として触らない。
 `sync --remove` でハーネス由来のsymlinkと管理コピーだけを取り除ける。
 
+`sync` がハーネス内へ張るsymlinkは、参照点を経由する相対パスにする。例は `~/.claude/skills/commit -> ../../.local/share/uskn-harness/skills/git/commit`。
+参照点がこのcheckoutを指していないときだけ、checkoutの絶対パスで張る。
+絶対パスで張っていた版から更新すると、次の `sync` で既存のsymlinkが一度だけ `updated` と報告される。挙動は変わらない。
+
+### devcontainer で使う
+
+コンテナの中でも、参照点にハーネスがあれば、写した `~/.claude` のスキルとhookがそのまま読み込まれる。
+
+1. ハーネスのcheckoutを、コンテナのHOMEの `.local/share/uskn-harness` にマウントする。Dockerの `COPY` はビルドの入力の外を指すsymlinkを写せないので、コピーではなくマウントにする
+2. `~/.claude` は、参照点との位置関係（HOMEの直下）を保って写す
+3. textlintやopenspecなどのCLIもコンテナで使うなら、`postCreateCommand` で `uskn-harness sync --no-pull` を実行する
+
+```jsonc
+// .devcontainer/devcontainer.json（HOME が /home/vscode の場合）
+"mounts": [
+  "source=${localEnv:HOME}/repos/uskn-harness,target=/home/vscode/.local/share/uskn-harness,type=bind,readonly"
+]
+```
+
+`uskn-harness doctor` は、`~/.claude/skills` の直下で絶対パスを指すsymlinkと、指す先の無いsymlinkを `warn` と報告する。コンテナへ写す前の確認に使える。
+
 ## 開発
 
 ```bash

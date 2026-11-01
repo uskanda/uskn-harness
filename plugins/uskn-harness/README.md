@@ -1,8 +1,9 @@
 # uskn-harness (Claude Code plugin)
 
 Loaded as a skills-directory plugin: `uskn-harness sync` symlinks this directory to
-`~/.claude/skills/uskn-harness`. It carries hooks and the short commands in `bin/`; skills are symlinked
-individually.
+`~/.claude/skills/uskn-harness`, by a relative path through the stable path
+(`../../.local/share/uskn-harness/plugins/uskn-harness`). It carries hooks and the short commands in `bin/`; skills
+are symlinked individually.
 
 - `hooks/hooks.json`: SessionStart (`session-start.sh`, `session-baseline.sh`), PreToolUse (`grilling-guard.sh`,
   `write-guard.sh` on Write/Edit/NotebookEdit; `bash-guard.sh` on Bash), PostToolUse (`textlint-check.sh`,

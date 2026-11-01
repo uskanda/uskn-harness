@@ -59,7 +59,8 @@ agents_in_sourced_cli() {
 @test "sync links every command of the plugin into ~/.local/bin, the PowerShell speaker next to claude-notify" {
   run "$CLI" sync --no-pull
   [ "$status" -eq 0 ]
-  for c in $COMMANDS; do [ "$(readlink "$BIN/$c")" = "$PLUGIN/bin/$c" ] || { echo "not linked: $c"; false; }; done
+  for c in $COMMANDS; do [ "$(readlink "$BIN/$c")" = "../share/uskn-harness/plugins/uskn-notify/bin/$c" ] || { echo "not linked: $c"; false; }; done
+  for c in $COMMANDS; do [ "$BIN/$c" -ef "$PLUGIN/bin/$c" ] || { echo "not resolved: $c"; false; }; done
   [[ "$output" == *"created"*"notify command claude-notify.ps1"* ]] || false
 }
 

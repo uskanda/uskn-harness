@@ -31,3 +31,7 @@ ADR-0001ではClaude Code向けのhookをmarketplace経由のプラグインで�
   マシン間の更新は `git pull`（`sync` が行う）に依存する
 - 訂正（2026-09-25）：`bin/` 非対応は誤りだった。skills-dirプラグインの `bin/` も、Bashツールの `PATH` に載る。
   スキル向けのコマンドをそこに置く決定はADR-0005にある。installerの `~/.local/bin/uskn-harness` は、hook、CI、普通のシェル用に残す
+- 追記（2026-10-05）：決定2と4のsymlinkは、参照点を経由する相対パスで張る。
+  例は `~/.claude/skills/uskn-harness -> ../../.local/share/uskn-harness/plugins/uskn-harness`。
+  checkoutの絶対パスだと、`~/.claude` をdevcontainerへ写したときに指す先が無くなり、スキルとhookが読み込まれなかった。
+  参照点がそのcheckoutを指さないときは、今までどおり絶対パスで張る。詳細はchange `relative-harness-links` のdesignにある
