@@ -82,6 +82,21 @@ settings_lines() { grep -E '^[a-z]+ +user settings' <<<"$output" || true; }
   jq -e '.sandbox.excludedCommands | (index("kubectl *") != null) and (index("gh *") != null)' "$LIVE" >/dev/null
 }
 
+@test "the sandbox lets commands reach Unix sockets, and the fragment names no host of its own" {
+  [ "$(jq -r '.sandbox.network.allowAllUnixSockets' "$FRAGMENT")" = true ]
+  [ "$(jq -r '.sandbox.network | has("allowedDomains")' "$FRAGMENT")" = false ]
+}
+
+@test "a host the machine allows survives sync next to what live already has" {
+  write_live '{"sandbox":{"network":{"allowedDomains":["pkg.example.test"]}}}'
+  write_overlay '{"sandbox":{"network":{"allowedDomains":["gl.example.test"]}}}'
+  "$CLI" sync --no-pull >/dev/null
+  jq -e '.sandbox.network.allowedDomains | (index("gl.example.test") != null) and (index("pkg.example.test") != null)' "$LIVE" >/dev/null
+  [ "$(live '.sandbox.network.allowAllUnixSockets')" = true ]
+  "$CLI" sync --no-pull >/dev/null
+  jq -e '[.sandbox.network.allowedDomains[] | select(. == "gl.example.test")] | length == 1' "$LIVE" >/dev/null
+}
+
 @test "the settings fragment lets WebFetch, and through it sandboxed Bash, reach any host" {
   has_allow "$FRAGMENT" 'WebFetch(domain:*)'
 }
