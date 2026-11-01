@@ -24,7 +24,7 @@ sandboxが原因と分かる失敗は、多い順に次のとおりである。
 
 1. 設定断片で `sandbox.network.allowAllUnixSockets` を `true` にし、全端末でUnixソケットを許す。パスを選ぶ `allowUnixSockets` は、Linuxでは読まれない
 2. この端末のIPに解決されるホストは、ユーザーが `/sandbox-allow-host <host>` を打って足す。スキルは `uskn-harness sandbox-allow-host` で端末別設定の `sandbox.network.allowedDomains` に足し、syncはこの配列を集合として扱う。設定断片にはホストを書かない
-3. sandboxの外に出す道具が複合コマンドの途中にあり、sandboxの中で失敗すると分かっているとき、bash-guardは拒否し、単独で実行し直すよう促す。gitでは、`.git/config` に書くかネットワークを使う10個の下位コマンドが対象である。`push`、`fetch`、`pull`、`clone`、`switch`、`checkout`、`branch`、`config`、`remote`、`submodule` の10個である。ほかに、`glab`、`docker`、`ssh`、`scp`、`claude` が対象である。liveの `excludedCommands` に当たる道具だけを拒否する。ほかの外の道具は、今までどおり知らせるだけにする
+3. sandboxの外に出す道具が複合コマンドの途中にあり、sandboxの中で失敗すると分かっているとき、bash-guardは拒否し、単独で実行し直すよう促す。gitでは、`.git/config` に書くかネットワークを使う10個の下位コマンドが対象である。`push`、`fetch`、`pull`、`clone`、`switch`、`checkout`、`branch`、`config`、`remote`、`submodule` の10個である。ほかに、`glab`、`docker`、`ssh`、`scp`、`claude` が対象である。gitの下位コマンドの前に `-C`、`-c`、`--git-dir`、`--work-tree`、`--config-env`、`--exec-path` が付くと、`excludedCommands` は当たらない。これも先頭にないものと同じに扱う。liveの `excludedCommands` に当たる道具だけを拒否する。ほかの外の道具は、今までどおり知らせるだけにする
 4. `dangerouslyDisableSandbox: true` の呼び出しのたびに、bash-guardは、sandboxを外すのはsandboxの制限による失敗を見たときだけだと知らせる
 5. 仮ファイルは形で見分ける。作業ツリーの直下の `.<name>` か、`.claude/<name>` で、大きさが0の未追跡のファイルである。作業ツリーの指紋と `verify-fast` の範囲は、これを数えない。判定は `lib/common.sh` の1つの関数に置く
 6. ユーザー層の指示に、仮ファイルはsandboxのもので、commitや削除をしないことを1行で書く

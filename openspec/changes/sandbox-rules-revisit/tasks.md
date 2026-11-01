@@ -22,7 +22,7 @@
 
 ## 5. bash-guard（bash-guard）
 
-- [x] 5.1 `plugins/uskn-harness/hooks/tests/bash-guard.bats` に、仕様のシナリオのテストを先に足し、既存の知らせのテストを仕様の変更に合わせる。拒否は、`cd` の後の `git push`、パイプの前の `git push`、代入の後の `glab`、単独の `git -C` の `push`、一覧から外した `docker` を確かめる。知らせは、`dangerouslyDisableSandbox` が `true`、無い、`false` の3つを確かめる。走らせて失敗することを確かめる
+- [x] 5.1 `plugins/uskn-harness/hooks/tests/bash-guard.bats` に、仕様のシナリオのテストを先に足し、既存の知らせのテストを仕様の変更に合わせる。拒否は、`cd` の後の `git push`、パイプの前の `git push`、代入の後の `glab`、`-C` の付いた `push`、一覧から外した `docker` を確かめる。`--no-pager` の付いた `push` では、何も出さないことを確かめる。知らせは、`dangerouslyDisableSandbox` が `true`、無い、`false` の3つを確かめる。走らせて失敗することを確かめる
 - [x] 5.2 `bash-guard.sh` に、design.mdのD3とD4のとおり、拒否と知らせを足し、冒頭の説明を直す。5.1と残りのbatsが通り、`make verify-shell` が通ることを確かめる
 
 ## 6. 仮ファイル（session-baseline、verify-fast）

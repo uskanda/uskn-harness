@@ -114,7 +114,7 @@ sudo apparmor_parser -r /etc/apparmor.d/bwrap
 - macOSでは、何も入れなくてよい
 - ルートの外で作業するときは、ユーザーが `/add-dir <path>` を打つ。hookがセッションの許可ファイルにも記録する（ADR-0010）
 - sandboxの中で動かない道具を見つけたら、ユーザーが `/sandbox-exclude <tool>` を打つ。その端末の端末別設定 `~/.config/uskn-harness/settings.json` に足され、syncの後も残る。一覧は `uskn-harness sandbox-exclude --list`、外すのは `--remove <pattern>` で行う
-- `excludedCommands` は、1つの単純なコマンドだけから成り、先頭がパターンと一致するコマンドだけを、sandboxの外で動かす。`cd <dir> && uskn-harness sync` や `git push | tail` はsandboxの中で動くので、単独で実行する。bash-guardは、sandboxの中で失敗すると分かっている形（`git push` や `git fetch`、`glab`、`docker` など）を拒否し、ほかの形は知らせるだけにする。gitでは `cd` の代わりに `git -C <dir>` を使う
+- `excludedCommands` は、1つの単純なコマンドだけから成り、先頭がパターンと一致するコマンドだけを、sandboxの外で動かす。`cd <dir> && uskn-harness sync` や `git push | tail` はsandboxの中で動くので、単独で実行する。bash-guardは、sandboxの中で失敗すると分かっている形（`git push` や `git fetch`、`glab`、`docker` など）を拒否し、ほかの形は知らせるだけにする。gitに `-C` や `-c`、`--git-dir` を付けても、sandboxの中で動く。作業ツリーの中では、gitを選択肢なしで実行する。別のディレクトリでは、先に `cd <dir>` だけを実行する
 - sandboxのコマンドの実行中は、作業ディレクトリの直下の `.bashrc` や `.claude/agents` などに、0バイトの仮ファイルが置かれる。実行が終わると消える。verify gateの指紋と `verify-fast` は、仮ファイルを数えない。`git status` に出たときは、commitせず、消さない
 - 端末でsandboxを切るときは、端末別設定で `sandbox.enabled` を `false` にしてsyncを実行する
 

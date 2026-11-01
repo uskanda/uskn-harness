@@ -13,8 +13,8 @@
 # allow file and the gate's state.
 #   deny  a tool that the live sandbox.excludedCommands lets out of the sandbox, where that cannot match, when it is
 #         known to fail inside: a git subcommand in SANDBOX_FAIL_GIT or a tool in SANDBOX_FAIL_TOOLS (ADR-0012).
-#         Where that cannot match: in a compound command (a pipe, &&, ;, parentheses) or behind an assignment or a
-#         wrapper such as sudo; the command then runs inside the sandbox.
+#         Where that cannot match: in a compound command (a pipe, &&, ;, parentheses), behind an assignment or a
+#         wrapper such as sudo, or for git behind an option in GIT_MOVING_OPTS; the command then runs inside.
 #   note  any other such tool: additionalContext says it runs inside the sandbox and to run it on its own on a
 #         sandbox failure (ADR-0011). tool_input.dangerouslyDisableSandbox true: additionalContext says to turn the
 #         sandbox off only after a sandbox failure (ADR-0012). One additionalContext carries both; a deny says
@@ -38,6 +38,9 @@ CHEZMOI_WRITES=' apply add update edit re-add merge '
 # needs the network or the ssh agent; the rest need a Unix socket, ~/.ssh, or their own config outside the sandbox.
 SANDBOX_FAIL_GIT=' push fetch pull clone switch checkout branch config remote submodule '
 SANDBOX_FAIL_TOOLS=' glab docker ssh scp claude '
+# excludedCommands does not match a git whose options move the repository, the config, or the programs it reads
+# (seen on 2026-11-01); --no-pager, -P, and --namespace leave the match alone.
+GIT_MOVING_OPTS=' -C -c --git-dir --work-tree --config-env --exec-path '
 # The patterns Claude Code runs outside the sandbox, from the live user settings; none without jq or the file.
 EXCLUDED=()
 SETTINGS_LIVE="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
@@ -325,19 +328,22 @@ do_sed() { # <first index>: only with -i; the script (first argument unless -e /
   [ "${#files[@]}" -gt 0 ] || return 0
   for f in "${files[@]}"; do write_target "$f"; done
 }
-git_subcommand() { # <index after git>: the subcommand, past git's own options
-  local i="$1" n=${#WORDS[@]}
+git_subcommand() { # <index after git>: sets GIT_SUB past git's own options, GIT_MOVED=1 behind a GIT_MOVING_OPTS one
+  local i="$1" n=${#WORDS[@]} w
+  GIT_SUB=""; GIT_MOVED=0
   while [ "$i" -lt "$n" ]; do
-    case "${WORDS[$i]}" in
+    w="${WORDS[$i]}"
+    case "$GIT_MOVING_OPTS" in *" ${w%%=*} "*) GIT_MOVED=1 ;; esac
+    case "$w" in
       -C | -c | --git-dir | --work-tree | --namespace | --config-env | --super-prefix | --attr-source) i=$((i + 1)) ;;
       -*) ;;
-      *) printf '%s' "${WORDS[$i]}"; return 0 ;;
+      *) GIT_SUB="$w"; return 0 ;;
     esac
     i=$((i + 1))
   done
 }
 note_excluded() { # <index of the command word>: remember a tool the live excludedCommands names
-  local line p tool base sub fails=0
+  local line p tool base moved=0 fails=0
   [ "${#EXCLUDED[@]}" -gt 0 ] || return 0
   line="${WORDS[*]:$1}"
   for p in "${EXCLUDED[@]}"; do
@@ -345,18 +351,18 @@ note_excluded() { # <index of the command word>: remember a tool the live exclud
     if [[ "$line" == $p ]]; then
       base="${WORDS[$1]##*/}"
       if [ "$base" = git ]; then
-        sub="$(git_subcommand $(($1 + 1)))"; tool="git${sub:+ $sub}"
-        [ -n "$sub" ] && case "$SANDBOX_FAIL_GIT" in *" $sub "*) fails=1 ;; esac
+        git_subcommand $(($1 + 1)); tool="git${GIT_SUB:+ $GIT_SUB}"; moved="$GIT_MOVED"
+        [ -n "$GIT_SUB" ] && case "$SANDBOX_FAIL_GIT" in *" $GIT_SUB "*) fails=1 ;; esac
       else
         tool="$base${WORDS[$(($1 + 1))]:+ ${WORDS[$(($1 + 1))]}}"
         case "$SANDBOX_FAIL_TOOLS" in *" $base "*) fails=1 ;; esac
       fi
       if [ "$fails" = 1 ]; then
         FAIL_ANY="${FAIL_ANY:+$FAIL_ANY, }$tool"
-        [ "$1" -gt 0 ] && FAIL_ALWAYS="${FAIL_ALWAYS:+$FAIL_ALWAYS, }$tool"
+        { [ "$1" -gt 0 ] || [ "$moved" = 1 ]; } && FAIL_ALWAYS="${FAIL_ALWAYS:+$FAIL_ALWAYS, }$tool"
       else
         NOTE_ANY="${NOTE_ANY:+$NOTE_ANY, }$tool"
-        [ "$1" -gt 0 ] && NOTE_ALWAYS="${NOTE_ALWAYS:+$NOTE_ALWAYS, }$tool"
+        { [ "$1" -gt 0 ] || [ "$moved" = 1 ]; } && NOTE_ALWAYS="${NOTE_ALWAYS:+$NOTE_ALWAYS, }$tool"
       fi
       return 0
     fi
@@ -435,10 +441,11 @@ while IFS= read -r line; do
 done < <(printf '%s\n' "$CMDX" | LC_ALL=C awk "$TOKENIZER" 2>/dev/null || true)
 simple_command
 
+GIT_HINT="For git, leave out -C, -c, --git-dir, --work-tree, --config-env, and --exec-path, which keep it inside too: in the working tree git finds the repository from any directory; for another directory, run cd <dir> as a call of its own first."
 if [ "$OPS" -gt 0 ]; then NOTE="$NOTE_ANY"; FAIL="$FAIL_ANY"; else NOTE="$NOTE_ALWAYS"; FAIL="$FAIL_ALWAYS"; fi
 if [ -n "$FAIL" ]; then
   MSG="$FAIL fails here: it runs inside the sandbox, because sandbox.excludedCommands only matches a command that is a single simple command starting with the tool. Run it again as a command of its own with the tool first (no cd &&, pipe, ;, parentheses, or prefix)."
-  case ", $FAIL" in *", git"*) MSG="$MSG For git, git -C <dir> replaces cd <dir> &&." ;; esac
+  case ", $FAIL" in *", git"*) MSG="$MSG $GIT_HINT" ;; esac
   add_deny "$MSG"
 fi
 if [ -n "$DENY" ]; then
@@ -449,6 +456,7 @@ if [ -n "$DENY" ]; then
 fi
 MSG=""
 [ -n "$NOTE" ] && MSG="$NOTE runs inside the sandbox here, because sandbox.excludedCommands only matches a command that is a single simple command starting with the tool. If it fails on a sandbox restriction, run it again on its own (no cd &&, pipe, ;, parentheses, or prefix)."
+case ", $NOTE" in *", git"*) MSG="$MSG $GIT_HINT" ;; esac
 [ "$UNSANDBOXED" = true ] && MSG="${MSG:+$MSG }This call turns the sandbox off: do that only after the same command failed on a sandbox restriction. Editing and reading files under the project roots works inside the sandbox."
 if [ -n "$MSG" ]; then
   MSG="uskn-harness: $MSG"

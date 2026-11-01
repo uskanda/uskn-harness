@@ -224,17 +224,18 @@ noticed() { echo "$output" | jq -e --arg t "$1" '(.hookSpecificOutput.permission
 }
 
 # ---- deny for a tool that fails inside the sandbox, placed where excludedCommands cannot match (spec: bash-guard)
-@test "a git subcommand that fails inside the sandbox is denied after cd or before a pipe, naming git -C" {
+@test "a git subcommand that fails inside the sandbox is denied after cd, before a pipe, or behind -C" {
   live_excluded 'git *'
   mkdir -p "$ROOT/sub"
   run call "cd sub && git fetch origin"
   [ "$status" -eq 0 ]
   denied
   reason | grep -qF 'git fetch'
-  reason | grep -qF 'git -C'
+  reason | grep -qF -- '--git-dir'
   [ "$(echo "$output" | jq -r '.hookSpecificOutput.additionalContext // empty')" = "" ]
   for c in "cd sub && git push -u origin HEAD" "git push -u origin HEAD 2>&1 | tail -1" "git switch -c topic 2>&1 | tail -1" \
-    "GIT_DIR=.git git pull" "cd sub && git -C . submodule update"; do
+    "GIT_DIR=.git git pull" "cd sub && git -C . submodule update" "git -C sub push -u origin HEAD" \
+    "git -c http.extraHeader=x fetch" "git --git-dir=.git push" "git --work-tree . switch main"; do
     run call "$c"; denied || { echo "not denied: $c"; false; }
   done
 }
@@ -243,7 +244,7 @@ noticed() { echo "$output" | jq -e --arg t "$1" '(.hookSpecificOutput.permission
   live_excluded 'glab *' 'docker *' 'ssh *' 'scp *' 'claude *'
   run call 'R=nas/x; glab issue view 3 -R $R'; denied
   reason | grep -qF 'glab issue'
-  [[ "$(reason)" != *"git -C"* ]] || false
+  [[ "$(reason)" != *"--git-dir"* ]] || false
   for c in "cd sub && docker ps" "ssh host true | head -1" "X=1 scp a host:b" "cd sub && claude -p hi"; do
     run call "$c"; denied || { echo "not denied: $c"; false; }
   done
@@ -252,7 +253,13 @@ noticed() { echo "$output" | jq -e --arg t "$1" '(.hookSpecificOutput.permission
 @test "the same tools alone, a git subcommand that works inside, or a tool off the live list are left alone" {
   live_excluded 'git *' 'gh *'
   mkdir -p "$ROOT/sub"
-  run call "git -C sub push -u origin HEAD"; [ -z "$output" ]
+  run call "git push -u origin HEAD"; [ -z "$output" ]
+  run call "git --no-pager push -u origin HEAD"; [ -z "$output" ]
+  run call "git -P --namespace=x fetch"; [ -z "$output" ]
+  run call "git -C sub log --oneline -3"; noticed "git log"
+  echo "$output" | jq -r '.hookSpecificOutput.additionalContext' | grep -qF -- '--git-dir'
+  run call "gh pr view 3 | jq .title"
+  [[ "$(echo "$output" | jq -r '.hookSpecificOutput.additionalContext')" != *"--git-dir"* ]] || false
   run call "cd sub && docker ps"; [ -z "$output" ]
   run call "cd sub && git diff | head"; refute denied
   noticed "git diff"
@@ -263,7 +270,7 @@ noticed() { echo "$output" | jq -e --arg t "$1" '(.hookSpecificOutput.permission
   run call "cd $OTHER && git push"
   denied
   reason | grep -qF 'another repository'
-  reason | grep -qF 'git -C'
+  reason | grep -qF -- '--git-dir'
 }
 
 # ---- notice for a call that turns the sandbox off (spec: bash-guard)
