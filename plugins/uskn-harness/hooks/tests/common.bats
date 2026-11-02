@@ -101,3 +101,38 @@ $BATS_TEST_TMPDIR/b"
   run bash -c ". '$LIB'; path_allowed '$BATS_TEST_TMPDIR/b/y' \"\$0\" sid" "$roots"; [ "$status" -eq 0 ]
   run bash -c ". '$LIB'; path_allowed '$BATS_TEST_TMPDIR/c/z' \"\$0\" sid" "$roots"; [ "$status" -eq 1 ]
 }
+
+# ---- tree_fingerprint and the sandbox's placeholders (spec: session-baseline)
+fp_repo() {
+  export GIT_CONFIG_GLOBAL=/dev/null GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@x GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@x
+  R="$BATS_TEST_TMPDIR/repo"; mkdir -p "$R/docs"; echo a > "$R/README.md"
+  ( cd "$R" && git init -q -b main && git add -A && git commit -qm init )
+}
+fp() { bash -c ". '$LIB'; tree_fingerprint '$R'"; }
+
+@test "tree_fingerprint ignores the placeholders: a 0-byte top-level .bashrc and .claude/agents" {
+  fp_repo
+  before="$(fp)"
+  : > "$R/.bashrc"; mkdir -p "$R/.claude"; : > "$R/.claude/agents"
+  [ "$(fp)" = "$before" ]
+}
+
+@test "tree_fingerprint counts a top-level dotfile with content and a 0-byte file deeper down" {
+  fp_repo
+  before="$(fp)"
+  echo 'export A=1' > "$R/.envrc"
+  [ "$(fp)" != "$before" ] || false
+  rm "$R/.envrc"
+  [ "$(fp)" = "$before" ]
+  : > "$R/docs/.keep"
+  [ "$(fp)" != "$before" ] || false
+}
+
+@test "untracked_files lists untracked files without the placeholders" {
+  fp_repo
+  : > "$R/.bashrc"; mkdir -p "$R/.claude/commands"; : > "$R/.claude/agents"; : > "$R/.claude/commands/x.md"
+  echo x > "$R/.envrc"; : > "$R/docs/.keep"
+  run bash -c ". '$LIB'; untracked_files '$R' | tr '\0' '\n' | LC_ALL=C sort"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(printf '.claude/commands/x.md\n.envrc\ndocs/.keep')" ]
+}

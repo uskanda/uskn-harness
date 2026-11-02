@@ -14,14 +14,35 @@ json_bool() {
   else printf '%s' "$1" | grep -qE "\"$2\"[[:space:]]*:[[:space:]]*true" && echo true || echo false; fi
 }
 sha() { if have sha256sum; then sha256sum | cut -d' ' -f1; else shasum -a 256 | cut -d' ' -f1; fi; }
-# tree_fingerprint <repo-top>: HEAD, status, tracked diff, and the content hashes of untracked files
-# (status alone would miss edits to a file that is untracked from the start).
+# is_placeholder <repo-top> <path>: a sandbox placeholder (glossary: 仮ファイル). While a sandboxed command runs, the
+# sandbox puts a 0-byte file at each protected path that does not exist yet (.bashrc, .mcp.json, .claude/agents, ...)
+# and takes it away afterwards. The names change between Claude Code versions, so the shape decides: a top-level
+# .<name> or a .claude/<name>, of size 0. Inside the sandbox it is a copy of /dev/null, from the host a regular file.
+is_placeholder() {
+  case "$2" in
+    .claude/*/*) return 1 ;;
+    .claude/*) ;;
+    */*) return 1 ;;
+    .*) ;;
+    *) return 1 ;;
+  esac
+  [ -c "$1/$2" ] || { [ -f "$1/$2" ] && [ ! -s "$1/$2" ]; }
+}
+# untracked_files <repo-top>: the untracked files, not ignored, NUL-separated, without the placeholders
+untracked_files() {
+  local f
+  git -C "$1" ls-files --others --exclude-standard -z 2>/dev/null | while IFS= read -r -d '' f; do
+    is_placeholder "$1" "$f" || printf '%s\0' "$f"
+  done
+}
+# tree_fingerprint <repo-top>: HEAD, status of tracked files, tracked diff, and the content hashes of untracked files
+# (status alone would miss edits to a file that is untracked from the start). Placeholders do not count.
 tree_fingerprint() {
   {
     git -C "$1" rev-parse HEAD 2>/dev/null || echo none
-    git -C "$1" status --porcelain 2>/dev/null
+    git -C "$1" status --porcelain --untracked-files=no 2>/dev/null
     git -C "$1" diff HEAD 2>/dev/null
-    git -C "$1" ls-files --others --exclude-standard -z 2>/dev/null | (cd "$1" && xargs -0 git hash-object -- 2>/dev/null) || true
+    untracked_files "$1" | (cd "$1" && xargs -0 git hash-object -- 2>/dev/null) || true
   } | sha
 }
 # with_timeout <seconds> <command...>: run an external command under a time cap; exit 124 when the cap was hit.

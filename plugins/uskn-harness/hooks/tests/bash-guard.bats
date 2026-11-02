@@ -209,17 +209,96 @@ noticed() { echo "$output" | jq -e --arg t "$1" '(.hookSpecificOutput.permission
 @test "a listed tool after cd && is noticed, not denied, and the notice says to run it on its own" {
   live_excluded 'git *' 'gh *'
   mkdir -p "$ROOT/sub"
-  run call "cd sub && git push -u origin HEAD"
+  run call "cd sub && git log --oneline -3"
   [ "$status" -eq 0 ]
-  noticed "git push"
+  noticed "git log"
   echo "$output" | jq -r '.hookSpecificOutput.additionalContext' | grep -qi 'on its own'
 }
 
 @test "a listed tool before a pipe, or behind sudo or an assignment, is noticed too" {
   live_excluded 'git *' 'gh *'
-  run call "git push -u origin HEAD 2>&1 | tail -1"; noticed "git push"
+  run call "gh pr view 3 --json title | jq .title"; noticed "gh pr"
   run call "(gh pr view 1)"; noticed "gh pr"
   run call "FOO=1 gh pr view 1"; noticed "gh pr"
+  run call "cd sub && git -C . status"; noticed "git status"
+}
+
+# ---- deny for a tool that fails inside the sandbox, placed where excludedCommands cannot match (spec: bash-guard)
+@test "a git subcommand that fails inside the sandbox is denied after cd, before a pipe, or behind -C" {
+  live_excluded 'git *'
+  mkdir -p "$ROOT/sub"
+  run call "cd sub && git fetch origin"
+  [ "$status" -eq 0 ]
+  denied
+  reason | grep -qF 'git fetch'
+  reason | grep -qF -- '--git-dir'
+  [ "$(echo "$output" | jq -r '.hookSpecificOutput.additionalContext // empty')" = "" ]
+  for c in "cd sub && git push -u origin HEAD" "git push -u origin HEAD 2>&1 | tail -1" "git switch -c topic 2>&1 | tail -1" \
+    "GIT_DIR=.git git pull" "cd sub && git -C . submodule update" "git -C sub push -u origin HEAD" \
+    "git -c http.extraHeader=x fetch" "git --git-dir=.git push" "git --work-tree . switch main"; do
+    run call "$c"; denied || { echo "not denied: $c"; false; }
+  done
+}
+
+@test "a tool that does not run inside the sandbox is denied behind an assignment or ;" {
+  live_excluded 'glab *' 'docker *' 'ssh *' 'scp *' 'claude *'
+  run call 'R=nas/x; glab issue view 3 -R $R'; denied
+  reason | grep -qF 'glab issue'
+  [[ "$(reason)" != *"--git-dir"* ]] || false
+  for c in "cd sub && docker ps" "ssh host true | head -1" "X=1 scp a host:b" "cd sub && claude -p hi"; do
+    run call "$c"; denied || { echo "not denied: $c"; false; }
+  done
+}
+
+@test "the same tools alone, a git subcommand that works inside, or a tool off the live list are left alone" {
+  live_excluded 'git *' 'gh *'
+  mkdir -p "$ROOT/sub"
+  run call "git push -u origin HEAD"; [ -z "$output" ]
+  run call "git --no-pager push -u origin HEAD"; [ -z "$output" ]
+  run call "git -P --namespace=x fetch"; [ -z "$output" ]
+  run call "git -C sub log --oneline -3"; noticed "git log"
+  echo "$output" | jq -r '.hookSpecificOutput.additionalContext' | grep -qF -- '--git-dir'
+  run call "gh pr view 3 | jq .title"
+  [[ "$(echo "$output" | jq -r '.hookSpecificOutput.additionalContext')" != *"--git-dir"* ]] || false
+  run call "cd sub && docker ps"; [ -z "$output" ]
+  run call "cd sub && git diff | head"; refute denied
+  noticed "git diff"
+}
+
+@test "a deny for another repository and a deny for the sandbox join their reasons" {
+  live_excluded 'git *'
+  run call "cd $OTHER && git push"
+  denied
+  reason | grep -qF 'another repository'
+  reason | grep -qF -- '--git-dir'
+}
+
+# ---- notice for a call that turns the sandbox off (spec: bash-guard)
+call_unsandboxed() { jq -c -n --arg c "$1" --arg cwd "$ROOT" --argjson d "$2" '{session_id:"sid12345678", cwd:$cwd, tool_name:"Bash", tool_input:{command:$c, dangerouslyDisableSandbox:$d}}' | "$SCRIPT"; }
+
+@test "dangerouslyDisableSandbox true is noticed: turn the sandbox off only after a sandbox failure" {
+  run call_unsandboxed "sed -i 's/a/b/' README.md" true
+  [ "$status" -eq 0 ]
+  refute denied
+  echo "$output" | jq -r '.hookSpecificOutput.additionalContext' | grep -qi 'only after'
+}
+
+@test "dangerouslyDisableSandbox false or absent says nothing" {
+  run call_unsandboxed "sed -i 's/a/b/' README.md" false; [ -z "$output" ]
+  run call "sed -i 's/a/b/' README.md"; [ -z "$output" ]
+}
+
+@test "dangerouslyDisableSandbox and a mid-command tool give one notice with both" {
+  live_excluded 'gh *'
+  run call_unsandboxed "gh pr view 3 | jq .title" true
+  noticed "gh pr"
+  echo "$output" | jq -r '.hookSpecificOutput.additionalContext' | grep -qi 'only after'
+}
+
+@test "dangerouslyDisableSandbox with a deny returns the deny only" {
+  run call_unsandboxed "chezmoi apply" true
+  denied
+  [ "$(echo "$output" | jq -r '.hookSpecificOutput.additionalContext // empty')" = "" ]
 }
 
 @test "a listed tool alone, or an unlisted tool after cd, says nothing" {

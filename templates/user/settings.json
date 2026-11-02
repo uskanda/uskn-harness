@@ -72,6 +72,9 @@
       "ssh *",
       "scp *"
     ],
+    "network": {
+      "allowAllUnixSockets": true
+    },
     "filesystem": {
       "allowWrite": [
         "~/.cache",

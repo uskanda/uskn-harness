@@ -392,6 +392,11 @@ npm_specs() {
   head -1 "$REPO/templates/user/CLAUDE.md" | grep -q "managed by uskn-harness"
 }
 
+@test "templates/user/CLAUDE.md has one line on the sandbox's placeholders" {
+  [ "$(grep -c 'placeholder' "$REPO/templates/user/CLAUDE.md")" -eq 1 ]
+  grep 'placeholder' "$REPO/templates/user/CLAUDE.md" | grep -qF '.claude/agents'
+}
+
 @test "templates/user/CLAUDE.md names no skill the harness has retired" {
   for s in verification-before-completion using-git-worktrees pre-merge nessun-dorma; do
     refute grep -q -- "$s" "$REPO/templates/user/CLAUDE.md"
@@ -1120,4 +1125,69 @@ live_excluded() { jq -r '.sandbox.excludedCommands // [] | .[]' "$CLAUDE_CONFIG_
   [ "$status" -eq 2 ]
   [[ "$output" == *"pull request"* ]] || false
   live_excluded | grep -qxF 'git *'
+}
+
+# ---- sandbox-allow-host (spec: harness-sync)
+
+overlay_hosts() { jq -r '.sandbox.network.allowedDomains // [] | .[]' "$HOME/.config/uskn-harness/settings.json"; }
+live_hosts() { jq -r '.sandbox.network.allowedDomains // [] | .[]' "$CLAUDE_CONFIG_DIR/settings.json"; }
+
+@test "sandbox-allow-host adds a host to the machine overlay once and applies it to live" {
+  run "$CLI" sandbox-allow-host gl.example.test
+  [ "$status" -eq 0 ]
+  [ "$(overlay_hosts)" = gl.example.test ]
+  live_hosts | grep -qxF gl.example.test
+  [ "$(jq -r '.sandbox.network.allowAllUnixSockets' "$CLAUDE_CONFIG_DIR/settings.json")" = true ]
+  run "$CLI" sandbox-allow-host gl.example.test
+  [ "$status" -eq 0 ]
+  [ "$(overlay_hosts | grep -cxF gl.example.test)" -eq 1 ]
+}
+
+@test "sandbox-allow-host refuses an empty host and any *, changing nothing" {
+  for h in '' ' ' '*' '*.example.test'; do
+    run "$CLI" sandbox-allow-host "$h"
+    [ "$status" -eq 2 ]
+  done
+  [[ "$output" == *"WebFetch(domain:*)"* ]] || false
+  [ ! -e "$HOME/.config/uskn-harness/settings.json" ]
+}
+
+@test "sandbox-allow-host refuses a URL and asks for the host name only" {
+  for h in https://gl.example.test/api gl.example.test/api; do
+    run "$CLI" sandbox-allow-host "$h"
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"host name only"* ]] || false
+  done
+  [ ! -e "$HOME/.config/uskn-harness/settings.json" ]
+}
+
+@test "sandbox-allow-host --list names where each live host comes from" {
+  mkdir -p "$CLAUDE_CONFIG_DIR"
+  printf '{"sandbox":{"network":{"allowedDomains":["pkg.example.test"]}}}\n' > "$CLAUDE_CONFIG_DIR/settings.json"
+  "$CLI" sandbox-allow-host gl.example.test >/dev/null
+  run "$CLI" sandbox-allow-host --list
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -qE '^machine +gl\.example\.test$'
+  echo "$output" | grep -qE '^live +pkg\.example\.test$'
+}
+
+@test "sandbox-allow-host --remove takes a machine host out of the overlay and live" {
+  "$CLI" sandbox-allow-host gl.example.test >/dev/null
+  run "$CLI" sandbox-allow-host --remove gl.example.test
+  [ "$status" -eq 0 ]
+  [ -z "$(overlay_hosts)" ]
+  run live_hosts
+  [[ "$output" != *gl.example.test* ]] || false
+}
+
+@test "sandbox-allow-host --remove refuses a fragment host and asks for a pull request" {
+  local h="$BATS_TEST_TMPDIR/harness"
+  mkdir -p "$h/templates/user"
+  cp "$REPO/deps.json" "$h/"
+  jq '.sandbox.network.allowedDomains = ["fragment.example.test"]' "$REPO/templates/user/settings.json" > "$h/templates/user/settings.json"
+  USKN_HARNESS_DIR="$h" run "$CLI" sandbox-allow-host --remove fragment.example.test
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"pull request"* ]] || false
+  [[ "$output" == *"'fragment.example.test' is a default"* ]] || false
+  [ ! -e "$HOME/.config/uskn-harness/settings.json" ]
 }

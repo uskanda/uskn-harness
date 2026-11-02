@@ -162,3 +162,7 @@ terms:
     definition: "Claude CodeのBashの書き込み先とネットワークの接続先を、OSの仕組みで制限する機能。設定は `sandbox` の下に置く。"
     aliases: ["サンドボックス"]
     en: "sandbox"
+  - term: "仮ファイル"
+    definition: "sandboxが、まだ無い保護パスへの書き込みを禁じるため、コマンドの実行中だけ作業ディレクトリに置く0バイトのファイル。"
+    aliases: []
+    en: "sandbox placeholder"

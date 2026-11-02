@@ -17,6 +17,12 @@ mk() { env -i HOME="$BATS_TEST_TMPDIR/home" PATH="$NOTOOLS" make -C "$REPO" "$@"
 # skill <dir> <description line>: a SKILL.md whose frontmatter carries that raw description line
 skill() { mkdir -p "$1"; printf -- '---\nname: %s\n%s\n---\n\n# body\n' "$(basename "$1")" "$2" > "$1/SKILL.md"; }
 has_yaml() { python3 -c 'import yaml' >/dev/null 2>&1; }
+# copy_makefile <dir>: the Makefile and the hooks' lib it reads, in a directory of their own
+copy_makefile() {
+  mkdir -p "$1/docs/adr" "$1/plugins/uskn-harness/hooks/scripts/lib"
+  cp "$REPO/Makefile" "$1/"
+  cp "$REPO/plugins/uskn-harness/hooks/scripts/lib/common.sh" "$1/plugins/uskn-harness/hooks/scripts/lib/"
+}
 
 @test "default: a missing tool is reported as skipped and the target succeeds" {
   run mk verify-design
@@ -168,7 +174,7 @@ count() { line "$1" | wc -w; }
 
 @test "verify-fast: the changed files are the commits since the remote base plus the working tree and untracked files" {
   export GIT_CONFIG_GLOBAL=/dev/null GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@x GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@x
-  T="$BATS_TEST_TMPDIR/repo"; mkdir -p "$T/docs/adr"; cp "$REPO/Makefile" "$T/"
+  T="$BATS_TEST_TMPDIR/repo"; copy_makefile "$T"
   echo a > "$T/README.md"; echo b > "$T/docs/adr/0001-a.md"; echo c > "$T/docs/adr/0002-b.md"
   ( cd "$T" && git init -q -b main && git add -A && git commit -qm base && git update-ref refs/remotes/origin/main HEAD )
   echo a2 > "$T/README.md"; ( cd "$T" && git commit -qam change )
@@ -180,4 +186,16 @@ count() { line "$1" | wc -w; }
   [ "$(line textlint)" = "README.md docs/adr/0001-a.md docs/adr/0003-new.md" ]
   VERIFY_BASE=HEAD run make -s -C "$T" verify-fast-plan
   [ "$(line textlint)" = "docs/adr/0001-a.md docs/adr/0003-new.md" ]
+}
+
+@test "verify-fast: the sandbox's placeholders are not changed files" {
+  export GIT_CONFIG_GLOBAL=/dev/null GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@x GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@x
+  T="$BATS_TEST_TMPDIR/repo"; copy_makefile "$T"
+  echo a > "$T/README.md"
+  ( cd "$T" && git init -q -b main && git add -A && git commit -qm base && git update-ref refs/remotes/origin/main HEAD )
+  : > "$T/.mcp.json"; echo b > "$T/docs/adr/0001-a.md"
+  run make -s -C "$T" verify-fast-plan
+  [ "$status" -eq 0 ]
+  [[ "$output" != *.mcp.json* ]] || false
+  [[ "$output" == *docs/adr/0001-a.md* ]] || false
 }

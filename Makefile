@@ -130,7 +130,8 @@ verify-terms:
 VERIFY_BASE ?= $(shell for r in '@{upstream}' origin/HEAD origin/main origin/master; do git merge-base HEAD "$$r" 2>/dev/null && exit 0; done; echo HEAD)
 # CHANGED is computed once, on first use (the $(eval) memo), so no other target runs git for it. Given on the make
 # command line, it replaces the git answer: `make verify-fast-plan CHANGED="a.md b.sh"` (the tests do this).
-CHANGED = $(eval CHANGED := $$(sort $$(shell git diff --name-only --diff-filter=d $$(VERIFY_BASE) -- 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null)))$(CHANGED)
+# Untracked files come from the hooks' untracked_files, which leaves out the sandbox's placeholders.
+CHANGED = $(eval CHANGED := $$(sort $$(shell git diff --name-only --diff-filter=d $$(VERIFY_BASE) -- 2>/dev/null; bash -c '. plugins/uskn-harness/hooks/scripts/lib/common.sh && untracked_files .' 2>/dev/null | tr '\0' '\n')))$(CHANGED)
 HOOK_SCRIPTS := plugins/uskn-harness/hooks/scripts
 HOOK_TESTS   := plugins/uskn-harness/hooks/tests
 # What to check. A shared input (the glossary, the textlint config, the hooks' lib) widens its check to everything.

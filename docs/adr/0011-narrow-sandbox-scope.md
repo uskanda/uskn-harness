@@ -25,7 +25,7 @@ sandboxが役に立つのは、中身を前もって読めない実行が、間�
 3. 一覧はコードに書かず、`sandbox.excludedCommands` のデータとして持つ。syncはこの配列と `sandbox.filesystem.allowWrite` を集合として扱う
 4. 端末で足すときは、ユーザーが `/sandbox-exclude <tool>` を打つ。スキルは `uskn-harness sandbox-exclude` で端末別設定に足し、ユーザー層の設定を反映し直す。全端末向けの既定値は、設定断片へのPRで足す
 5. sandboxの中で書けるのは、`~/.cache`、`~/.npm`、`~/.local/share/mise`、`~/.local/share/pnpm`、`~/.local/state` である。`denyWrite` で、ハーネスの状態ディレクトリを禁止する
-6. 外に出す道具がコマンドの先頭にないとき、bash-guardが `additionalContext` で、単独で実行し直すよう知らせる。一覧はliveの設定から読む
+6. 外に出す道具がコマンドの先頭にないとき、bash-guardが `additionalContext` で、単独で実行し直すよう知らせる。一覧はliveの設定から読む。この決定はADR-0012が差し替えた
 7. terms-checkは、通常のファイルとディレクトリだけを実在と数える
 
 ## 検討した代替案

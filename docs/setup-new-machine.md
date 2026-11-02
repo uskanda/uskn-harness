@@ -95,10 +95,11 @@ dotfilesが配っていた `~/.claude/settings.json` がある端末では、初
 
 ## Bash の sandbox
 
-ユーザー層のsettings.jsonは、Claude Codeのsandboxを有効にする（ADR-0009、ADR-0011）。
+ユーザー層のsettings.jsonは、Claude Codeのsandboxを有効にする（ADR-0009、ADR-0011、ADR-0012）。
 sandboxに残るのは、中身を前もって読めない実行（`npm`、`make`、`python` など）である。
 `git`、`gh`、`glab`、`docker`、`mise`、`claude`、`uskn-harness`、`uskn-loop`、`chezmoi`、`ssh`、`scp` は、sandboxの外で動く。
 sandboxの中のBashが書けるのは、作業ディレクトリ、一時ディレクトリ、`/add-dir` で追加したディレクトリ、設定断片の挙げるキャッシュとツールのデータだけである。
+Unixソケットは許す。D-Busを使う `systemctl --user` や `secret-tool` も、sandboxの中で動く。
 
 - UbuntuとWSL2では、`sudo apt install -y bubblewrap socat` で2つを入れる。無い端末では、Bashが制限なしで動き、doctorが `warn` を出す
 - Ubuntu 24.04以降では、AppArmorが `bwrap` のユーザー名前空間を拒否する（`bwrap: setting up uid map: Permission denied`）。次の2つで `bwrap` に許可を与える
@@ -109,12 +110,12 @@ sudo apparmor_parser -r /etc/apparmor.d/bwrap
 ```
 
 - 確認は `bwrap --ro-bind / / --dev /dev --proc /proc true` が終了コード0で終わること
-- この端末自身のIPに解決されるホスト（同じ端末で動かすGitLabなど）へは、sandboxの中から接続できない。`git` と `glab` はsandboxの外で動くので、この制限を受けない
+- この端末自身のIPに解決されるホスト（同じ端末で動かすGitLabなど）へは、そのままではsandboxの中から接続できない。ユーザーが `/sandbox-allow-host <host>` を打つと、端末別設定の `sandbox.network.allowedDomains` に足され、接続できるようになる。一覧は `uskn-harness sandbox-allow-host --list`、外すのは `--remove <host>` で行う
 - macOSでは、何も入れなくてよい
 - ルートの外で作業するときは、ユーザーが `/add-dir <path>` を打つ。hookがセッションの許可ファイルにも記録する（ADR-0010）
 - sandboxの中で動かない道具を見つけたら、ユーザーが `/sandbox-exclude <tool>` を打つ。その端末の端末別設定 `~/.config/uskn-harness/settings.json` に足され、syncの後も残る。一覧は `uskn-harness sandbox-exclude --list`、外すのは `--remove <pattern>` で行う
-- `excludedCommands` は、1つの単純なコマンドだけから成り、先頭がパターンと一致するコマンドだけを、sandboxの外で動かす。`cd <dir> && uskn-harness sync` や `git push | tail` はsandboxの中で動くので、単独で実行する。bash-guardがこの形を見つけて知らせる
-- sandboxの中では、作業ディレクトリの `.bashrc` などに空のファイルが被さる。`git add -A` は失敗するので、`git add <paths>` で足す
+- `excludedCommands` は、1つの単純なコマンドだけから成り、先頭がパターンと一致するコマンドだけを、sandboxの外で動かす。`cd <dir> && uskn-harness sync` や `git push | tail` はsandboxの中で動くので、単独で実行する。bash-guardは、sandboxの中で失敗すると分かっている形（`git push` や `git fetch`、`glab`、`docker` など）を拒否し、ほかの形は知らせるだけにする。gitに `-C` や `-c`、`--git-dir` を付けても、sandboxの中で動く。作業ツリーの中では、gitを選択肢なしで実行する。別のディレクトリでは、先に `cd <dir>` だけを実行する
+- sandboxのコマンドの実行中は、作業ディレクトリの直下の `.bashrc` や `.claude/agents` などに、0バイトの仮ファイルが置かれる。実行が終わると消える。verify gateの指紋と `verify-fast` は、仮ファイルを数えない。`git status` に出たときは、commitせず、消さない
 - 端末でsandboxを切るときは、端末別設定で `sandbox.enabled` を `false` にしてsyncを実行する
 
 ## 読み上げ通知
