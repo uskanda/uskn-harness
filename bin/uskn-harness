@@ -383,8 +383,24 @@ check_sandbox_deps() { # doctor: the Linux sandbox runs on bwrap and socat; with
   [ "$(host_os)" = Linux ] || return 0
   [ -e "$SETTINGS_FILE" ] && jqx -e '.sandbox.enabled == true' "$SETTINGS_FILE" >/dev/null 2>&1 || return 0
   for t in bwrap socat; do have "$t" || missing="${missing:+$missing, }$t"; done
-  if [ -z "$missing" ]; then note ok "sandbox: bwrap and socat"
-  else note warn "sandbox: $missing missing, so Bash runs without limits (install the packages bubblewrap and socat)"; fi
+  if [ -n "$missing" ]; then
+    note warn "sandbox: $missing missing, so Bash runs without limits (install the packages bubblewrap and socat)"
+    return 0
+  fi
+  # Running inside the sandbox already proves bwrap could nest a user namespace on this machine; probing from in
+  # here would fail on the sandbox's own limits, not on the machine (openspec: harness-doctor)
+  if [ -n "${SANDBOX_RUNTIME:-}" ]; then
+    note ok "sandbox: bwrap and socat (inside the sandbox, so the nested user namespace is not probed)"
+    return 0
+  fi
+  # The sandbox creates a second user namespace inside bwrap and writes its uid map; Ubuntu 26.04's
+  # bwrap-userns-restrict profile denies exactly that while plain bwrap still works (issue #17)
+  if bwrap --ro-bind / / --dev /dev --proc /proc --unshare-user -- unshare --user --map-root-user true \
+    </dev/null >/dev/null 2>&1; then
+    note ok "sandbox: bwrap and socat, and bwrap can create a nested user namespace"
+  else
+    note warn "sandbox: bwrap cannot create a nested user namespace, so every Bash command in the sandbox fails (see the sandbox section of docs/setup-new-machine.md)"
+  fi
 }
 
 # ------------------------------------------------------------ notify plugin

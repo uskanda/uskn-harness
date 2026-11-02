@@ -1042,10 +1042,15 @@ path_hiding() {
 live_sandbox() { printf '{"sandbox":{"enabled":%s}}\n' "$1" > "$CLAUDE_CONFIG_DIR/settings.json"; }
 fake_tool() { printf '#!/bin/sh\nexit 0\n' > "$HOME/.local/bin/$1"; chmod +x "$HOME/.local/bin/$1"; }
 sandbox_lines() { grep -E '^(ok|warn|fail) +sandbox' <<<"$output" || true; }
+# fake_bwrap <exit code>: a bwrap that logs its arguments to $BATS_TEST_TMPDIR/bwrap.log and exits with the code
+fake_bwrap() {
+  printf '#!/bin/sh\nprintf "%%s\\n" "$*" >> "%s/bwrap.log"\nexit %s\n' "$BATS_TEST_TMPDIR" "$1" > "$HOME/.local/bin/bwrap"
+  chmod +x "$HOME/.local/bin/bwrap"
+}
 
 @test "doctor: sandbox on Linux without bwrap is warn naming it and how to install" {
   live_sandbox true; fake_tool socat
-  PATH="$(path_hiding bwrap)" USKN_HARNESS_OS=Linux run "$CLI" doctor
+  SANDBOX_RUNTIME= PATH="$(path_hiding bwrap)" USKN_HARNESS_OS=Linux run "$CLI" doctor
   [ "$(sandbox_lines | grep -c '^warn')" -eq 1 ] || false
   [[ "$(sandbox_lines)" == *bwrap* ]] || false
   [[ "$(sandbox_lines)" != *"socat,"* ]] || false
@@ -1055,17 +1060,43 @@ sandbox_lines() { grep -E '^(ok|warn|fail) +sandbox' <<<"$output" || true; }
 
 @test "doctor: sandbox on Linux with bwrap and socat is ok" {
   live_sandbox true; fake_tool bwrap; fake_tool socat
-  USKN_HARNESS_OS=Linux run "$CLI" doctor
+  SANDBOX_RUNTIME= USKN_HARNESS_OS=Linux run "$CLI" doctor
   [ "$(sandbox_lines | grep -c '^ok')" -eq 1 ] || false
   [ "$(sandbox_lines | grep -c '^warn')" -eq 0 ] || false
 }
 
+@test "doctor: sandbox probes a nested user namespace inside bwrap and is ok when it works" {
+  live_sandbox true; fake_bwrap 0; fake_tool socat
+  SANDBOX_RUNTIME= USKN_HARNESS_OS=Linux run "$CLI" doctor
+  [ "$(sandbox_lines | grep -c '^ok')" -eq 1 ] || false
+  grep -qE -- '--unshare-user' "$BATS_TEST_TMPDIR/bwrap.log" || false
+  grep -qE -- 'unshare --user --map-root-user' "$BATS_TEST_TMPDIR/bwrap.log" || false
+}
+
+@test "doctor: sandbox where bwrap cannot nest a user namespace is warn pointing at the setup guide" {
+  live_sandbox true; fake_bwrap 1; fake_tool socat
+  SANDBOX_RUNTIME= USKN_HARNESS_OS=Linux run "$CLI" doctor
+  [ "$(sandbox_lines | grep -c '^warn')" -eq 1 ] || false
+  [ "$(sandbox_lines | grep -c '^fail')" -eq 0 ] || false
+  [[ "$(sandbox_lines)" == *"nested user namespace"* ]] || false
+  [[ "$(sandbox_lines)" == *"every Bash command in the sandbox fails"* ]] || false
+  [[ "$(sandbox_lines)" == *"docs/setup-new-machine.md"* ]] || false
+}
+
+@test "doctor: inside the sandbox the nested probe is skipped and the line is ok" {
+  live_sandbox true; fake_bwrap 1; fake_tool socat
+  SANDBOX_RUNTIME=1 USKN_HARNESS_OS=Linux run "$CLI" doctor
+  [ "$(sandbox_lines | grep -c '^ok')" -eq 1 ] || false
+  [[ "$(sandbox_lines)" == *"not probed"* ]] || false
+  [ ! -e "$BATS_TEST_TMPDIR/bwrap.log" ] || false
+}
+
 @test "doctor: no sandbox line on macOS or when the sandbox is off" {
   live_sandbox true
-  PATH="$(path_hiding bwrap socat)" USKN_HARNESS_OS=Darwin run "$CLI" doctor
+  SANDBOX_RUNTIME= PATH="$(path_hiding bwrap socat)" USKN_HARNESS_OS=Darwin run "$CLI" doctor
   [ -z "$(sandbox_lines)" ] || false
   live_sandbox false
-  PATH="$(path_hiding bwrap socat)" USKN_HARNESS_OS=Linux run "$CLI" doctor
+  SANDBOX_RUNTIME= PATH="$(path_hiding bwrap socat)" USKN_HARNESS_OS=Linux run "$CLI" doctor
   [ -z "$(sandbox_lines)" ] || false
 }
 
