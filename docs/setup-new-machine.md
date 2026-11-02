@@ -95,7 +95,7 @@ dotfilesが配っていた `~/.claude/settings.json` がある端末では、初
 
 ## Bash の sandbox
 
-ユーザー層のsettings.jsonは、Claude Codeのsandboxを有効にする（ADR-0009、ADR-0011、ADR-0012）。
+ユーザー層のsettings.jsonは、Claude Codeのsandboxを有効にする（ADR-0009、ADR-0011、ADR-0012、ADR-0013）。
 sandboxに残るのは、中身を前もって読めない実行（`npm`、`make`、`python` など）である。
 `git`、`gh`、`glab`、`docker`、`mise`、`claude`、`uskn-harness`、`uskn-loop`、`chezmoi`、`ssh`、`scp` は、sandboxの外で動く。
 sandboxの中のBashが書けるのは、作業ディレクトリ、一時ディレクトリ、`/add-dir` で追加したディレクトリ、設定断片の挙げるキャッシュとツールのデータだけである。
@@ -109,7 +109,22 @@ printf 'abi <abi/4.0>,\ninclude <tunables/global>\n\nprofile bwrap /usr/bin/bwra
 sudo apparmor_parser -r /etc/apparmor.d/bwrap
 ```
 
-- 確認は `bwrap --ro-bind / / --dev /dev --proc /proc true` が終了コード0で終わること
+- Ubuntu 26.04以降では、`apparmor` パッケージの `bwrap-userns-restrict` が、同じ名前の `bwrap` のプロファイルを定義する。こちらが上のプロファイルより優先される
+- そのため `bwrap` の中で、ユーザー名前空間を入れ子に作れない。sandboxの中のBashは、全て `apply-seccomp: ... nested userns is capability-restricted` で失敗する。上の2つに続けて、次の4つで `bwrap-userns-restrict` を外す（ADR-0013）
+
+```bash
+sudo mkdir -p /etc/apparmor.d/disable
+sudo ln -s /etc/apparmor.d/bwrap-userns-restrict /etc/apparmor.d/disable/
+sudo apparmor_parser -R /etc/apparmor.d/bwrap-userns-restrict
+sudo apparmor_parser -r /etc/apparmor.d/bwrap
+```
+
+- 26.04には `/etc/apparmor.d/disable/` が最初から無いので、先に作る。`apparmor_parser` が `disable/` の中を読み飛ばすので、再起動の後も外れたままになる
+- 確認は、次のコマンドが終了コード0で終わること。sandboxと同じく、`bwrap` の中でユーザー名前空間を入れ子に作る。`bwrap` 単体の確認は、26.04のsandboxが使えない端末でも終了コード0で終わるので、確認にならない。sandboxの外の `uskn-harness doctor` も、同じ確認をする
+
+```bash
+bwrap --ro-bind / / --dev /dev --proc /proc --unshare-user -- unshare --user --map-root-user true
+```
 - この端末自身のIPに解決されるホスト（同じ端末で動かすGitLabなど）へは、そのままではsandboxの中から接続できない。ユーザーが `/sandbox-allow-host <host>` を打つと、端末別設定の `sandbox.network.allowedDomains` に足され、接続できるようになる。一覧は `uskn-harness sandbox-allow-host --list`、外すのは `--remove <host>` で行う
 - macOSでは、何も入れなくてよい
 - ルートの外で作業するときは、ユーザーが `/add-dir <path>` を打つ。hookがセッションの許可ファイルにも記録する（ADR-0010）
@@ -181,5 +196,6 @@ mise、npm globalのCLI、状態ディレクトリは残る。
 | `stale skill link <name>` | ハーネスから消したスキルの symlink が残っている | `uskn-harness sync` が消す |
 | `notify command <name>: ... is a real directory or file` | `~/.local/bin` に、dotfilesが以前配った通知のコマンドの実ファイルが残っている | dotfilesを更新して `chezmoi apply` を実行する。片付けのスクリプトが実ファイルを消す |
 | `sandbox: bwrap missing ...` / `sandbox: socat missing ...` | sandboxを有効にしたLinuxの端末に、`bwrap` か `socat` が無い。Bashは制限なしで動く | `sudo apt install -y bubblewrap socat` |
+| `sandbox: bwrap cannot create a nested user namespace ...` | `bwrap` の中でユーザー名前空間を入れ子に作れない。sandboxの中のBashは全て失敗する。Ubuntu 26.04の `bwrap-userns-restrict` が原因 | 上のsandboxの節の4つのコマンドで、`bwrap-userns-restrict` を外す |
 | `user settings: sync would ...` | liveのsettings.jsonが、syncの書く値と違う。`/effort` や `/model` の後に出る | `uskn-harness sync` |
 | `user settings: ... is not a JSON object` | settings.jsonか端末別設定をJSONとして読めない。syncは何も書かない | ファイルを直してから `uskn-harness sync` |

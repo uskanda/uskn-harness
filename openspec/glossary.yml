@@ -166,3 +166,7 @@ terms:
     definition: "sandboxが、まだ無い保護パスへの書き込みを禁じるため、コマンドの実行中だけ作業ディレクトリに置く0バイトのファイル。"
     aliases: []
     en: "sandbox placeholder"
+  - term: "プロファイル"
+    definition: "AppArmorが、1つの実行ファイルとその子に許す操作を並べた定義。`/etc/apparmor.d/` に置く。"
+    aliases: []
+    en: "AppArmor profile"
