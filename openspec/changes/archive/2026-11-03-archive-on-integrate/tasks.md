@@ -41,11 +41,11 @@
 
 ## 6. 残っている変更のarchive
 
-- [ ] 6.1 doctor-probe-nested-usernsを、`archive-push` の手順でarchiveする。手順は、verify、archiveとspecの同期、verify、1つのコミットである
-- [ ] 6.2 sandbox-rules-revisitの9.2を「（archive-pushで完了とみなした）」と注記し、同じ手順でarchiveする
+- [x] 6.1 doctor-probe-nested-usernsを、`archive-push` の手順でarchiveする。手順は、verify、archiveとspecの同期、verify、1つのコミットである
+- [x] 6.2 sandbox-rules-revisitの9.2を「（archive-pushで完了とみなした）」と注記し、同じ手順でarchiveする
 
 ## 7. 統合の確認
 
-- [ ] 7.1 `make verify VERIFY_STRICT=1` と `openspec validate --all --strict` が終了コード0で終わることを確かめる
-- [ ] 7.2 `archive-push` の手順で、この変更をarchiveする。その後、`openspec/changes/` にactiveな変更が残っていないことを確かめる
-- [ ] 7.3 `uskn-archive-check --base origin/main` が終了コード0を返すことを確かめる
+- [x] 7.1 `make verify VERIFY_STRICT=1` と `openspec validate --all --strict` が終了コード0で終わることを確かめる
+- [x] 7.2 `archive-push` の手順で、この変更をarchiveする。その後、`openspec/changes/` にactiveな変更が残っていないことを確かめる
+- [x] 7.3 `uskn-archive-check --base origin/main` が終了コード0を返すことを確かめる
