@@ -15,8 +15,8 @@ are symlinked individually.
 - `verify-gate.sh` runs `make verify-fast` when the Makefile has that target, else the verify convention, at the
   git top level of cwd. It blocks at most 3 times in a turn, then lets the turn end with a `systemMessage`.
 - `bin/`: short commands for skills, on the Bash tool's PATH while the plugin is enabled. `uskn-repo-context` runs
-  `session-start.sh` and `uskn-terms-check` runs `terms-check.sh`, with the same arguments. Hooks do not get this
-  PATH and call the scripts directly.
+  `session-start.sh`, `uskn-terms-check` runs `terms-check.sh`, and `uskn-archive-check` runs `archive-check.sh`,
+  with the same arguments. Hooks do not get this PATH and call the scripts directly.
 - `hooks/scripts/`: canonical hook bodies (bash + jq). Another tool would call the same scripts through
   `~/.local/share/uskn-harness`; no such adapter exists yet.
 - `hooks/tests/`: bats tests, run by `make verify`.

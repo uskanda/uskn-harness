@@ -2,12 +2,12 @@
 
 ## 1. 判定のコマンド
 
-- [ ] 1.1 `plugins/uskn-harness/hooks/tests/archive-check.bats` を書き、失敗することを確かめる。扱うのは次のとおり
+- [x] 1.1 `plugins/uskn-harness/hooks/tests/archive-check.bats` を書き、失敗することを確かめる。扱うのは次のとおり
   - 該当なし、該当あり、`.archive-later` あり、archive済み
   - 手を付けていない既存の変更、比べる先が無いとき
   - `.archive-later` を置いた変更で `openspec validate` が通り、archiveでファイルが一緒に移ること
-- [ ] 1.2 `plugins/uskn-harness/hooks/scripts/archive-check.sh` をdesign.mdのD1のとおりに書く。`bats plugins/uskn-harness/hooks/tests/archive-check.bats` が通ることを確かめる
-- [ ] 1.3 `plugins/uskn-harness/hooks/tests/plugin-bin.bats` の一覧を更新する。`uskn-archive-check` が元のスクリプトと同じ出力と終了コードを返すテストを足す。`plugins/uskn-harness/bin/uskn-archive-check` を足し、テストが通ることを確かめる
+- [x] 1.2 `plugins/uskn-harness/hooks/scripts/archive-check.sh` をdesign.mdのD1のとおりに書く。`bats plugins/uskn-harness/hooks/tests/archive-check.bats` が通ることを確かめる
+- [x] 1.3 `plugins/uskn-harness/hooks/tests/plugin-bin.bats` の一覧を更新する。`uskn-archive-check` が元のスクリプトと同じ出力と終了コードを返すテストを足す。`plugins/uskn-harness/bin/uskn-archive-check` を足し、テストが通ることを確かめる
 
 ## 2. bash-guard
 

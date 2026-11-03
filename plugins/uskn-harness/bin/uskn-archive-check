@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# uskn-archive-check: the OpenSpec changes this branch touched and left unarchived, for the pr and push skills
+# (openspec: claude-plugin-packaging; ADR-0014). Claude Code puts the plugin's bin/ on the Bash tool's PATH.
+#   uskn-archive-check --base <ref> [DIR]   one change name per line; exit 1 with names, 0 without, 2 undecided
+# Same arguments, output, and exit code as hooks/scripts/archive-check.sh, which it runs.
+exec "$(dirname "$0")/../hooks/scripts/archive-check.sh" "$@"
