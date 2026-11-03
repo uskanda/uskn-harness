@@ -252,7 +252,7 @@ pr_make() { GITHUB_EVENT_NAME=pull_request GITHUB_EVENT_PATH="$BATS_TEST_TMPDIR/
 @test "verify-archive that cannot decide: skipped by default, a failure under VERIFY_STRICT=1" {
   pr_repo; event false
   ( cd "$T" && git reset -q --hard change/add-x && git checkout -q --orphan lone && git commit -qm lone )
-  run pr_make verify-archive
+  run pr_make verify-archive VERIFY_STRICT=0
   [ "$status" -eq 0 ]
   [[ "$output" == *"[archive]"* ]] || false
   run pr_make verify-archive VERIFY_STRICT=1
