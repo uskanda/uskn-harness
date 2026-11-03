@@ -19,12 +19,12 @@
 
 ## 3. スキル
 
-- [ ] 3.1 `bin/tests/` にスキルのテストを書き、失敗することを確かめる
+- [x] 3.1 `bin/tests/` にスキルのテストを書き、失敗することを確かめる
   - `bin/tests/archive-push-skill.bats`：`disable-model-invocation` が無いことを確かめる形に変える
   - `bin/tests/skill-archive-on-integrate.bats`：`pr` と `push` の手順に、3つの名前があることを確かめる
   - 3つの名前とは、`uskn-archive-check`、`archive-push`、`.archive-later` である
-- [ ] 3.2 `skills/archive-push/SKILL.md` のfrontmatterと冒頭を改め、`.archive-later` のある変更を選ばないことを書く
-- [ ] 3.3 `skills/git/pr/SKILL.md` と `skills/git/push/SKILL.md` に、design.mdのD4の手順を足す。3.1のテストと `make verify-skills` が通ることを確かめる
+- [x] 3.2 `skills/archive-push/SKILL.md` のfrontmatterと冒頭を改め、`.archive-later` のある変更を選ばないことを書く
+- [x] 3.3 `skills/git/pr/SKILL.md` と `skills/git/push/SKILL.md` に、design.mdのD4の手順を足す。3.1のテストと `make verify-skills` が通ることを確かめる
 
 ## 4. CIの確認
 

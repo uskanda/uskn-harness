@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # Tests for the spec-pr skill's frontmatter (spec: spec-pr-skill). spec-pr opens a draft spec PR on the user's
-# request, so the model may invoke it too; unlike archive-push it carries no disable-model-invocation.
+# request, so the model may invoke it too; like archive-push it carries no disable-model-invocation.
 REPO="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
 SKILL="$REPO/skills/spec-pr/SKILL.md"
 
