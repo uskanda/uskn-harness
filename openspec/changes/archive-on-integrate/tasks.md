@@ -11,11 +11,11 @@
 
 ## 2. bash-guard
 
-- [ ] 2.1 `plugins/uskn-harness/hooks/tests/bash-guard.bats` にテストを足し、失敗することを確かめる。扱うのは次のとおり
+- [x] 2.1 `plugins/uskn-harness/hooks/tests/bash-guard.bats` にテストを足し、失敗することを確かめる。扱うのは次のとおり
   - `gh pr merge`、`glab mr merge`
   - mainへの `git push`、作業ブランチへの `git push`
   - 宣言があるとき、比べる先が無いとき
-- [ ] 2.2 `plugins/uskn-harness/hooks/scripts/bash-guard.sh` にdesign.mdのD3の判定を足し、冒頭の説明を更新する。`bats plugins/uskn-harness/hooks/tests/bash-guard.bats` が通ることを確かめる
+- [x] 2.2 `plugins/uskn-harness/hooks/scripts/bash-guard.sh` にdesign.mdのD3の判定を足し、冒頭の説明を更新する。`bats plugins/uskn-harness/hooks/tests/bash-guard.bats` が通ることを確かめる
 
 ## 3. スキル
 

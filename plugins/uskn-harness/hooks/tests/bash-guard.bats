@@ -315,3 +315,83 @@ call_unsandboxed() { jq -c -n --arg c "$1" --arg cwd "$ROOT" --argjson d "$2" '{
   run call "cd $OTHER && git push"; denied
   [ "$(echo "$output" | jq -r '.hookSpecificOutput.additionalContext // empty')" = "" ]
 }
+
+# ---- integrating operations and changes left unarchived (ADR-0014)
+# seed: a base commit in ROOT, with origin/main a plain ref to it (no remote, no network)
+seed() {
+  export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@x GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@x
+  ( cd "$ROOT" && echo r > README.md && git add -A && git commit -qm base && git update-ref refs/remotes/origin/main HEAD )
+}
+# add_change <name> [file]: commit openspec/changes/<name>/<file> on the current branch
+add_change() {
+  mkdir -p "$ROOT/openspec/changes/$1"; echo x > "$ROOT/openspec/changes/$1/${2:-proposal.md}"
+  ( cd "$ROOT" && git add -A && git commit -qm "$1" )
+}
+on_branch() { ( cd "$ROOT" && git switch -q -c "$1" ); }
+
+@test "gh pr merge and glab mr merge with an unarchived change are denied, naming it and /archive-push" {
+  seed; on_branch change/add-x; add_change add-x
+  run call "gh pr merge 12 --auto --merge"
+  [ "$status" -eq 0 ]
+  denied
+  reason | grep -qF 'add-x'
+  reason | grep -qF '/archive-push add-x'
+  reason | grep -qF '.archive-later'
+  run call "glab mr merge 3 --auto-merge --yes"; denied
+  run call "cd . && gh pr merge 12"; denied
+}
+
+@test "gh pr commands other than merge say nothing" {
+  seed; on_branch change/add-x; add_change add-x
+  run call "gh pr view 12"; [ -z "$output" ]
+  run call "gh pr create --base main --title t --body b"; [ -z "$output" ]
+  run call "glab mr view 3"; [ -z "$output" ]
+}
+
+@test "git push to the integration branch with an unarchived change is denied" {
+  seed; add_change add-x
+  run call "git push origin main"; denied
+  reason | grep -qF 'add-x'
+  run call "git push -u origin HEAD"; denied
+  run call "git push"; denied
+  run call "git push origin +HEAD:refs/heads/main"; denied
+}
+
+@test "git push with an upstream: the upstream branch decides" {
+  seed; on_branch topic; add_change add-x
+  ( cd "$ROOT" && git remote add origin https://github.com/o/r.git && git config branch.topic.remote origin \
+      && git config branch.topic.merge refs/heads/main )
+  run call "git push"; denied
+}
+
+@test "git push to a work branch says nothing; a refspec that lands on main is denied" {
+  seed; on_branch change/add-x; add_change add-x
+  run call "git push -u origin HEAD"; [ -z "$output" ]
+  run call "git push origin change/add-x"; [ -z "$output" ]
+  run call "git push"; [ -z "$output" ]
+  run call "git push origin change/add-x:main"; denied
+}
+
+@test "an archive-later declaration or an archived change lets the integrating operation through" {
+  seed; on_branch change/add-x; add_change add-x; add_change add-x .archive-later
+  run call "gh pr merge 12"; [ -z "$output" ]
+  ( cd "$ROOT" && mkdir -p openspec/changes/archive && git rm -q openspec/changes/add-x/.archive-later \
+      && git mv openspec/changes/add-x openspec/changes/archive/2026-11-03-add-x && git commit -qm archive )
+  run call "gh pr merge 12"; [ -z "$output" ]
+  run call "git push origin HEAD:main"; [ -z "$output" ]
+}
+
+@test "no base to compare with: the integrating operation is not stopped" {
+  export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@x GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@x
+  ( cd "$ROOT" && git commit -q --allow-empty -m base )
+  add_change add-x
+  run call "gh pr merge 12"; [ -z "$output" ]
+  run call "git push origin main"; [ -z "$output" ]
+}
+
+@test "git -C <root> push is judged in that repository" {
+  seed; add_change add-x
+  mkdir -p "$SCRATCH/w"
+  run bash -c "jq -c -n --arg c 'git -C $ROOT push origin main' --arg cwd '$SCRATCH/w' '{session_id:\"sid12345678\", cwd:\$cwd, tool_name:\"Bash\", tool_input:{command:\$c}}' | '$SCRIPT'"
+  denied
+}
