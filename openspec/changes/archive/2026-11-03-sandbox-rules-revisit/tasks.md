@@ -43,4 +43,4 @@
 ## 9. 統合
 
 - [x] 9.1 `openspec validate sandbox-rules-revisit --strict` が通ることを確かめる。sandboxの外で `make verify VERIFY_STRICT=1` が通ることも確かめる
-- [ ] 9.2 `uskn-harness sync` の後、新しいセッションで次の3つを確かめる。sandboxの中から `systemctl --user is-system-running` が `Failed to connect to bus` で失敗しないこと。`/sandbox-allow-host gl.uskan.dev` の後に、sandboxの中から `curl -sI https://gl.uskan.dev` が拒否されないこと。sandboxの中のコマンドの実行中に、Stopでverify gateが走らないこと
+- [x] 9.2 `uskn-harness sync` の後、新しいセッションで次の3つを確かめる。sandboxの中から `systemctl --user is-system-running` が `Failed to connect to bus` で失敗しないこと。`/sandbox-allow-host gl.uskan.dev` の後に、sandboxの中から `curl -sI https://gl.uskan.dev` が拒否されないこと。sandboxの中のコマンドの実行中に、Stopでverify gateが走らないこと（archive-pushで完了とみなした）
