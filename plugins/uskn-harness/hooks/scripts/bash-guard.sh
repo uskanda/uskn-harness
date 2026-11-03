@@ -15,6 +15,10 @@
 #         known to fail inside: a git subcommand in SANDBOX_FAIL_GIT or a tool in SANDBOX_FAIL_TOOLS (ADR-0012).
 #         Where that cannot match: in a compound command (a pipe, &&, ;, parentheses), behind an assignment or a
 #         wrapper such as sudo, or for git behind an option in GIT_MOVING_OPTS; the command then runs inside.
+#   deny  an integrating operation that carries OpenSpec changes the branch left unarchived (ADR-0014): gh pr merge
+#         and glab mr merge against origin/<integration>, and a git push whose destination (the refspec's, else the
+#         upstream's, else the current branch) is the default or the integration branch, against origin/<that>.
+#         archive-check.sh decides; when it cannot (no such ref, exit 2), nothing is said.
 #   note  any other such tool: additionalContext says it runs inside the sandbox and to run it on its own on a
 #         sandbox failure (ADR-0011). tool_input.dangerouslyDisableSandbox true: additionalContext says to turn the
 #         sandbox off only after a sandbox failure (ADR-0012). One additionalContext carries both; a deny says
@@ -233,8 +237,77 @@ do_git() { # <first index> <GIT_DIR> <GIT_WORK_TREE>
   target="$repo"
   if [ -n "$wt" ]; then target="$(resolve "$wt" "$repo")" || return 0; fi
   if [ -n "$gd" ]; then target="$(resolve "$gd" "$repo")" || return 0; fi
-  if outside "$target"; then GIT_DENIED=1; add_deny "git $sub in another repository ($target)."; fi
+  if outside "$target"; then GIT_DENIED=1; add_deny "git $sub in another repository ($target)."; return 0; fi
+  [ "$sub" = push ] && [ -z "$gd$wt" ] && push_targets "$((i + 1))" "$repo"
   return 0
+}
+# ---- integrating operations (ADR-0014): gh pr merge, glab mr merge, and a git push that lands on the default or the
+# integration branch. archive-check.sh lists the changes the branch left unarchived; exit 0 or 2 says nothing here.
+ARCHIVE_DENIED=0
+branch_model() { # <dir>: sets BM_DEFAULT and BM_INTEGRATION from session-start.sh --plain branches
+  local line
+  BM_DEFAULT=""; BM_INTEGRATION=""
+  while IFS= read -r line; do
+    case "$line" in default=*) BM_DEFAULT="${line#default=}" ;; integration=*) BM_INTEGRATION="${line#integration=}" ;; esac
+  done < <(with_timeout 10 "$(dirname "$0")/session-start.sh" --plain branches "$1" </dev/null 2>/dev/null)
+}
+check_archive() { # <dir> <branch> <operation>: deny when changes are left unarchived against origin/<branch>
+  local names rc list="" n
+  [ "$ARCHIVE_DENIED" = 0 ] && [ -n "$2" ] || return 0
+  names="$(with_timeout 10 "$(dirname "$0")/archive-check.sh" --base "origin/$2" "$1" </dev/null 2>/dev/null)"; rc=$?
+  [ "$rc" = 1 ] && [ -n "$names" ] || return 0
+  ARCHIVE_DENIED=1
+  while IFS= read -r n; do [ -n "$n" ] && list="${list:+$list, }/archive-push $n"; done <<< "$names"
+  add_deny "$3 integrates OpenSpec changes this branch left unarchived: $(printf '%s' "$names" | tr '\n' ' ' | sed 's/ $//'). Archive each one first ($list), then run the command again. When the user said a change is to be archived later, write the reason on one line to openspec/changes/<name>/.archive-later and commit it instead."
+}
+push_targets() { # <index after push> <repo>: the branches this git push lands on, checked against the branch model
+  local i="$1" n=${#WORDS[@]} w args=() dsts=() cur spec dst b
+  while [ "$i" -lt "$n" ]; do
+    w="${WORDS[$i]}"
+    case "$w" in
+      --repo | -o | --push-option | --receive-pack | --exec) i=$((i + 1)) ;;
+      -*) ;;
+      *) args+=("$w") ;;
+    esac
+    i=$((i + 1))
+  done
+  cur="$(git -C "$2" branch --show-current 2>/dev/null)"
+  if [ "${#args[@]}" -gt 1 ]; then
+    for spec in "${args[@]:1}"; do
+      spec="${spec#+}"
+      case "$spec" in :*) continue ;; *:*) dst="${spec#*:}" ;; *) dst="$spec" ;; esac
+      [ "$dst" = HEAD ] && dst="$cur"
+      dsts+=("${dst#refs/heads/}")
+    done
+  elif [ -n "$cur" ]; then   # no refspec: the upstream branch, else the current branch
+    dst="$(git -C "$2" config "branch.$cur.merge" 2>/dev/null)"
+    dsts=("${dst:-$cur}")
+    dsts=("${dsts[0]#refs/heads/}")
+  fi
+  [ "${#dsts[@]}" -gt 0 ] || return 0
+  branch_model "$2"
+  for b in "${dsts[@]}"; do
+    [ -n "$b" ] || continue
+    if [ "$b" = "$BM_DEFAULT" ] || [ "$b" = "$BM_INTEGRATION" ]; then check_archive "$2" "$b" "git push to $b"; fi
+  done
+}
+do_forge() { # <first index> <gh|glab>: gh pr merge / glab mr merge, compared with origin/<integration>
+  local i="$1" n=${#WORDS[@]} w noun="pr" seen=0
+  [ "$2" = glab ] && noun="mr"
+  while [ "$i" -lt "$n" ]; do
+    w="${WORDS[$i]}"
+    case "$w" in
+      -R | --repo) i=$((i + 1)) ;;
+      -*) ;;
+      *) if [ "$seen" = 1 ]; then [ "$w" = merge ] || return 0; break
+         elif [ "$w" = "$noun" ]; then seen=1
+         else return 0; fi ;;
+    esac
+    i=$((i + 1))
+  done
+  [ "$seen" = 1 ] && [ "$i" -lt "$n" ] || return 0
+  branch_model "$DIR"
+  check_archive "$DIR" "$BM_INTEGRATION" "$2 $noun merge"
 }
 CHEZMOI_SRC=""
 chezmoi_source() { # <explicit --source or empty>: sets CHEZMOI_SRC
@@ -391,6 +464,7 @@ simple_command() {
     cd | pushd) do_cd "$i" ;;
     git) do_git "$i" "$gd" "$wt" ;;
     chezmoi) do_chezmoi "$i" ;;
+    gh | glab) do_forge "$i" "$cmd" ;;
     cp | install | rsync) do_copy "$i" "$cmd" ;;
     ln) do_ln "$i" ;;
     mv | rm | rmdir) REMOVING=1; do_all "$i"; REMOVING=0 ;;

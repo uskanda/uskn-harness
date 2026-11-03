@@ -6,14 +6,6 @@
 
 ## Requirements
 
-### Requirement: ユーザーだけが呼べる
-`archive-push` はエージェントの判断で呼ばれてはならない（MUST NOT）。
-ユーザーが `/archive-push` と入力したときだけ動く。
-
-#### Scenario: エージェントの自発的な呼び出し
-- **WHEN** 実装を終えたエージェントが、自分の判断で `archive-push` を呼ぼうとする
-- **THEN** `archive-push` は呼べない
-
 ### Requirement: 1回に1つの変更を扱う
 `archive-push` は1回の実行で1つの変更だけを扱わなければならない（MUST）。
 引数に変更の名前が無く、対象を1つに決められないとき、`archive-push` はユーザーに尋ねなければならない（MUST）。
@@ -128,3 +120,22 @@
 #### Scenario: 保護されていないブランチ
 - **WHEN** 現在のブランチが保護ブランチでない
 - **THEN** コミットがoriginへpushされ、報告にpushしたブランチとコミットが載る
+
+### Requirement: 呼ぶのはユーザーか統合の操作をするスキル
+`archive-push` は、ユーザーが `/archive-push` と入力したとき、または統合の操作をするスキル（`pr` と `push`）が呼んだときに動かなければならない（MUST）。
+`archive-push` のfrontmatterは `disable-model-invocation` を持ってはならない（MUST NOT）。
+
+#### Scenario: ユーザーの入力
+- **WHEN** ユーザーが `/archive-push add-x` と入力する
+- **THEN** 変更 `add-x` のarchiveが始まる
+
+#### Scenario: pr からの呼び出し
+- **WHEN** `pr` が統合の操作の前に、未archiveの変更 `add-x` を見つける
+- **THEN** `pr` は `archive-push add-x` を呼べる
+
+### Requirement: archive保留の宣言のある変更を選ばない
+引数に変更の名前が無いとき、`archive-push` はarchive保留の宣言（`.archive-later`）のある変更を候補にしてはならない（MUST NOT）。
+
+#### Scenario: 宣言のある変更と無い変更
+- **WHEN** 進行中の変更が `add-x` と `add-y` の2つで、`add-y` に `.archive-later` があり、引数なしで `archive-push` を実行する
+- **THEN** 尋ねずに `add-x` だけをarchiveする

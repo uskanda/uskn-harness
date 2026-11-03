@@ -13,6 +13,8 @@ Behavior depends on whether there are uncommitted changes and whether the curren
 - not protected + uncommitted changes: commit with `commit`, push the current branch
 - no uncommitted changes: push as is
 
+Before a push to the default or the integration branch, the changes the branch finished are archived first (step 4-C).
+
 ## Context
 
 Use the `<repo-context>` block injected at session start (platform, CLI, default / integration / qa branches). If it is absent, run
@@ -28,7 +30,7 @@ and use its values. Do not re-detect by hand when either is available.
 
 ### 2. Uncommitted changes?
 
-`git status --porcelain` (includes untracked files). Nothing listed: go to step 5. Otherwise: step 3.
+`git status --porcelain` (includes untracked files). Nothing listed: go to step 4-C. Otherwise: step 3.
 
 ### 3. Is the target branch protected?
 
@@ -74,7 +76,28 @@ echo "$PROTECTED"
 ### 4-B. Not protected, with uncommitted changes
 
 1. Run the `commit` skill with the Skill tool (no confirmation needed).
-2. Go to step 5.
+2. Go to step 4-C.
+
+### 4-C. Archive before integrating
+
+The destination is the upstream branch when one is set (`git rev-parse --abbrev-ref --symbolic-full-name @{u}`,
+without the remote part), else the current branch. Pushing to the default or the integration branch from the context
+is an integrating operation, and the branch's finished OpenSpec changes go there archived (ADR-0014):
+
+1. `git fetch -q origin <destination>`, then `uskn-archive-check --base origin/<destination>`. It prints, one per
+   line, the changes this branch touched that are still under `openspec/changes/` without `.archive-later`. Exit 0:
+   go to step 5. Exit 2: it could not decide (no `origin/<destination>`); say so in the report and go to step 5.
+2. For each name it prints, Run the Skill tool with `archive-push` and the name. `archive-push` commits the archive
+   and runs this skill again; that run finds nothing left to archive and pushes. When every name is done, go to
+   step 6.
+3. If `archive-push` stops (a task that still needs an edit, a failing verify), stop as well without pushing, and
+   report what `archive-push` reported.
+
+Any other destination: go to step 5 without the check.
+
+When the user says a change waits (to be archived later, after more work), write that reason on one line to
+`openspec/changes/<name>/.archive-later` and commit it with the `commit` skill; the check then leaves the change out.
+Write the file only on the user's word, never to get past the check.
 
 ### 5. Push
 

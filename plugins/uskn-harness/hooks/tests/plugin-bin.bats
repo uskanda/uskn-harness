@@ -12,10 +12,11 @@ setup() {
   ( cd "$R" && git init -q -b main && git remote add origin git@github.com:o/r.git && git add -A && git commit -qm init )
 }
 
-@test "bin/ holds uskn-repo-context and uskn-terms-check, executable, and nothing else" {
+@test "bin/ holds uskn-archive-check, uskn-repo-context, and uskn-terms-check, executable, and nothing else" {
+  [ -x "$BIN/uskn-archive-check" ]
   [ -x "$BIN/uskn-repo-context" ]
   [ -x "$BIN/uskn-terms-check" ]
-  [ "$(ls "$BIN" | sort | tr '\n' ' ')" = "uskn-repo-context uskn-terms-check " ]
+  [ "$(ls "$BIN" | sort | tr '\n' ' ')" = "uskn-archive-check uskn-repo-context uskn-terms-check " ]
 }
 
 @test "uskn-repo-context gives what session-start.sh gives, in every mode" {
@@ -39,6 +40,17 @@ setup() {
   printf '# t\n\nNothing to report.\n' > "$R/docs/ok.md"
   run bash -c "cd '$R' && '$BIN/uskn-terms-check' docs/ok.md"
   [ "$status" -eq 0 ]
+}
+
+@test "uskn-archive-check keeps the output and the exit code of archive-check.sh" {
+  ( cd "$R" && git update-ref refs/remotes/origin/main HEAD && git switch -q -c change/add-x && mkdir -p openspec/changes/add-x \
+      && echo x > openspec/changes/add-x/proposal.md && git add -A && git commit -qm add-x )
+  run bash -c "cd '$R' && '$BIN/uskn-archive-check' --base origin/main"
+  [ "$status" -eq 1 ]
+  [ "$output" = add-x ]
+  run bash -c "cd '$R' && PATH='$BIN':\"\$PATH\" uskn-archive-check --base origin/nowhere 2>/dev/null"
+  [ "$status" -eq 2 ]
+  [ -z "$output" ]
 }
 
 @test "the commands work through a symlinked plugin directory, as sync installs it" {

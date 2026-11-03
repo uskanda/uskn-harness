@@ -1,15 +1,16 @@
 ---
 name: archive-push
-description: Finish an OpenSpec change in one run - settle its open tasks, verify, archive it with spec sync, commit, and push.
+description: Finish an OpenSpec change in one run - settle its open tasks, verify, archive it with spec sync, commit, and push. pr and push run it before they integrate.
 argument-hint: "[change-name]"
-disable-model-invocation: true
 allowed-tools: Bash, Read, Edit, Glob, Grep, Skill, AskUserQuestion
 ---
 
 # archive-push: from a finished change to a pushed commit
 
-The user typed `/archive-push`. Run one change through archive, sync, verify, commit, and push, calling the skills
-that own each part. This skill supplies only the order and the answers to their questions.
+The user typed `/archive-push`, or `pr` or `push` runs this skill with a change name before an integrating
+operation (ADR-0014). Run one change through archive, sync, verify, commit, and push, calling the skills that own
+each part. This skill supplies only the order and the answers to their questions. The skill that called it reads
+your report: a stop here stops its integrating operation too.
 
 Every question and every stop sits before step 5, while the working tree is still untouched. The one exception is
 the second verify in step 6.
@@ -20,6 +21,8 @@ the second verify in step 6.
 
 - `$ARGUMENTS` names a change under `openspec/changes/`: use it.
 - Empty: take the only active change from `openspec list --json`. With several, ask which one with `AskUserQuestion`.
+  Leave out every change whose directory holds `.archive-later` (the archive-later declaration: the user said it
+  waits); it is never a candidate.
 
 One change per run. Announce the change you use.
 

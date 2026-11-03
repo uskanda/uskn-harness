@@ -55,6 +55,25 @@ Auto-merge must wait for CI. Both hosts merge immediately when there is nothing 
 2. If none appears, **do not enable auto-merge**. Report the URL and that CI never registered, and stop. The user decides about a manual merge.
 3. After enabling auto-merge, re-read the state. If it already says merged, say so explicitly: the change bypassed the CI gate.
 
+## Archive before integrating (integration and custom modes)
+
+These two modes are integrating operations: the request carries the branch's finished OpenSpec changes, and they
+arrive archived (ADR-0014). Release and qa modes skip this section; they carry what the integration branch already
+has.
+
+1. `git fetch -q origin <target>`, then `uskn-archive-check --base origin/<target>`. It prints, one per line, the
+   changes this branch touched that are still under `openspec/changes/` without `.archive-later`. Exit 0: go on to
+   the platform section. Exit 2: it could not decide (no `origin/<target>`); say so in the report and go on.
+2. For each name it prints, Run the Skill tool with `archive-push` and the name. `archive-push` commits the archive
+   and pushes this branch.
+3. If `archive-push` stops (a task that still needs an edit, a failing verify), stop as well: create no request,
+   enable no auto-merge, and report what `archive-push` reported.
+4. Run the check again. It prints nothing before you go on.
+
+When the user says a change waits (to be archived later, after more work), write that reason on one line to
+`openspec/changes/<name>/.archive-later` and commit it with the `commit` skill; the check then leaves the change out.
+Write the file only on the user's word, never to get past the check.
+
 ## GitHub
 
 `gh pr create` needs the branch on the remote. Push first when the source is the current branch.
