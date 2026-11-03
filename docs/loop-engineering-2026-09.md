@@ -86,7 +86,7 @@ L3の代表は[Geoffrey HuntleyのRalph](https://ghuntley.com/ralph/)である�
 | `/goal` | ADR-0001 §8で長時間の自律作業を任せたネイティブ機能 | 1セッションの中で条件を満たすまで続ける | PRやIssueとは結び付かない |
 | `/code-review` | Claude Codeの組み込み。差分のバグを探す | 推論的センサーの候補 | 仕様（specs）との照合はしない |
 | `pr` スキル | GitHubのPRとGitLabのMRを作る | ループの出口 | なし |
-| `/archive-push` | 変更を閉じてpushする。起動するのはユーザーだけ | ループの外。人が完了を宣言する | なし（ループに入れない） |
+| `/archive-push` | 変更を閉じてpushする。起動するのはユーザーと、統合の操作の前の `pr` と `push`（ADR-0014で変更） | ループの外。人が完了を宣言する | なし（ループに入れない） |
 | managed clone | 作業ツリーを持たないマシンに参照点として置くクローン | サーバーへハーネスを入れる手段 | なし |
 
 今のハーネスに全く無いものは次の5つである。
@@ -210,6 +210,7 @@ grillingで決める論点は次のとおり。
 - 監査役のモデルとeffort。実装役と同じモデルにするか
 - 監査役の指示と判定のJSON Schemaの置き場
 - archiveの時点。承認後にループがブランチ上でarchiveするか、マージ後に人が `/archive-push` を走らせるか。今の `/archive-push` は既定ブランチへ直接pushする
+  - 2026-11-03の追記：統合の操作の前に、`archive-push` でarchiveすると決めた（issue #19、ADR-0014）。ループは対象外とした。人がマージする前に、CIの `make verify-archive` が未archiveを知らせる
 - ループ本体の実装言語。hookと同じbashとjqか、Agent SDK（TypeScript）か
 - ラベルの名前、進捗コメントの形式、仕様PRのブランチ名
 

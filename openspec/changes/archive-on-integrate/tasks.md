@@ -35,9 +35,9 @@
 
 ## 5. 文書
 
-- [ ] 5.1 `openspec/glossary.yml` に「統合の操作」と「archive保留の宣言」を足す。textlintとterms-checkが通ることを確かめる
-- [ ] 5.2 `README.md` の仕様づくりの行と、`docs/loop-engineering-2026-09.md` の未決の項目を更新する。textlintとterms-checkが通ることを確かめる
-- [ ] 5.3 `docs/adr/0014-archive-on-integrate.md` を書き、textlintとterms-checkが通ることを確かめる
+- [x] 5.1 `openspec/glossary.yml` に「統合の操作」と「archive保留の宣言」を足す。textlintとterms-checkが通ることを確かめる
+- [x] 5.2 `README.md` の仕様づくりの行と、`docs/loop-engineering-2026-09.md` の未決の項目を更新する。textlintとterms-checkが通ることを確かめる
+- [x] 5.3 `docs/adr/0014-archive-on-integrate.md` を書き、textlintとterms-checkが通ることを確かめる
 
 ## 6. 残っている変更のarchive
 
