@@ -199,3 +199,67 @@ count() { line "$1" | wc -w; }
   [[ "$output" != *.mcp.json* ]] || false
   [[ "$output" == *docs/adr/0001-a.md* ]] || false
 }
+
+# ---- verify-archive (spec: ci-verify; ADR-0014)
+# pr_repo [file]: a repository whose HEAD is the merge commit of a pull request into main, as actions/checkout gives
+# it. The request adds openspec/changes/add-x/proposal.md, plus openspec/changes/add-x/<file> when one is named.
+pr_repo() {
+  export GIT_CONFIG_GLOBAL=/dev/null GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@x GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@x
+  T="$BATS_TEST_TMPDIR/repo"; copy_makefile "$T"
+  cp "$REPO/plugins/uskn-harness/hooks/scripts/archive-check.sh" "$T/plugins/uskn-harness/hooks/scripts/"
+  echo a > "$T/README.md"
+  ( cd "$T" && git init -q -b main && git add -A && git commit -qm base && git switch -q -c change/add-x \
+      && mkdir -p openspec/changes/add-x && echo x > openspec/changes/add-x/proposal.md \
+      && { [ -z "${1:-}" ] || echo "follow-up in #20" > "openspec/changes/add-x/$1"; } \
+      && git add -A && git commit -qm add-x && git switch -q main && git merge -q --no-ff -m merge change/add-x )
+}
+# event <draft>: the pull_request event file GitHub Actions points GITHUB_EVENT_PATH at
+event() { printf '{"pull_request":{"number":1,"draft":%s}}\n' "$1" > "$BATS_TEST_TMPDIR/event.json"; }
+pr_make() { GITHUB_EVENT_NAME=pull_request GITHUB_EVENT_PATH="$BATS_TEST_TMPDIR/event.json" GITHUB_SHA= make -s -C "$T" "$@"; }
+
+@test "verify-archive outside a pull request: skipped, exit 0" {
+  pr_repo
+  GITHUB_EVENT_NAME=push run make -s -C "$T" verify-archive
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[archive] skipped"* ]] || false
+  run env -u GITHUB_EVENT_NAME make -s -C "$T" verify-archive VERIFY_STRICT=1
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[archive] skipped"* ]] || false
+}
+
+@test "verify-archive on a draft pull request: not checked, exit 0" {
+  pr_repo; event true
+  run pr_make verify-archive VERIFY_STRICT=1
+  [ "$status" -eq 0 ]
+  [[ "$output" == *draft* ]] || false
+  [[ "$output" != *add-x* ]] || false
+}
+
+@test "verify-archive on a ready pull request that brings in an unarchived change: fails and names it" {
+  pr_repo; event false
+  run pr_make verify-archive
+  [ "$status" -ne 0 ]
+  [[ "$output" == *add-x* ]] || false
+  [[ "$output" == *"/archive-push"* ]] || false
+}
+
+@test "verify-archive on a ready pull request whose change declares archive-later: passes" {
+  pr_repo .archive-later; event false
+  run pr_make verify-archive VERIFY_STRICT=1
+  [ "$status" -eq 0 ]
+}
+
+@test "verify-archive that cannot decide: skipped by default, a failure under VERIFY_STRICT=1" {
+  pr_repo; event false
+  ( cd "$T" && git reset -q --hard change/add-x && git checkout -q --orphan lone && git commit -qm lone )
+  run pr_make verify-archive
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[archive]"* ]] || false
+  run pr_make verify-archive VERIFY_STRICT=1
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"[archive]"* ]] || false; [[ "$output" == *VERIFY_STRICT* ]] || false
+}
+
+@test "verify runs verify-archive" {
+  grep -qE '^verify:.* verify-archive( |$)' "$REPO/Makefile"
+}

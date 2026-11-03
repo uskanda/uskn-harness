@@ -28,10 +28,10 @@
 
 ## 4. CIの確認
 
-- [ ] 4.1 `bin/tests/makefile.bats` に `verify-archive` のテストを足し、失敗することを確かめる。扱うのは次のとおり
+- [x] 4.1 `bin/tests/makefile.bats` に `verify-archive` のテストを足し、失敗することを確かめる。扱うのは次のとおり
   - pull requestの外、draft
   - 該当あり、該当なし、判定できないとき（strict）
-- [ ] 4.2 `Makefile` に `verify-archive` をdesign.mdのD5のとおりに足し、`verify` から呼ぶ。4.1のテストが通ることを確かめる
+- [x] 4.2 `Makefile` に `verify-archive` をdesign.mdのD5のとおりに足し、`verify` から呼ぶ。4.1のテストが通ることを確かめる
 
 ## 5. 文書
 

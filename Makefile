@@ -56,7 +56,7 @@ endef
 export SKILL_FRONTMATTER_PY
 
 .PHONY: verify verify-openspec verify-shell verify-skills verify-plugin verify-textlint verify-design verify-terms \
-        verify-fast verify-fast-plan
+        verify-archive verify-fast verify-fast-plan
 
 # Japanese prose that is still alive: README, ADRs, main specs, active changes. docs/proposal-2026-09.md and
 # openspec/changes/archive/ are records and stay as written.
@@ -68,7 +68,7 @@ DOCS_JA := README.md docs/setup-new-machine.md $(wildcard docs/adr/*.md) \
 DOCS_TERMS := $(DOCS_JA) AGENTS.md plugins/uskn-harness/README.md plugins/uskn-notify/README.md $(shell find skills -name 'SKILL.md' 2>/dev/null)
 TERMS_CHECK := plugins/uskn-harness/hooks/scripts/terms-check.sh
 
-verify: verify-openspec verify-shell verify-skills verify-plugin verify-textlint verify-design verify-terms ## Run every check that applies to this repo
+verify: verify-openspec verify-shell verify-skills verify-plugin verify-textlint verify-design verify-terms verify-archive ## Run every check that applies to this repo
 	@echo "verify: ok"
 
 verify-openspec:
@@ -123,6 +123,29 @@ verify-terms:
 	@if [ -x "$(TERMS_CHECK)" ]; then echo "[terms] $(words $(DOCS_TERMS)) documents"; \
 	  VERIFY_STRICT=$(VERIFY_STRICT) "$(TERMS_CHECK)" $(DOCS_TERMS) || exit 1; \
 	else $(call skip,[terms] skipped (terms-check.sh missing)); fi
+
+# ---- verify-archive (openspec: ci-verify; ADR-0014): in a GitHub Actions pull request that is not a draft, the
+# OpenSpec changes the request brings in must arrive archived. The base is HEAD^1, the first parent of the merge commit
+# actions/checkout gives a pull request; a depth-1 checkout fetches it once. Anywhere else it says skipped. This
+# repository's own check: the installer gives product repositories no CI.
+ARCHIVE_CHECK := plugins/uskn-harness/hooks/scripts/archive-check.sh
+verify-archive:
+	@if [ "$${GITHUB_EVENT_NAME:-}" != pull_request ]; then echo "[archive] skipped (not a GitHub Actions pull request)"; exit 0; fi; \
+	ev="$${GITHUB_EVENT_PATH:-}"; draft=false; \
+	if [ -f "$$ev" ]; then \
+	  if command -v jq >/dev/null; then draft=$$(jq -r '.pull_request.draft // false' "$$ev" 2>/dev/null || echo false); \
+	  elif grep -qE '"draft"[[:space:]]*:[[:space:]]*true' "$$ev"; then draft=true; fi; fi; \
+	if [ "$$draft" = true ]; then echo "[archive] skipped (draft pull request)"; exit 0; fi; \
+	git rev-parse -q --verify 'HEAD^1' >/dev/null 2>&1 || \
+	  git fetch -q --no-tags --depth=2 origin "$${GITHUB_SHA:-HEAD}" >/dev/null 2>&1 || true; \
+	echo "[archive] changes the pull request leaves unarchived (base HEAD^1)"; \
+	out=$$("$(ARCHIVE_CHECK)" --base 'HEAD^1' 2>&1); rc=$$?; \
+	case "$$rc" in \
+	  0) ;; \
+	  1) echo "$$out" | sed 's/^/  /'; \
+	     echo "[archive] archive each with /archive-push <name>, or declare openspec/changes/<name>/.archive-later" >&2; exit 1 ;; \
+	  *) echo "$$out"; $(call skip,[archive] could not decide); ;; \
+	esac
 
 # ---- verify-fast: what the verify gate runs at Stop (openspec: verify-fast). The checks of `verify`, narrowed to the
 # files that changed since VERIFY_BASE plus untracked files; the full `verify` runs in CI and in archive-push.
