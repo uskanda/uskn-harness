@@ -13,11 +13,11 @@
 
 ## 3. auditスキル
 
-- [ ] 3.1 `bin/tests/audit-skill.bats` を書き、失敗することを確かめる。扱うのは次のとおり
+- [x] 3.1 `bin/tests/audit-skill.bats` を書き、失敗することを確かめる。扱うのは次のとおり
   - frontmatterの `context: fork`、`background: false`、`allowed-tools`
   - 参照ファイルの存在
   - 本文が `uskn-diff-check` と `uskn-archive-check` を名指しすること
-- [ ] 3.2 design.mdのD5のとおりに、`skills/audit/SKILL.md` と参照ファイル2つを書く。参照ファイルは `skills/audit/references/auditor.md` と `skills/audit/references/verdict.schema.json` である。3.1のテスト、`bin/tests/skill-fork-policy.bats`、`make verify-skills` が通ることを確かめる
+- [x] 3.2 design.mdのD5のとおりに、`skills/audit/SKILL.md` と参照ファイル2つを書く。参照ファイルは `skills/audit/references/auditor.md` と `skills/audit/references/verdict.schema.json` である。3.1のテスト、`bin/tests/skill-fork-policy.bats`、`make verify-skills` が通ることを確かめる
 
 ## 4. uskn-loopとspec-prの撤去
 
