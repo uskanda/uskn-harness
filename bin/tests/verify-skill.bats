@@ -19,3 +19,22 @@ before_commit() { sed -n '/^## Right before a commit/,/^## /p' "$SKILL"; }
 @test "that section says the run is not evidence that the work is done" {
   before_commit | grep -qiE 'not (the )?evidence'
 }
+
+diff_section() { sed -n '/^## Removed or skipped tests/,/^## /p' "$SKILL"; }
+
+@test "verify has a section that runs the diff check before a claim and before a pull request" {
+  grep -q '^## Removed or skipped tests' "$SKILL"
+  diff_section | grep -qF 'uskn-diff-check --base origin/'
+  diff_section | grep -qi 'pull request'
+}
+
+@test "that section passes the active change's tasks.md with --allow-from" {
+  diff_section | grep -qF -- '--allow-from'
+  diff_section | grep -qF 'tasks.md'
+}
+
+@test "that section says what to do with each exit code and with verify-setting lines" {
+  diff_section | grep -qF 'test-deleted'
+  diff_section | grep -qF 'verify-setting'
+  diff_section | grep -qE 'exit (code )?2|Exit 2|`2`'
+}

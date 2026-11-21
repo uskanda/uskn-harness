@@ -2,14 +2,14 @@
 
 ## 1. 差分の検査のコマンド
 
-- [ ] 1.1 `plugins/uskn-harness/hooks/tests/diff-check.bats` を書き、失敗することを確かめる。扱うのは `diff-check` のspecの各シナリオと、コミット済みの削除、skipの無いテストの変更である
-- [ ] 1.2 `plugins/uskn-harness/hooks/scripts/diff-check.sh` をdesign.mdのD3のとおりに書く。判定の関数は `loop/lib/sensors.sh` から移す。`bats plugins/uskn-harness/hooks/tests/diff-check.bats` が通ることを確かめる
-- [ ] 1.3 `plugins/uskn-harness/hooks/tests/plugin-bin.bats` の一覧を更新する。`uskn-diff-check` が元のスクリプトと同じ出力と終了コードを返すテストを足す。`plugins/uskn-harness/bin/uskn-diff-check` を足し、テストが通ることを確かめる
+- [x] 1.1 `plugins/uskn-harness/hooks/tests/diff-check.bats` を書き、失敗することを確かめる。扱うのは `diff-check` のspecの各シナリオと、コミット済みの削除、skipの無いテストの変更である
+- [x] 1.2 `plugins/uskn-harness/hooks/scripts/diff-check.sh` をdesign.mdのD3のとおりに書く。判定の関数は `loop/lib/sensors.sh` から移す。`bats plugins/uskn-harness/hooks/tests/diff-check.bats` が通ることを確かめる
+- [x] 1.3 `plugins/uskn-harness/hooks/tests/plugin-bin.bats` の一覧を更新する。`uskn-diff-check` が元のスクリプトと同じ出力と終了コードを返すテストを足す。`plugins/uskn-harness/bin/uskn-diff-check` を足し、テストが通ることを確かめる
 
 ## 2. verifyスキル
 
-- [ ] 2.1 `bin/tests/verify-skill.bats` に、本文が `uskn-diff-check` と `--allow-from` を名指しすることを確かめるテストを足し、失敗することを確かめる
-- [ ] 2.2 `skills/verify/SKILL.md` にdesign.mdのD4の節を足し、2.1のテストと `make verify-skills` が通ることを確かめる
+- [x] 2.1 `bin/tests/verify-skill.bats` に、本文が `uskn-diff-check` と `--allow-from` を名指しすることを確かめるテストを足し、失敗することを確かめる
+- [x] 2.2 `skills/verify/SKILL.md` にdesign.mdのD4の節を足し、2.1のテストと `make verify-skills` が通ることを確かめる
 
 ## 3. auditスキル
 
