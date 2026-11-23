@@ -137,7 +137,7 @@
       "source": "anthropics/claude-plugins-official",
       "path": "plugins/frontend-design",
       "ref": "44490cccaf6d9f82fdeec9416fbf7c9bd72575dc",
-      "role": "fallback UI guidance for a new web surface that has no DESIGN.md yet (ui-guidelines step 4)",
+      "role": "first step of every new UI, web or Expo, with or without DESIGN.md: settles the visual direction, whose choices go into DESIGN.md before any UI code (ui-guidelines step 2)",
       "checked": "2026-09-25"
     },
     "impeccable": {

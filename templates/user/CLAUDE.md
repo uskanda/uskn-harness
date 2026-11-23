@@ -9,5 +9,5 @@
 - Sandbox placeholders: 0-byte untracked files such as `.bashrc` or `.claude/agents` are the sandbox's, there only while a command runs; leave them out of commits, reports, and cleanup.
 - Tests: new behavior in scripts or code starts with a failing test (`test-driven-development`).
 - Writing: Japanese prose follows `ja-writing`; English prose a person reads follows `en-writing`; skills, AGENTS.md, and CLAUDE.md follow `writing-for-agents`.
-- UI: follow `ui-guidelines`, with `DESIGN.md` and `PRODUCT.md` at the repository root as the source of truth.
+- UI: follow `ui-guidelines`, with `DESIGN.md` and `PRODUCT.md` at the repository root as the source of truth. A new screen starts from `frontend-design`.
 - Earlier decisions live in `openspec/changes/archive/` (`grilling.md`, `design.md`), `docs/adr/`, and commit messages; search them before re-deciding something.

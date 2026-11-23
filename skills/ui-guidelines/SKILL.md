@@ -25,17 +25,28 @@ allowed-tools: Bash(designmd:*), Bash(npx:*), Bash(git status:*), Bash(git resto
 
 1. Read DESIGN.md and PRODUCT.md. Values in the UI come from the tokens; a value not in DESIGN.md is added there
    first, with its reason in the prose.
-2. Impeccable reviews and refines. `/impeccable audit <target>` (a11y, performance, responsive), `critique`
+2. A new UI starts from `frontend-design`: a new screen, or the first screen of a new app, on the web or on Expo,
+   with or without DESIGN.md. Run the Skill tool with `frontend-design` and settle the visual direction before
+   writing UI code. With a DESIGN.md, choose within its tokens and prose; a value it lacks goes into DESIGN.md
+   first, with its reason, then `designmd lint DESIGN.md`. A direction that leaves DESIGN.md (another palette,
+   another type family) is the user's call: ask. Without a DESIGN.md, create it from the template (Sources of
+   truth), write the choices as tokens and prose, and confirm palette, type, and shape with the user. A small fix
+   to an existing screen skips this step.
+3. Impeccable reviews and refines. `/impeccable audit <target>` (a11y, performance, responsive), `critique`
    (hierarchy, clarity), `polish` before shipping, `harden` (errors, i18n, overflow), `adapt` (devices),
    `clarify` (copy), `layout`, `typeset`, `bolder` / `quieter`. Its `context` step reads PRODUCT.md and
    DESIGN.md. The commands that write those files in Impeccable's own format stay unused: `init`, `document`,
    `extract`, `doctor`. What Impeccable writes anyway is undone (next section).
-3. React Native / Expo (`app.json` with `expo`): the Expo official skills are installed per project
+4. React Native / Expo (`app.json` with `expo`): the Expo official skills are installed per project
    (`npx skills add expo/skills -y` from the repository root; look for `skills-lock.json` or `.claude/skills/`).
    Native specifics (safe areas, platform type scales, haptics, navigation idioms) live in DESIGN.md prose; the
    Impeccable native variants of `audit` and `adapt` apply.
-4. A new web surface with no DESIGN.md yet, where the user wants a visual direction explored: run the Skill tool
-   with `frontend-design`, then record the choices it made as DESIGN.md tokens and prose before continuing.
+
+Example: a new onboarding screen in an Expo app whose DESIGN.md is tracked. `frontend-design` proposes a calm,
+editorial direction with a large display heading. The palette and body type already in DESIGN.md fit it; no
+typography token is that large, so add one next to `headline-lg` with a sentence on where it is used, run
+`designmd lint DESIGN.md`, and only then write the screen. A padding fix on the existing settings screen skips
+`frontend-design`.
 
 ## What Impeccable writes on its own
 
