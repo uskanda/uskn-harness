@@ -30,3 +30,11 @@ frontmatter() { sed -n '2,/^---$/p' "$SKILL"; }
   grep -qF 'WebFetch(domain:*)' "$SKILL"
   grep -qiE 'add nothing' "$SKILL"
 }
+
+@test "in the confined environment the skill shows the refusal and stops (spec: sandbox-allow-host-skill)" {
+  sec="$(sed -n '/^### .*[Cc]onfined/,/^### /p' "$SKILL")"
+  [ -n "$sec" ]
+  grep -qiE 'exits? 2' <<<"$sec"
+  grep -qiF 'host foundation' <<<"$sec"
+  [ "$(grep -n '^### .*[Cc]onfined' "$SKILL" | cut -d: -f1)" -lt "$(grep -n '^### .*Add the host' "$SKILL" | cut -d: -f1)" ]
+}

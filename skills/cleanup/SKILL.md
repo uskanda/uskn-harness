@@ -3,6 +3,8 @@ name: cleanup
 description: Stop the Claude Code processes started more than 2 hours ago, other than this session's, to free memory.
 disable-model-invocation: true
 allowed-tools: Bash
+metadata:
+  uskn-environment: admin
 ---
 
 # cleanup: stop stale Claude Code processes

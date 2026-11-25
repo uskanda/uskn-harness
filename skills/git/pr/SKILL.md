@@ -13,6 +13,13 @@ Use the `<repo-context>` block injected at session start: platform (github / git
 `uskn-repo-context --json`
 and use its values. Run only the section for the detected platform; do not re-detect. Language of title and body: follow the user or repository instructions; default to Japanese.
 
+## Confined environment
+
+Run `uskn-environment` first. On `confined` the run ends here: push nothing, run no `archive-push`, and create no
+request. Report the mode and target you would have used, the current branch, and its commits
+(`git log --oneline origin/<target>..HEAD`). Say that the push and the request are done from
+outside the confined environment. On `admin`, go on.
+
 ## Choose the mode from `$ARGUMENTS`
 
 | `$ARGUMENTS` | Mode | Source → target | Auto-merge | Title |

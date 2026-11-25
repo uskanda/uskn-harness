@@ -72,6 +72,10 @@ lists anything else, stop before pushing: report the commit and the branch, and 
 
 ### 3. Push
 
+Run `uskn-environment` first. On `confined` the run ends at the commit: run `git switch "<orig>"` and report the
+branch `change/<name>`, the commit, and that the push and the draft are done from outside the confined environment.
+On `admin`, push:
+
 ```bash
 git push -u origin "change/<name>"
 ```

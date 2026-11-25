@@ -13,6 +13,10 @@ Use the `<repo-context>` block injected at session start: platform and CLI, the 
 `uskn-repo-context --json`.
 If `release_tag` is not `calver`, ask the user for the exact tag to use instead of computing one. Notes language: follow the user or repository instructions; default to Japanese.
 
+Run `uskn-environment` before step 1. On `confined` create no tag and no release: report the tag you would create
+and its notes (steps 1–3 read only), and that the tag and the release are made from outside the confined
+environment.
+
 ## Tag rule (calver)
 
 1. `git fetch --tags origin` and `git fetch origin <default>`.

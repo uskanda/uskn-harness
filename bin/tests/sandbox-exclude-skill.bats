@@ -24,3 +24,12 @@ frontmatter() { sed -n '2,/^---$/p' "$SKILL"; }
   grep -q '^### .*[Ee]xecution' "$SKILL"
   for t in npm make python; do grep -qF "\`$t\`" "$SKILL"; done
 }
+
+@test "in the confined environment the skill shows the refusal and stops (spec: sandbox-exclude-skill)" {
+  sec="$(sed -n '/^### .*[Cc]onfined/,/^### /p' "$SKILL")"
+  [ -n "$sec" ]
+  grep -qiE 'exits? 2' <<<"$sec"
+  grep -qiF 'host foundation' <<<"$sec"
+  # the check comes before the step that adds the pattern
+  [ "$(grep -n '^### .*[Cc]onfined' "$SKILL" | cut -d: -f1)" -lt "$(grep -n '^### .*Add the pattern' "$SKILL" | cut -d: -f1)" ]
+}

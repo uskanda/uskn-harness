@@ -2,6 +2,8 @@
 name: set-workspace-theme
 description: Give this VS Code workspace a window.title with an icon and a color theme far in hue from the other open windows. Use when the user wants VS Code windows told apart or a workspace color-coded.
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep, AskUserQuestion
+metadata:
+  uskn-environment: admin
 ---
 
 # set-workspace-theme
