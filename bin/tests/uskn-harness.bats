@@ -109,8 +109,7 @@ npm_specs() {
   [ "$(readlink -f "$STABLE")" = "$REPO" ]
   [ -L "$HOME/.local/bin/uskn-harness" ]
   [ "$(readlink -f "$HOME/.local/bin/uskn-harness")" = "$REPO/bin/uskn-harness" ]
-  [ -L "$HOME/.local/bin/uskn-loop" ]
-  [ "$(readlink -f "$HOME/.local/bin/uskn-loop")" = "$REPO/bin/uskn-loop" ]
+  [ ! -e "$HOME/.local/bin/uskn-loop" ]
   [ -L "$SKILLS/commit" ]
   [ "$(readlink -f "$SKILLS/commit")" = "$REPO/skills/git/commit" ]
   [ -L "$SKILLS/pr" ]
@@ -355,12 +354,38 @@ npm_specs() {
   [ "$(printf '%s\n' "$output" | grep -c '^fail')" -eq 0 ]
 }
 
-@test "doctor: a missing ~/.local/bin/uskn-loop is warn and asks for sync" {
+@test "doctor: no ~/.local/bin/uskn-loop is no warning" {
   "$CLI" sync >/dev/null
-  rm "$HOME/.local/bin/uskn-loop"
+  [ ! -e "$HOME/.local/bin/uskn-loop" ]
   run "$CLI" doctor
   [ "$status" -eq 0 ]
-  [[ "$output" == *"warn"*"loop runner"*"missing (run uskn-harness sync)"* ]] || false
+  [[ "$output" != *"loop runner"* ]] || false
+}
+
+@test "doctor: a leftover ~/.local/bin/uskn-loop into the harness is warn and asks for sync" {
+  "$CLI" sync >/dev/null
+  ln -s "$REPO/bin/uskn-loop" "$HOME/.local/bin/uskn-loop"
+  run "$CLI" doctor
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"warn"*"retired loop runner"*"run uskn-harness sync"* ]] || false
+}
+
+@test "sync removes a leftover ~/.local/bin/uskn-loop that points into the harness or dangles" {
+  mkdir -p "$HOME/.local/bin"
+  ln -s "$REPO/bin/uskn-loop" "$HOME/.local/bin/uskn-loop"
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+  [ ! -L "$HOME/.local/bin/uskn-loop" ]
+  [[ "$output" == *"removed"*"retired loop runner"* ]] || false
+}
+
+@test "sync leaves a ~/.local/bin/uskn-loop it did not make" {
+  mkdir -p "$HOME/.local/bin"
+  printf '#!/bin/sh\necho mine\n' > "$HOME/.local/bin/uskn-loop"
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+  [ -f "$HOME/.local/bin/uskn-loop" ]
+  grep -q mine "$HOME/.local/bin/uskn-loop"
 }
 
 @test "doctor: symlink pointing elsewhere is fail, exit 1" {

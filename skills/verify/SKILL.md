@@ -49,9 +49,27 @@ needs the convention itself, run in the same turn (Evidence before claims).
 3. A failure that is not caused by the code (unreachable service, missing credentials, network) is reported as such with the evidence, not "fixed" by weakening the check.
 4. Do not commit; that is the `commit` skill's job.
 
+## Removed or skipped tests
+
+A green check proves little when the change removed or skipped the tests that were failing. Before you claim the work
+is done, and before a pull request, run:
+
+```bash
+uskn-diff-check --base origin/<integration branch> --allow-from openspec/changes/<name>/tasks.md
+```
+
+- The integration branch is the one `<repo-context>` names. Pass `--allow-from` with the tasks.md of the change in
+  progress; leave it out when there is none. Deletions and skips that file names are left out.
+- Exit 1: each `test-deleted` or `skip-added` line is a test the change no longer runs. Restore it, or say in the
+  report that the user or the tasks asked for it.
+- `verify-setting` lines name changed check configuration (Makefile, package.json, CI, textlint). Report each one with
+  the reason for the change.
+- Exit 2: the check could not decide (no such ref, no merge-base). Say so in the report; do not call the diff clean.
+
 ## Report
 
 - The command used, pass or fail with the exit code or failure count, and how long it took.
+- The diff check: its findings with what you did about each, or that it found nothing.
 - What you changed to make it pass, if anything.
 - If the gate blocked you: the log is at `~/.local/state/uskn-harness/sessions/<session>/verify.log`.
 

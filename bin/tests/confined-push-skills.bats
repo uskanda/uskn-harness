@@ -1,9 +1,9 @@
 #!/usr/bin/env bats
-# Tests for stopping before the remote in the confined environment (specs: git-workflow-skills, spec-pr-skill,
-# archive-push-skill). The five skills that write to the remote run uskn-environment before their first remote write,
+# Tests for stopping before the remote in the confined environment (specs: git-workflow-skills, archive-push-skill).
+# The four skills that write to the remote run uskn-environment before their first remote write,
 # and on `confined` stop there and report that the push and the pull request happen outside the confined environment.
 REPO="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
-SKILLS="git/push git/pr git/release spec-pr archive-push"
+SKILLS="git/push git/pr git/release archive-push"
 
 # The first line that writes to the remote: a push, a pull or merge request, a release, or the push skill.
 first_remote_write() { # <SKILL.md>

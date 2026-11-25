@@ -37,3 +37,7 @@ tool_input.dangerouslyDisableSandbox
 dangerouslyDisableSandbox
 kernel.apparmor_restrict_unprivileged_userns
 core.fsmonitor
+unittest.skip
+t.Skip
+t.Skipf
+t.SkipNow

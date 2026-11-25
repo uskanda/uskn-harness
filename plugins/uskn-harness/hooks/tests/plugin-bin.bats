@@ -12,12 +12,13 @@ setup() {
   ( cd "$R" && git init -q -b main && git remote add origin git@github.com:o/r.git && git add -A && git commit -qm init )
 }
 
-@test "bin/ holds uskn-archive-check, uskn-environment, uskn-repo-context, and uskn-terms-check, executable, and nothing else" {
+@test "bin/ holds uskn-archive-check, uskn-diff-check, uskn-environment, uskn-repo-context, and uskn-terms-check, executable, and nothing else" {
   [ -x "$BIN/uskn-archive-check" ]
+  [ -x "$BIN/uskn-diff-check" ]
   [ -x "$BIN/uskn-environment" ]
   [ -x "$BIN/uskn-repo-context" ]
   [ -x "$BIN/uskn-terms-check" ]
-  [ "$(ls "$BIN" | sort | tr '\n' ' ')" = "uskn-archive-check uskn-environment uskn-repo-context uskn-terms-check " ]
+  [ "$(ls "$BIN" | sort | tr '\n' ' ')" = "uskn-archive-check uskn-diff-check uskn-environment uskn-repo-context uskn-terms-check " ]
 }
 
 @test "uskn-repo-context gives what session-start.sh gives, in every mode" {
@@ -50,6 +51,20 @@ setup() {
   [ "$status" -eq 1 ]
   [ "$output" = add-x ]
   run bash -c "cd '$R' && PATH='$BIN':\"\$PATH\" uskn-archive-check --base origin/nowhere 2>/dev/null"
+  [ "$status" -eq 2 ]
+  [ -z "$output" ]
+}
+
+@test "uskn-diff-check keeps the output and the exit code of diff-check.sh" {
+  mkdir -p "$R/tests" && echo 'it("a", () => {})' > "$R/tests/a.test.ts"
+  ( cd "$R" && git add -A && git commit -qm test && git update-ref refs/remotes/origin/main HEAD \
+      && git switch -q -c change/rm && git rm -q tests/a.test.ts && git commit -qm rm )
+  expected="$(cd "$R" && "$SCRIPTS/diff-check.sh" --base origin/main)" || true
+  run bash -c "cd '$R' && '$BIN/uskn-diff-check' --base origin/main"
+  [ "$status" -eq 1 ]
+  [ "$output" = "$expected" ]
+  [ "$output" = "test-deleted tests/a.test.ts" ]
+  run bash -c "cd '$R' && PATH='$BIN':\"\$PATH\" uskn-diff-check --base origin/nowhere 2>/dev/null"
   [ "$status" -eq 2 ]
   [ -z "$output" ]
 }

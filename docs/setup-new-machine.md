@@ -110,7 +110,7 @@ dotfilesが配っていた `~/.claude/settings.json` がある端末では、初
 閉じた環境ではこれらのキーを持ち込まない（ADR-0015、「閉じた環境」の節）。
 
 sandboxに残るのは、中身を前もって読めない実行（`npm`、`make`、`python` など）である。
-`git`、`gh`、`glab`、`docker`、`mise`、`claude`、`uskn-harness`、`uskn-loop`、`chezmoi`、`ssh`、`scp` は、sandboxの外で動く。
+`git`、`gh`、`glab`、`docker`、`mise`、`claude`、`uskn-harness`、`chezmoi`、`ssh`、`scp` は、sandboxの外で動く。
 sandboxの中のBashが書けるのは、作業ディレクトリ、一時ディレクトリ、`/add-dir` で追加したディレクトリ、設定断片の挙げるキャッシュとツールのデータだけである。
 Unixソケットは許す。D-Busを使う `systemctl --user` や `secret-tool` も、sandboxの中で動く。
 
@@ -222,10 +222,10 @@ Linuxの閉じた環境は対象外である。`sandbox-exec` はmacOSだけに�
 
 閉じた環境のセッションは、ローカルのcommitまでを行う。pushとPRは外側が行う。
 
-- `push`、`pr`、`release`、`spec-pr`、`archive-push` は、リモートへ書く前に `uskn-environment` を実行する。出力が `confined` なら、ブランチとcommitを報告して止まる
+- `push`、`pr`、`release`、`archive-push` は、リモートへ書く前に `uskn-environment` を実行する。出力が `confined` なら、ブランチとcommitを報告して止まる
 - bash-guardは、`git push`、`gh pr create`、`glab mr create` を拒否する。`git commit` は拒否しない
 - 無人の実行（起動スクリプトを通した `claude -p`）は、ルートの外への書き込みを拒否されると、そこで止まる。拒否は `/add-dir` を前提にしており、ハーネスは別の手段を用意しない
-- uskn-loopとswitchboardは、閉じた環境では動かさない。閉じた環境では、`claude -p --permission-mode auto` の権限モードがdefaultに戻るため
+- switchboardは、閉じた環境では動かさない。閉じた環境では、`claude -p --permission-mode auto` の権限モードがdefaultに戻るため
 
 ## 読み上げ通知
 
@@ -310,6 +310,7 @@ mise、npm globalのCLI、状態ディレクトリは残る。
 | `openspec schema uskn: missing` | schema の symlink が無い | `uskn-harness sync` |
 | `openspec commands opsx: missing ...` | `~/.claude/commands/opsx/` が無いか、コマンドが欠けている | `uskn-harness sync`。ネットワークを確認 |
 | `stale skill link <name>` | ハーネスから消したスキルの symlink が残っている | `uskn-harness sync` が消す |
+| `retired loop runner link ...` | 以前のsyncが作った `~/.local/bin/uskn-loop` が残っている。ループのコマンドは2026-11に廃止した（ADR-0016） | `uskn-harness sync` が消す |
 | `notify command <name>: ... is a real directory or file` | `~/.local/bin` に、dotfilesが以前配った通知のコマンドの実ファイルが残っている | dotfilesを更新して `chezmoi apply` を実行する。片付けのスクリプトが実ファイルを消す |
 | `sandbox: bwrap missing ...` / `sandbox: socat missing ...` | sandboxを有効にしたLinuxの端末に、`bwrap` か `socat` が無い。Bashは制限なしで動く | `sudo apt install -y bubblewrap socat` |
 | `sandbox: bwrap cannot create a nested user namespace ...` | `bwrap` の中でユーザー名前空間を入れ子に作れない。sandboxの中のBashは全て失敗する。Ubuntu 26.04の `bwrap-userns-restrict` が原因 | 上のsandboxの節の4つのコマンドで、`bwrap-userns-restrict` を外す |

@@ -19,9 +19,9 @@
 | 領域 | 実装 | センサー |
 |---|---|---|
 | 配布と導入 | `bin/uskn-harness`（sync / doctor / onboard-check / print-settings / install-shared）、`templates/`、`deps.json` のピン、`plugins/uskn-harness`、ユーザー層のsettings.json（`templates/user/` の設定断片の合成のマージ） | `uskn-harness doctor`、bats |
-| 仕様づくり | `skills/spec/` がgrillingを進め、schema `uskn` がgrillingをproposalの前提にする。OpenSpecの操作はコマンド `/opsx:*` で行う。簡単な改修はユーザーの指示で `skills/no-grilling/` が省略を記録する。成果物をそろえた変更は、`skills/spec-pr/` が統合ブランチ向けのdraftの仕様PRにする。提案は `skills/ok/` で承諾し、違う点だけを引数に書く。終えた変更は `skills/archive-push/` がarchiveからpushまで1回で進める。統合の操作の前には、`pr` と `push` が未archiveの変更を `archive-push` でarchiveする。例外はarchive保留の宣言 `.archive-later` | PreToolUse hook `grilling-guard`、bash-guardの統合の操作の拒否、CIの `make verify-archive` |
-| ループ | `bin/uskn-loop` が1つの仕様PRについて、実装役と監査役を完了基準か停止条件に達するまで交互に動かす。ラウンドごとにpushし、PRの進捗コメントを書き換える。補助ファイルは `loop/` にある（ADR-0007） | 計算的センサー（検証規約、`openspec validate`、tasks.md、テストの削除とskip）、監査役の判定 |
-| 実装と検証 | `skills/verify/`（完了の根拠を示す規則と、検証規約が無いときにCIの設定から確認する手順を含む。Claude Code 2.1.286以降はcommitの直前にこのスキルを呼び、スキルは `verify-fast` を走らせる）、obra/superpowersからforkした方法論スキル2件（TDD、系統的デバッグ） | Stop hook `verify-gate`、`make verify`、CI |
+| 仕様づくり | `skills/spec/` がgrillingを進め、schema `uskn` がgrillingをproposalの前提にする。OpenSpecの操作はコマンド `/opsx:*` で行う。簡単な改修はユーザーの指示で `skills/no-grilling/` が省略を記録する。成果物をそろえた変更は、`/opsx:apply` で実装する。提案は `skills/ok/` で承諾し、違う点だけを引数に書く。終えた変更は `skills/archive-push/` がarchiveからpushまで1回で進める。統合の操作の前には、`pr` と `push` が未archiveの変更を `archive-push` でarchiveする。例外はarchive保留の宣言 `.archive-later` | PreToolUse hook `grilling-guard`、bash-guardの統合の操作の拒否、CIの `make verify-archive` |
+| 監査 | `skills/audit/` が、実装した会話と別の文脈で、OpenSpecの変更をspecsと検証の結果に照らして判定し、判定をJSONで返す。issueを起点に動く外側のループはハーネスに持たない。外側のループとの接点は、リポジトリの規約（`AGENTS.md`、検証規約、`openspec/`）だけである（ADR-0016） | 検証規約、`openspec validate --strict`、tasks.md、`uskn-diff-check`、監査役の判定 |
+| 実装と検証 | `skills/verify/`（完了の根拠を示す規則と、検証規約が無いときにCIの設定から確認する手順を含む。Claude Code 2.1.286以降はcommitの直前にこのスキルを呼び、スキルは `verify-fast` を走らせる。完了の報告とPRの前には、`uskn-diff-check` が差分からテストの削除、skipの追加、検証の設定の変更を見つける）、obra/superpowersからforkした方法論スキル2件（TDD、系統的デバッグ） | Stop hook `verify-gate`、`make verify`、CI |
 | git運用 | ワークフローのスキル9個（commit、push、pr、rebase、releaseほか）。旧名は1行のエイリアスで残す | SessionStart hookが `<repo-context>` を注入する |
 | 安全 | ユーザーの `/add-dir` が、ルートの外の書き込みをセッション限定で許す。`skills/sandbox-exclude/` が、端末でsandboxの外に出す道具を足す。`skills/sandbox-allow-host/` が、端末でsandboxの接続先にホストを足す。ルート外への書き込み、`chezmoi apply`、他リポジトリへのgit操作を止める | PreToolUse hook `write-guard` と `bash-guard`、DirectoryAdded hook、Claude Codeのsandbox（Bashの書き込み先） |
 | 文章 | `skills/ja-writing/`（JTF準拠の表記、成果物ごとの文体）、`skills/en-writing/`（agent-styleとhumanizer） | PostToolUse hook `textlint-check`、`make verify` |
@@ -106,7 +106,7 @@ uskn-harness doctor                                    # 状態レポート。�
 閉じた環境は、checkoutの直下にあるrootの持ち物の環境の印 `.uskn-environment` で決まる。
 管理者が `uskn-harness install-shared <dir>` で共有の置き場に道具を入れ、閉じた環境のsyncはそこへのlinkを張る。
 ユーザー層の設定は、sandboxを緩めるキーを持たない。セッションはローカルのcommitまでを行い、pushとPRは外側が行う。
-対象外は3つある。Linuxの閉じた環境、uskn-loop、switchboardである。
+対象外は2つある。Linuxの閉じた環境と、switchboardである。
 手順は [docs/setup-new-machine.md](docs/setup-new-machine.md) の「閉じた環境」の節にある。
 
 ## 開発
