@@ -136,3 +136,139 @@ fp() { bash -c ". '$LIB'; tree_fingerprint '$R'"; }
   [ "$status" -eq 0 ]
   [ "$output" = "$(printf '.claude/commands/x.md\n.envrc\ndocs/.keep')" ]
 }
+
+# ---- the environment marker (spec: environment-kind). environment_read <checkout> sets ENV_KIND (admin | confined),
+# ENV_TOOLS, ENV_SECRETS, and ENV_MARKER (none | ok | invalid). Without an argument it reads the checkout five levels
+# above lib/common.sh, whatever USKN_HARNESS_DIR says.
+envread() { bash -c ". '$LIB'; environment_read \"\$1\"; printf '%s|%s|%s|%s\n' \"\$ENV_KIND\" \"\$ENV_TOOLS\" \"\$ENV_SECRETS\" \"\$ENV_MARKER\"" _ "$1"; }
+
+@test "environment_read: no marker is the admin environment" {
+  mkdir -p "$BATS_TEST_TMPDIR/co"
+  run envread "$BATS_TEST_TMPDIR/co"
+  [ "$status" -eq 0 ]
+  [ "$output" = "admin|||none" ]
+}
+
+@test "environment_read: kind=confined with tools and secrets, comments and blank lines skipped, no final newline" {
+  mkdir -p "$BATS_TEST_TMPDIR/co"
+  printf '# set by the machine base\n\nkind=confined\ntools=/opt/shared\nsecrets=/Users/agent/secrets' > "$BATS_TEST_TMPDIR/co/.uskn-environment"
+  run envread "$BATS_TEST_TMPDIR/co"
+  [ "$output" = "confined|/opt/shared|/Users/agent/secrets|ok" ]
+}
+
+@test "environment_read: a wrong kind, a missing kind, or an unreadable marker is the confined environment" {
+  mkdir -p "$BATS_TEST_TMPDIR/co"
+  printf 'kind=confind\ntools=/opt/shared\n' > "$BATS_TEST_TMPDIR/co/.uskn-environment"
+  run envread "$BATS_TEST_TMPDIR/co"
+  [ "$output" = "confined|/opt/shared||invalid" ]
+  printf 'tools=/opt/shared\n' > "$BATS_TEST_TMPDIR/co/.uskn-environment"
+  run envread "$BATS_TEST_TMPDIR/co"
+  [ "$output" = "confined|/opt/shared||invalid" ]
+  printf 'kind=admin\n' > "$BATS_TEST_TMPDIR/co/.uskn-environment"
+  run envread "$BATS_TEST_TMPDIR/co"
+  [ "$output" = "confined|||invalid" ]
+  rm "$BATS_TEST_TMPDIR/co/.uskn-environment"; mkdir "$BATS_TEST_TMPDIR/co/.uskn-environment"
+  run envread "$BATS_TEST_TMPDIR/co"
+  [ "$output" = "confined|||invalid" ]
+}
+
+@test "environment_read: a marker that cannot be read is the confined environment" {
+  [ "$(id -u)" -ne 0 ] || skip "root reads every file"
+  mkdir -p "$BATS_TEST_TMPDIR/co"
+  printf 'kind=confined\n' > "$BATS_TEST_TMPDIR/co/.uskn-environment"; chmod 000 "$BATS_TEST_TMPDIR/co/.uskn-environment"
+  run envread "$BATS_TEST_TMPDIR/co"
+  chmod 600 "$BATS_TEST_TMPDIR/co/.uskn-environment"
+  [ "$output" = "confined|||invalid" ]
+}
+
+# fake_checkout: a copy of the plugin at plugins/uskn-harness of a checkout of its own, as the hooks find it
+fake_checkout() {
+  CO="$BATS_TEST_TMPDIR/checkout"; mkdir -p "$CO/plugins"
+  cp -R "$BATS_TEST_DIRNAME/../.." "$CO/plugins/uskn-harness"
+  CLIB="$CO/plugins/uskn-harness/hooks/scripts/lib/common.sh"
+}
+
+@test "environment_read without an argument reads the checkout of the plugin, not USKN_HARNESS_DIR" {
+  fake_checkout
+  printf 'kind=confined\ntools=/opt/shared\n' > "$CO/.uskn-environment"
+  mkdir -p "$BATS_TEST_TMPDIR/elsewhere"
+  run env USKN_HARNESS_DIR="$BATS_TEST_TMPDIR/elsewhere" bash -c ". '$CLIB'; environment_read; echo \"\$ENV_KIND|\$ENV_TOOLS\""
+  [ "$output" = "confined|/opt/shared" ]
+}
+
+# ---- the confined environment's hook PATH and rules (spec: confined-hook-sandbox). A fake sandbox-exec first on PATH
+# logs its arguments and runs the command after its options; USKN_HARNESS_OS stands in for uname -s.
+fake_sandbox() {
+  SBLOG="$BATS_TEST_TMPDIR/sandbox-exec.log"; mkdir -p "$BATS_TEST_TMPDIR/sbx"
+  cat > "$BATS_TEST_TMPDIR/sbx/sandbox-exec" <<SB
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$SBLOG"
+while [ \$# -gt 0 ]; do case "\$1" in -f | -D | -p) shift 2 ;; *) break ;; esac; done
+exec "\$@"
+SB
+  chmod +x "$BATS_TEST_TMPDIR/sbx/sandbox-exec"
+}
+confined_checkout() { # [secrets]: a fake checkout with a confined marker and a tools dir
+  fake_checkout; fake_sandbox
+  TOOLS="$BATS_TEST_TMPDIR/tools"; mkdir -p "$TOOLS/bin"
+  printf 'kind=confined\ntools=%s\n' "$TOOLS" > "$CO/.uskn-environment"
+  [ -z "${1:-}" ] || printf 'secrets=%s\n' "$1" >> "$CO/.uskn-environment"
+  RULES="$(cd "$CO" && pwd -P)/plugins/uskn-harness/hooks/scripts/lib/confined.sb"
+}
+
+@test "hook_path: the confined environment adds the shared tools' bin/ only, nothing under the home" {
+  confined_checkout
+  run env HOME="$BATS_TEST_TMPDIR/h" PATH="/usr/bin:/bin" bash -c ". '$CLIB'; hook_path"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$TOOLS/bin:/usr/bin:/bin" ]
+}
+
+@test "hook_path: the admin environment puts the mise shims and ~/.local/bin first, as before" {
+  fake_checkout
+  run env HOME="$BATS_TEST_TMPDIR/h" PATH="/usr/bin:/bin" bash -c ". '$CLIB'; hook_path"
+  [ "$output" = "$BATS_TEST_TMPDIR/h/.local/share/mise/shims:$BATS_TEST_TMPDIR/h/.local/bin:/usr/bin:/bin" ]
+}
+
+@test "confined_run on macOS runs the command under sandbox-exec with the rules file and SECRETS" {
+  confined_checkout "$BATS_TEST_TMPDIR/secrets"
+  [ -f "$BATS_TEST_DIRNAME/../scripts/lib/confined.sb" ]
+  run env USKN_HARNESS_OS=Darwin PATH="$BATS_TEST_TMPDIR/sbx:$PATH" bash -c ". '$CLIB'; confined_run echo hi there; echo rc=\$?"
+  [ "${lines[0]}" = "hi there" ]
+  [ "${lines[1]}" = "rc=0" ]
+  [ "$(cat "$SBLOG")" = "-f $RULES -D SECRETS=$BATS_TEST_TMPDIR/secrets echo hi there" ]
+}
+
+@test "confined_run without secrets in the marker passes the rules file only, and keeps the exit status" {
+  confined_checkout
+  run env USKN_HARNESS_OS=Darwin PATH="$BATS_TEST_TMPDIR/sbx:$PATH" bash -c ". '$CLIB'; confined_run bash -c 'exit 3'; echo rc=\$?"
+  [ "$output" = "rc=3" ]
+  [ "$(cat "$SBLOG")" = "-f $RULES bash -c exit 3" ]
+}
+
+@test "confined_run returns 125 without running the command on another OS or without sandbox-exec" {
+  confined_checkout
+  run env USKN_HARNESS_OS=Linux PATH="$BATS_TEST_TMPDIR/sbx:$PATH" bash -c ". '$CLIB'; confined_run touch '$BATS_TEST_TMPDIR/ran'; echo rc=\$?"
+  [ "$output" = "rc=125" ]
+  [ ! -e "$BATS_TEST_TMPDIR/ran" ]; [ ! -e "$SBLOG" ]
+  P="$(path_without sandbox-exec)"
+  run env USKN_HARNESS_OS=Darwin PATH="$P" bash -c ". '$CLIB'; confined_run touch '$BATS_TEST_TMPDIR/ran'; echo rc=\$?"
+  [ "$output" = "rc=125" ]
+  [ ! -e "$BATS_TEST_TMPDIR/ran" ]
+}
+
+@test "confined_run in the admin environment runs the command directly" {
+  fake_checkout; fake_sandbox
+  run env USKN_HARNESS_OS=Linux PATH="$BATS_TEST_TMPDIR/sbx:$PATH" bash -c ". '$CLIB'; confined_run echo direct"
+  [ "$output" = direct ]
+  [ ! -e "$SBLOG" ]
+}
+
+@test "tree_fingerprint runs its git under the rules in the confined environment" {
+  fp_repo; confined_checkout
+  run env USKN_HARNESS_OS=Darwin PATH="$BATS_TEST_TMPDIR/sbx:$PATH" bash -c ". '$CLIB'; tree_fingerprint '$R'"
+  [ "$status" -eq 0 ]; [ -n "$output" ]
+  [ "$output" = "$(fp)" ]
+  grep -q "^-f $RULES git -C $R status" "$SBLOG"
+  grep -q "^-f $RULES git -C $R diff HEAD" "$SBLOG"
+  grep -q "^-f $RULES git -C $R ls-files" "$SBLOG"
+}

@@ -19,10 +19,13 @@
 #         and glab mr merge against origin/<integration>, and a git push whose destination (the refspec's, else the
 #         upstream's, else the current branch) is the default or the integration branch, against origin/<that>.
 #         archive-check.sh decides; when it cannot (no such ref, exit 2), nothing is said.
+#   deny  in a confined environment (the checkout's .uskn-environment): git push, gh pr create, and glab mr create,
+#         wherever they appear. A session there goes as far as a local commit; the push and the pull request are
+#         made outside it (design D9 of adapt-for-trellis-host).
 #   note  any other such tool: additionalContext says it runs inside the sandbox and to run it on its own on a
 #         sandbox failure (ADR-0011). tool_input.dangerouslyDisableSandbox true: additionalContext says to turn the
 #         sandbox off only after a sandbox failure (ADR-0012). One additionalContext carries both; a deny says
-#         nothing else.
+#         nothing else. The runs-inside part comes once per session (sessions/<id>/sandbox-note).
 # The command is first split into words and operators (the awk program below): quotes removed, heredoc bodies
 # dropped, `$(...)` kept inside its word. Each simple command is then judged on its own, with the working directory
 # followed through cd / pushd and restored after a `( ... )` subshell. Words that start with `$` are not guessed.
@@ -33,6 +36,7 @@ set -u
 INPUT="$(cat 2>/dev/null || true)"; [ -n "$INPUT" ] || exit 0
 CMD="$(json_field "$INPUT" '.tool_input.command' command)"; [ -n "$CMD" ] || exit 0
 CWD="$(json_field "$INPUT" '.cwd' cwd)"; SID="$(json_field "$INPUT" '.session_id' session_id)"
+environment_load
 ROOTS="$(project_roots "${CWD:-$PWD}")"   # CLAUDE_PROJECT_DIR, plus cwd's checkout of the same repository
 # expand ~ and $HOME for the path checks only. ERE (-E): BSD sed (macOS) has no \| in a basic regex.
 CMDX="$(printf '%s' "$CMD" | sed -E "s#(^|[[:space:]=\"'])~/#\1$HOME/#g; s#\\\$HOME/#$HOME/#g; s#\\\$\\{HOME\\}/#$HOME/#g")"
@@ -441,6 +445,31 @@ note_excluded() { # <index of the command word>: remember a tool the live exclud
     fi
   done
 }
+CONFINED_DENIED=0
+confined_publish() { # <command word> <first index>: deny a push or a pull request creation in a confined environment
+  local i="$2" n=${#WORDS[@]} w noun="pr" seen=0
+  [ "$CONFINED_DENIED" = 0 ] && [ "$ENV_KIND" = confined ] || return 0
+  case "$1" in
+    git) git_subcommand "$i"; [ "$GIT_SUB" = push ] || return 0 ;;
+    gh | glab)
+      [ "$1" = glab ] && noun="mr"
+      while [ "$i" -lt "$n" ]; do
+        w="${WORDS[$i]}"
+        case "$w" in
+          -R | --repo) i=$((i + 1)) ;;
+          -*) ;;
+          *) if [ "$seen" = 1 ]; then [ "$w" = create ] || return 0; break
+             elif [ "$w" = "$noun" ]; then seen=1
+             else return 0; fi ;;
+        esac
+        i=$((i + 1))
+      done
+      [ "$seen" = 1 ] && [ "$i" -lt "$n" ] || return 0 ;;
+    *) return 0 ;;
+  esac
+  CONFINED_DENIED=1
+  add_deny "This is a confined environment: a session here goes as far as a local commit, and the push and the pull request are made outside it, by the user or the machine's own tooling. Leave the commits on the branch and report the branch and what is left to push."
+}
 simple_command() {
   local n=${#WORDS[@]} i=0 w wrap=0 gd="" wt="" cmd
   [ "$n" -gt 0 ] || return 0
@@ -460,6 +489,7 @@ simple_command() {
   [ "$i" -lt "$n" ] || return 0
   note_excluded "$i"
   cmd="${WORDS[$i]##*/}"; i=$((i + 1))
+  confined_publish "$cmd" "$i"
   case "$cmd" in
     cd | pushd) do_cd "$i" ;;
     git) do_git "$i" "$gd" "$wt" ;;
@@ -529,6 +559,14 @@ if [ -n "$DENY" ]; then
   exit 0
 fi
 MSG=""
+# The runs-inside notice comes once per session: sessions/<id>/sandbox-note records that it came. Without a usable
+# session_id it comes every time. Denies and the sandbox-off notice are never throttled.
+NOTE_FILE=""
+case "$SID" in '' | *[!A-Za-z0-9_-]*) ;; *) NOTE_FILE="$USKN_STATE/sessions/$SID/sandbox-note" ;; esac
+if [ -n "$NOTE" ] && [ -n "$NOTE_FILE" ]; then
+  if [ -e "$NOTE_FILE" ]; then NOTE=""
+  else mkdir -p "$(dirname "$NOTE_FILE")" 2>/dev/null && : > "$NOTE_FILE" 2>/dev/null; fi
+fi
 [ -n "$NOTE" ] && MSG="$NOTE runs inside the sandbox here, because sandbox.excludedCommands only matches a command that is a single simple command starting with the tool. If it fails on a sandbox restriction, run it again on its own (no cd &&, pipe, ;, parentheses, or prefix)."
 case ", $NOTE" in *", git"*) MSG="$MSG $GIT_HINT" ;; esac
 [ "$UNSANDBOXED" = true ] && MSG="${MSG:+$MSG }This call turns the sandbox off: do that only after the same command failed on a sandbox restriction. Editing and reading files under the project roots works inside the sandbox."

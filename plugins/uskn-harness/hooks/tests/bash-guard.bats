@@ -204,6 +204,8 @@ path_without() {
 
 # ---- notice for a tool the sandbox would let out, placed where excludedCommands cannot match (spec: bash-guard)
 live_excluded() { mkdir -p "$CLAUDE_CONFIG_DIR"; jq -n --args '{sandbox:{excludedCommands:$ARGS.positional}}' "$@" > "$CLAUDE_CONFIG_DIR/settings.json"; }
+# call_fresh: the same as call in a session of its own; the notice comes once per session
+call_fresh() { jq -c -n --arg c "$1" --arg cwd "$ROOT" --arg s "fresh$RANDOM$RANDOM" '{session_id:$s, cwd:$cwd, tool_name:"Bash", tool_input:{command:$c}}' | "$SCRIPT"; }
 noticed() { echo "$output" | jq -e --arg t "$1" '(.hookSpecificOutput.permissionDecision // "none") == "none" and (.hookSpecificOutput.additionalContext | contains($t))' >/dev/null; }
 
 @test "a listed tool after cd && is noticed, not denied, and the notice says to run it on its own" {
@@ -217,10 +219,10 @@ noticed() { echo "$output" | jq -e --arg t "$1" '(.hookSpecificOutput.permission
 
 @test "a listed tool before a pipe, or behind sudo or an assignment, is noticed too" {
   live_excluded 'git *' 'gh *'
-  run call "gh pr view 3 --json title | jq .title"; noticed "gh pr"
-  run call "(gh pr view 1)"; noticed "gh pr"
-  run call "FOO=1 gh pr view 1"; noticed "gh pr"
-  run call "cd sub && git -C . status"; noticed "git status"
+  run call_fresh "gh pr view 3 --json title | jq .title"; noticed "gh pr"
+  run call_fresh "(gh pr view 1)"; noticed "gh pr"
+  run call_fresh "FOO=1 gh pr view 1"; noticed "gh pr"
+  run call_fresh "cd sub && git -C . status"; noticed "git status"
 }
 
 # ---- deny for a tool that fails inside the sandbox, placed where excludedCommands cannot match (spec: bash-guard)
@@ -256,12 +258,12 @@ noticed() { echo "$output" | jq -e --arg t "$1" '(.hookSpecificOutput.permission
   run call "git push -u origin HEAD"; [ -z "$output" ]
   run call "git --no-pager push -u origin HEAD"; [ -z "$output" ]
   run call "git -P --namespace=x fetch"; [ -z "$output" ]
-  run call "git -C sub log --oneline -3"; noticed "git log"
+  run call_fresh "git -C sub log --oneline -3"; noticed "git log"
   echo "$output" | jq -r '.hookSpecificOutput.additionalContext' | grep -qF -- '--git-dir'
-  run call "gh pr view 3 | jq .title"
+  run call_fresh "gh pr view 3 | jq .title"
   [[ "$(echo "$output" | jq -r '.hookSpecificOutput.additionalContext')" != *"--git-dir"* ]] || false
   run call "cd sub && docker ps"; [ -z "$output" ]
-  run call "cd sub && git diff | head"; refute denied
+  run call_fresh "cd sub && git diff | head"; refute denied
   noticed "git diff"
 }
 
@@ -394,4 +396,72 @@ on_branch() { ( cd "$ROOT" && git switch -q -c "$1" ); }
   mkdir -p "$SCRATCH/w"
   run bash -c "jq -c -n --arg c 'git -C $ROOT push origin main' --arg cwd '$SCRATCH/w' '{session_id:\"sid12345678\", cwd:\$cwd, tool_name:\"Bash\", tool_input:{command:\$c}}' | '$SCRIPT'"
   denied
+}
+
+# ---- the notice comes once per session (spec: bash-guard); denies and the sandbox-off notice are not throttled
+call_nosid() { jq -c -n --arg c "$1" --arg cwd "$ROOT" '{cwd:$cwd, tool_name:"Bash", tool_input:{command:$c}}' | "$SCRIPT"; }
+
+@test "the runs-inside notice comes once per session_id, recorded in sessions/<id>/sandbox-note" {
+  live_excluded 'git *' 'gh *'
+  mkdir -p "$ROOT/sub"
+  run call "cd sub && git log --oneline -3"; noticed "git log"
+  [ -e "$USKN_STATE_DIR/sessions/sid12345678/sandbox-note" ]
+  run call "cd sub && git log --oneline -3"; [ "$status" -eq 0 ]; [ -z "$output" ]
+  run call "gh pr view 3 | jq .title"; [ -z "$output" ]
+  run call_fresh "cd sub && git log --oneline -3"; noticed "git log"
+}
+
+@test "without a session_id the notice comes every time" {
+  live_excluded 'git *'
+  mkdir -p "$ROOT/sub"
+  run call_nosid "cd sub && git log --oneline -3"; noticed "git log"
+  run call_nosid "cd sub && git log --oneline -3"; noticed "git log"
+}
+
+@test "after the notice, a deny and the sandbox-off notice still come in the same session" {
+  live_excluded 'git *' 'gh *'
+  mkdir -p "$ROOT/sub"
+  run call "cd sub && git log --oneline -3"; noticed "git log"
+  run call "cd sub && git fetch origin"; denied
+  run call "cd sub && git fetch origin"; denied
+  run call_unsandboxed "gh pr view 3 | jq .title" true
+  refute denied
+  [[ "$(echo "$output" | jq -r '.hookSpecificOutput.additionalContext')" != *"gh pr"* ]] || false
+  echo "$output" | jq -r '.hookSpecificOutput.additionalContext' | grep -qi 'only after'
+}
+
+# ---- push and pull request creation in a confined environment (spec: bash-guard). The plugin is copied into a
+# checkout of its own with a confined marker.
+confined_guard() {
+  CO="$BATS_TEST_TMPDIR/checkout"; mkdir -p "$CO/plugins"
+  cp -R "$BATS_TEST_DIRNAME/../.." "$CO/plugins/uskn-harness"
+  printf 'kind=confined\ntools=%s\n' "$BATS_TEST_TMPDIR/tools" > "$CO/.uskn-environment"
+  CSCRIPT="$CO/plugins/uskn-harness/hooks/scripts/bash-guard.sh"
+}
+ccall() { jq -c -n --arg c "$1" --arg cwd "$ROOT" '{session_id:"sid12345678", cwd:$cwd, tool_name:"Bash", tool_input:{command:$c}}' | "$CSCRIPT"; }
+
+@test "confined: git push, gh pr create, and glab mr create are denied wherever they appear" {
+  confined_guard
+  mkdir -p "$ROOT/sub"
+  run ccall "git push -u origin HEAD"
+  [ "$status" -eq 0 ]; denied
+  reason | grep -qi "outside"
+  reason | grep -qi "local commit"
+  for c in "cd sub && gh pr create --draft" "glab mr create --fill" "git -C sub push" "make && git push origin main 2>&1 | tail -1" \
+    "gh -R o/r pr create -t x"; do
+    run ccall "$c"; denied || { echo "not denied: $c"; false; }
+  done
+}
+
+@test "confined: git commit and gh pr view are not denied for being confined" {
+  confined_guard
+  run ccall "git commit -m x"; [ -z "$output" ]
+  run ccall "gh pr view 3"; [ -z "$output" ]
+  run ccall "glab mr list"; [ -z "$output" ]
+}
+
+@test "admin: git push and gh pr create are not denied for being confined" {
+  live_excluded 'git *' 'gh *'
+  run call "git push -u origin HEAD"; [ -z "$output" ]
+  run call "gh pr create --draft"; [ -z "$output" ]
 }

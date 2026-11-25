@@ -116,7 +116,7 @@ $F3"
   grep -q "cwd=$R" "$LOG"
 }
 
-@test "the config is looked up at the git root of cwd, not at CLAUDE_PROJECT_DIR (a worktree)" {
+@test "the config is looked up at the git root of the file, not at CLAUDE_PROJECT_DIR (a worktree)" {
   export FAKE_FINDINGS="$F1"
   WT="$TMP/wt"; mkdir -p "$WT/docs"; ( cd "$WT" && git init -q -b main )
   echo '{"rules":{}}' > "$WT/.textlintrc.json"
@@ -159,4 +159,100 @@ $F3"
   run bash -c 'set -o pipefail; cat "$1" | USKN_SKIP_TEXTLINT=1 "$2"' _ "$BATS_TEST_TMPDIR/big" "$SCRIPT"
   [ "$status" -eq 0 ]
   [ -z "$output" ]
+}
+
+# ---- the git root of the written file (spec: textlint-hook). cwd is repository a; the file may live elsewhere.
+call_in() { # <cwd> <file>
+  jq -c -n --arg f "$2" --arg cwd "$1" '{session_id:"s", cwd:$cwd, hook_event_name:"PostToolUse", tool_name:"Write", tool_input:{file_path:$f}}' | "$SCRIPT"
+}
+repo_b() {
+  B="$TMP/b"; mkdir -p "$B/docs/legacy"; ( cd "$B" && git init -q -b main )
+  printf '# 見出し\n\nこれは日本語の文章です。\n' > "$B/docs/ja.md"
+  printf '# 見出し\n\nこれは日本語の文章です。\n' > "$B/docs/legacy/a.md"
+}
+
+@test "a document of another repository uses that repository's .textlintrc and runs textlint at its root" {
+  export FAKE_FINDINGS="$F1"
+  repo_b; echo '{"rules":{}}' > "$B/.textlintrc.json"
+  run call_in "$R" "$B/docs/ja.md"
+  [ "$status" -eq 0 ]
+  ctx | grep -q "1 problem"
+  refute grep -q -- "--config" "$LOG"
+  grep -qx "cwd=$B" "$LOG"
+}
+
+@test "a repository without .textlintrc gets the harness config, with textlint still run at the file's root" {
+  repo_b
+  run call_in "$R" "$B/docs/ja.md"
+  grep -q -- "--config $USKN_HARNESS_DIR/skills/ja-writing/textlintrc.json" "$LOG"
+  grep -qx "cwd=$B" "$LOG"
+}
+
+@test "the file's root .textlintignore applies: textlint run there leaves the excluded document silent" {
+  # The fake honours docs/legacy/** in the .textlintignore of its working directory, as textlint does at the root.
+  cat > "$BATS_TEST_TMPDIR/bin/textlint" <<EOF2
+#!/usr/bin/env bash
+printf 'args=%s\ncwd=%s\n' "\$*" "\$PWD" >> "$LOG"
+if [ -f .textlintignore ] && grep -qxF 'docs/legacy/**' .textlintignore; then
+  case "\$*" in *"\$PWD/docs/legacy/"*) exit 0 ;; esac
+fi
+if [ -n "\${FAKE_FINDINGS:-}" ]; then printf '%s\n' "\$FAKE_FINDINGS"; exit 1; fi
+exit 0
+EOF2
+  export FAKE_FINDINGS="$F1"
+  repo_b; printf 'docs/legacy/**\n' > "$B/.textlintignore"
+  run call_in "$R" "$B/docs/legacy/a.md"
+  [ "$status" -eq 0 ]; [ -z "$output" ]
+  grep -qx "cwd=$B" "$LOG"
+}
+
+@test "a document outside every repository gets the harness config, with textlint run in its directory" {
+  export FAKE_FINDINGS="$F1"
+  O="$TMP/outside"; mkdir -p "$O"; printf '# 見出し\n\nこれは日本語の文章です。\n' > "$O/x.md"
+  echo '{"rules":{}}' > "$R/.textlintrc.json"   # cwd's config must not be picked up for it
+  run call_in "$R" "$O/x.md"
+  ctx | grep -q "1 problem"
+  grep -q -- "--config $USKN_HARNESS_DIR/skills/ja-writing/textlintrc.json" "$LOG"
+  grep -qx "cwd=$O" "$LOG"
+}
+
+# ---- the confined environment (spec: textlint-hook, confined-hook-sandbox). The plugin is copied into a checkout of
+# its own with a confined marker; a fake sandbox-exec logs its arguments and runs the command.
+confined_lint() {
+  CO="$TMP/checkout"; mkdir -p "$CO/plugins"
+  cp -R "$BATS_TEST_DIRNAME/../.." "$CO/plugins/uskn-harness"
+  mkdir -p "$CO/skills/ja-writing"; cp "$USKN_HARNESS_DIR/skills/ja-writing/textlintrc.json" "$CO/skills/ja-writing/"
+  TOOLS="$TMP/tools"; mkdir -p "$TOOLS/bin" "$HOME/.local/bin"
+  printf 'kind=confined\ntools=%s\n' "$TOOLS" > "$CO/.uskn-environment"
+  CSCRIPT="$CO/plugins/uskn-harness/hooks/scripts/textlint-check.sh"
+  SBLOG="$BATS_TEST_TMPDIR/sandbox-exec.log"; mkdir -p "$BATS_TEST_TMPDIR/sbx"
+  printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" >> "%s"\nwhile [ $# -gt 0 ]; do case "$1" in -f | -D) shift 2 ;; *) break ;; esac; done\nexec "$@"\n' "$SBLOG" > "$BATS_TEST_TMPDIR/sbx/sandbox-exec"
+  chmod +x "$BATS_TEST_TMPDIR/sbx/sandbox-exec"
+  for w in tools home; do
+    printf '#!/usr/bin/env bash\necho "%s $*" >> "%s/which.log"\nprintf "%%s\\n" "$FAKE_FINDINGS"; exit 1\n' "$w" "$BATS_TEST_TMPDIR" > "$BATS_TEST_TMPDIR/tl-$w"
+    chmod +x "$BATS_TEST_TMPDIR/tl-$w"
+  done
+  cp "$BATS_TEST_TMPDIR/tl-tools" "$TOOLS/bin/textlint"; cp "$BATS_TEST_TMPDIR/tl-home" "$HOME/.local/bin/textlint"
+  export FAKE_FINDINGS="$F1"
+}
+ccall() { jq -c -n --arg f "$1" --arg cwd "$R" '{session_id:"s", cwd:$cwd, tool_name:"Write", tool_input:{file_path:$f}}' | "$CSCRIPT"; }
+
+@test "confined on macOS: textlint from the shared tools runs under the rules, never the one in the home" {
+  confined_lint
+  USKN_HARNESS_OS=Darwin PATH="$BATS_TEST_TMPDIR/sbx:$PATH" run ccall "$R/docs/ja.md"
+  [ "$status" -eq 0 ]
+  ctx | grep -q "1 problem"
+  grep -q "^tools " "$BATS_TEST_TMPDIR/which.log"
+  refute grep -q "^home " "$BATS_TEST_TMPDIR/which.log"
+  grep -q "confined.sb textlint --config" "$SBLOG"
+  grep -q "confined.sb git -C $R/docs rev-parse" "$SBLOG"
+}
+
+@test "confined without the rules: textlint does not run, additionalContext says the file was not checked" {
+  confined_lint
+  USKN_HARNESS_OS=Linux PATH="$BATS_TEST_TMPDIR/sbx:$PATH" run ccall "$R/docs/ja.md"
+  [ "$status" -eq 0 ]
+  ctx | grep -q "not checked"
+  ctx | grep -q "sandbox-exec"
+  [ ! -e "$BATS_TEST_TMPDIR/which.log" ]; [ ! -e "$SBLOG" ]
 }
