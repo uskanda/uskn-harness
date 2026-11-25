@@ -14,7 +14,7 @@
 - `verify` スキルが、完了の報告とPRの前に `uskn-diff-check` を実行し、見つかったものを報告する
 - 監査のスキル `audit` を足す。呼び出した会話の文脈を持たないforkとして動き、変更のspecsの各シナリオをテストで確かめ、判定を返す
 - 設定断片の `sandbox.excludedCommands` から `uskn-loop *` を外す
-- ADR-0015に、ハーネスと外側のループの境界を残す。ADR-0007を置き換える
+- ADR-0016に、ハーネスと外側のループの境界を残す。ADR-0007を置き換える
 
 対象外は次のとおり。verify gateへの差分の検査の組み込み、`archive-push` からの `audit` の呼び出し、外側のループの製品の側の変更。
 
@@ -32,23 +32,23 @@
 - `claude-plugin-packaging`: `bin/` に `uskn-diff-check` を足す
 - `harness-sync`: `~/.local/bin/uskn-loop` を作らず、残っているものを取り除く
 - `harness-doctor`: `uskn-loop` のsymlinkを検査しない。残っているときは知らせる
-- `user-settings`: sandboxの外で動かす道具から `uskn-loop` を外し、10個にする
+- `user-settings`: 管理者の環境のsandboxの外で動かす道具から `uskn-loop` を外し、10個にする。分ける前の設定断片と比べるシナリオも、`uskn-loop *` を除いて比べる形に改める
 - `verify-fast`: `bin/uskn-loop` と `loop/` からテストを選ぶ規則を外す
 - `loop-run`: 能力ごと廃止する
 - `loop-criteria`: 能力ごと廃止する。検査の一部は `diff-check` と `audit-skill` へ移す
 - `loop-progress-comment`: 能力ごと廃止する
-- `spec-pr-skill`: 能力ごと廃止する
+- `spec-pr-skill`: 能力ごと廃止する。閉じた環境でコミットで止まる要件も、スキルとともに消える
 
 ## Impact
 
 - 削除するループ：`bin/uskn-loop`、`loop/`、`bin/tests/uskn-loop.bats`、`bin/tests/fixtures/loop-bin/`
-- 削除するスキル：`skills/spec-pr/`、`bin/tests/spec-pr-skill.bats`
+- 削除するスキル：`skills/spec-pr/`、`bin/tests/spec-pr-skill.bats`。`bin/tests/confined-push-skills.bats` の対象からも外す
 - 新しい検査：`plugins/uskn-harness/hooks/scripts/diff-check.sh`、`plugins/uskn-harness/bin/uskn-diff-check`
 - 新しい検査のテスト：`plugins/uskn-harness/hooks/tests/diff-check.bats`
 - 新しいスキル：`skills/audit/`、`bin/tests/audit-skill.bats`
 - インストーラ：`bin/uskn-harness` と `bin/tests/uskn-harness.bats`
 - スキル：`skills/verify/SKILL.md`、`skills/spec/SKILL.md` と、そのテスト
-- 設定：`templates/user/settings.json` と `bin/tests/user-settings.bats`
+- 設定：`templates/user/settings-admin.json` と `bin/tests/user-settings.bats`
 - 検証：`Makefile` と `bin/tests/makefile.bats`
 - 文書：`README.md`、`AGENTS.md`、`docs/setup-new-machine.md`、`openspec/glossary.yml`、`docs/adr/0007-loop-runner.md`
-- ADR：`docs/adr/0015-loop-outside-harness.md`（新規）
+- ADR：`docs/adr/0016-loop-outside-harness.md`（新規）

@@ -3,9 +3,10 @@
 ### Requirement: 検査項目
 `uskn-harness doctor` は次を検査し、各項目を `ok` / `warn` / `fail` で報告しなければならない（MUST）。
 
+- 環境の種類と環境の印
 - 参照点の存在と向き先
-- mise、node、jqの有無
-- `deps.json` でピン止めしたnpmのCLIの版
+- mise、node、jqの有無（閉じた環境では共有の置き場の記録）
+- `deps.json` でピン止めしたnpmのCLIの版（閉じた環境では共有の置き場の記録）
 - `~/.local/bin/uskn-harness` のsymlinkの存在と向き先
 - 廃止した `~/.local/bin/uskn-loop` のsymlinkの残り
 - `~/.claude/skills` の各symlinkの存在と向き先
@@ -14,7 +15,7 @@
 - サードパーティスキルの有無
 - `~/.claude/CLAUDE.md` の管理印
 - ユーザー層のsettings.jsonと、syncが書く値とのずれ
-- `~/.local/bin` の通知のコマンドのsymlink
+- `~/.local/bin` の通知のコマンドのsymlink（管理者の環境だけ）
 
 #### Scenario: 健全な環境
 - **WHEN** `sync` 直後に `doctor` を実行する
@@ -31,3 +32,7 @@
 #### Scenario: 廃止したループのコマンドが残っている
 - **WHEN** ハーネスの中を指す `~/.local/bin/uskn-loop` が残っている端末で `doctor` を実行する
 - **THEN** その項目は `warn` で、`uskn-harness sync` の実行を促す
+
+#### Scenario: 環境の種類の行
+- **WHEN** 印の無いcheckoutで `doctor` を実行する
+- **THEN** 報告に、環境の種類が `admin` であることを示す `ok` の行がある

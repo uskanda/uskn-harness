@@ -34,7 +34,7 @@ tracked() { git -C "$REPO" ls-files -- "$@" | sed "s#^#$REPO/#"; }
     print "$ARGV:$.: $_" if /\bsed\b(?![^|;]*\s-[a-zA-Z]*[Er])[^|;]*\\[|+?]/
       || /\bgrep\b(?![^|;]*\s-[a-zA-Z]*[EP])[^|;]*\\[|+?]/
       || /\bsed\s+-i\s+[\x27"s]/ || /\bstat\s+-c\b/ || /\bdate\s+-d\b/;
-    close ARGV if eof' "$REPO/bin/uskn-harness" "$REPO/bin/uskn-loop" $(tracked 'plugins/uskn-harness/hooks/scripts/*.sh' 'plugins/uskn-harness/hooks/scripts/lib/*.sh' 'plugins/uskn-harness/bin/*' 'loop/lib/*.sh')
+    close ARGV if eof' "$REPO/bin/uskn-harness" $(tracked 'plugins/uskn-harness/hooks/scripts/*.sh' 'plugins/uskn-harness/hooks/scripts/lib/*.sh' 'plugins/uskn-harness/bin/*')
   [ "$status" -eq 0 ]
   [ -z "$output" ] || { printf '%s\n' "$output"; false; }
 }

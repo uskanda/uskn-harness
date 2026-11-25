@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 # Tests over every skill (spec: claude-plugin-packaging, skills call the short commands). A skill runs the plugin's
 # helper scripts through the commands in plugins/uskn-harness/bin, never through the long hooks/scripts/ path. A uskn-*
-# command a skill names is one of those, or an executable in bin/ that sync puts on PATH (uskn-harness, uskn-loop).
+# command a skill names is one of those, or the executable in bin/ that sync puts on PATH (uskn-harness).
 REPO="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
 
 @test "no skill calls session-start.sh or terms-check.sh by the hooks/scripts/ path" {

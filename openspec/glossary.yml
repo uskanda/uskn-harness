@@ -123,7 +123,7 @@ terms:
     aliases: ["実装用エージェント"]
     en: "implementer"
   - term: "監査役"
-    definition: "実装役と別の文脈で、完了基準を満たしたかを判定するエージェント。"
+    definition: "実装した文脈と別の文脈で、変更がspecsと検証の結果を満たしたかを判定するエージェント。ハーネスでは `audit` スキルが担う。"
     aliases: ["監査用エージェント"]
     en: "auditor"
   - term: "完了基準"

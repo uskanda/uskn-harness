@@ -7,8 +7,7 @@ allowed-tools: Bash(openspec:*), Bash(git:*), Read, Write, Edit, Glob, Grep, Ski
 
 # spec: from idea to OpenSpec artifacts, interview first
 
-Planning only. This skill never edits project code. It ends with the artifacts and pointers to `/opsx:apply` and
-`/spec-pr`.
+Planning only. This skill never edits project code. It ends with the artifacts and a pointer to `/opsx:apply`.
 The `grilling-guard` hook denies writes to proposal / design / tasks / specs of a change that has no `grilling.md`,
 so the order below is not optional.
 
@@ -53,9 +52,8 @@ Loop until `openspec status --change "<name>" --json` reports every artifact in 
 
 ### 5. Finish
 
-`openspec validate "<name>" --strict`, then `openspec status --change "<name>"`. Report the artifacts created (and any conditional one skipped, with the reason) and end with the two next inputs:
-`/opsx:apply <name>` implements the change here, and `/spec-pr <name>` opens it as a draft spec PR for review or the
-loop. The user picks one; the run ends at the report.
+`openspec validate "<name>" --strict`, then `openspec status --change "<name>"`. Report the artifacts created (and any conditional one skipped, with the reason) and end with the next input:
+`/opsx:apply <name>` implements the change here. Do not start it yourself; the run ends at the report.
 
 ## Language
 

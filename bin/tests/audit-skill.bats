@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # Tests for the audit skill (spec: audit-skill). It runs as a fork, without the conversation that implemented the
-# change, and judges an OpenSpec change against its specs and the computational checks (ADR-0015).
+# change, and judges an OpenSpec change against its specs and the computational checks (ADR-0016).
 REPO="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
 DIR="$REPO/skills/audit"
 SKILL="$DIR/SKILL.md"

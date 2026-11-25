@@ -11,7 +11,8 @@ CONFINED="$REPO/templates/user/settings-confined.json"
 LINUX="$REPO/templates/user/settings-linux.json"
 DARWIN="$REPO/templates/user/settings-darwin.json"
 FRAGMENTS="$FRAGMENT $ADMIN $CONFINED $LINUX $DARWIN"
-# The common fragment before it was split into five (task 3.1): the admin Linux composite must equal it.
+# The common fragment before it was split into five (task 3.1): the admin Linux composite must equal it, less the
+# "uskn-loop *" that retire-uskn-loop took out (BEFORE_NOW, made in setup). The fixture itself stays as it was.
 BEFORE="$BATS_TEST_DIRNAME/fixtures/settings-before-split.json"
 SEED="$REPO/templates/user/settings-seed.json"
 LINUX_ONLY='Bash(apt-cache *)
@@ -23,6 +24,8 @@ Read(//usr/lib/**)'
 load fixtures/confined
 
 setup() {
+  BEFORE_NOW="$BATS_TEST_TMPDIR/before-now.json"
+  jq '.sandbox.excludedCommands -= ["uskn-loop *"]' "$BEFORE" > "$BEFORE_NOW"
   export HOME="$BATS_TEST_TMPDIR/home"
   export CLAUDE_CONFIG_DIR="$HOME/.claude"
   export USKN_HARNESS_DIR="$REPO"
@@ -87,8 +90,8 @@ composite() {
   for e in Edit Write; do has_allow "$CONFINED" "$e" || { echo "missing: $e"; false; }; done
 }
 
-@test "the admin sandbox leaves the eleven well-known tools outside, git as a whole; no other fragment has the list" {
-  for t in git gh glab docker mise claude uskn-harness uskn-loop chezmoi ssh scp; do
+@test "the admin sandbox leaves the ten well-known tools outside, git as a whole; no other fragment has the list" {
+  for t in git gh glab docker mise claude uskn-harness chezmoi ssh scp; do
     jq -e --arg p "$t *" 'any(.sandbox.excludedCommands[]?; . == $p)' "$ADMIN" >/dev/null || { echo "missing: $t *"; false; }
   done
   run jq -r '.sandbox.excludedCommands[] | select(test("^git [a-z]+ \\*$") or test("allow-repo"))' "$ADMIN"
@@ -174,9 +177,15 @@ composite() {
 
 # ------------------------------------------------------------------ composites
 
-@test "composite: admin on Linux has the same keys and elements as the fragment before the split" {
+@test "composite: admin on Linux has the same keys and elements as the fragment before the split, less the retired loop" {
   composite admin Linux > "$BATS_TEST_TMPDIR/c.json"
-  [ "$(sets_sorted "$BATS_TEST_TMPDIR/c.json")" = "$(sets_sorted "$BEFORE")" ]
+  [ "$(sets_sorted "$BATS_TEST_TMPDIR/c.json")" = "$(sets_sorted "$BEFORE_NOW")" ]
+}
+
+@test "no fragment leaves the retired loop runner outside the sandbox" {
+  for f in $FRAGMENTS; do
+    [ "$(jq -r '[.sandbox.excludedCommands[]? | select(. == "uskn-loop *")] | length' "$f")" = 0 ] || { echo "$f has uskn-loop *"; false; }
+  done
 }
 
 @test "composite: confined drops what loosens the sandbox and allows Edit and Write" {
@@ -220,7 +229,7 @@ composite() {
   USKN_HARNESS_OS=Linux run "$CLI" sync --no-pull
   [ "$status" -eq 0 ]
   [[ "$(settings_lines)" == created* ]] || false
-  [ "$(sets_sorted "$LIVE")" = "$(sets_sorted "$BEFORE")" ]
+  [ "$(sets_sorted "$LIVE")" = "$(sets_sorted "$BEFORE_NOW")" ]
   [ "$(jq -S . "$RECORD")" = "$(jq -S . "$LIVE")" ]
 }
 
@@ -479,7 +488,7 @@ LOOSENING='{"model":"sonnet","permissions":{"defaultMode":"bypassPermissions","a
   [ "$status" -eq 0 ]
   [ "$(printf '%s' "$output" | jq -r .model)" = sonnet ]
   printf '%s' "$output" | jq '.model = "opus[1m]"' > "$BATS_TEST_TMPDIR/out.json"
-  [ "$(sets_sorted "$BATS_TEST_TMPDIR/out.json")" = "$(sets_sorted "$BEFORE")" ]
+  [ "$(sets_sorted "$BATS_TEST_TMPDIR/out.json")" = "$(sets_sorted "$BEFORE_NOW")" ]
   [ "$( (cd "$HOME" && find . | LC_ALL=C sort) )" = "$before" ]
   [ ! -e "$LIVE" ]
   [ ! -e "$RECORD" ]

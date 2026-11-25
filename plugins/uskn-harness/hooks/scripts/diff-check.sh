@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # diff-check.sh: removed tests, added skip markers, and changed verify settings in a branch (openspec: diff-check;
-# ADR-0015). The verify and audit skills run it through bin/uskn-diff-check before a claim that work is done.
+# ADR-0016). The verify and audit skills run it through bin/uskn-diff-check before a claim that work is done.
 #   diff-check.sh --base <ref> [--allow-from <file>]... [DIR]
 # The diff runs from the merge-base of <ref> and HEAD to the working tree of DIR (default: the current directory), so
 # committed changes and uncommitted changes to tracked files both count; untracked files are not read.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # uskn-diff-check: removed tests, added skip markers, and changed verify settings in this branch, for the verify and
-# audit skills (openspec: diff-check; ADR-0015). Claude Code puts the plugin's bin/ on the Bash tool's PATH.
+# audit skills (openspec: diff-check; ADR-0016). Claude Code puts the plugin's bin/ on the Bash tool's PATH.
 #   uskn-diff-check --base <ref> [--allow-from <file>]... [DIR]   one finding per line; exit 1 with a removed test
 #                                                                  or an added skip, 0 without, 2 undecided
 # Same arguments, output, and exit code as hooks/scripts/diff-check.sh, which it runs.

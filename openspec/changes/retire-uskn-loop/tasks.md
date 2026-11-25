@@ -21,18 +21,18 @@
 
 ## 4. uskn-loopとspec-prの撤去
 
-- [ ] 4.1 `bin/tests/uskn-harness.bats` を改め、失敗することを確かめる。`sync` が `~/.local/bin/uskn-loop` を作らないこと、残ったsymlinkを消すこと、通常のファイルを残すことを扱う。`doctor` が残ったsymlinkに `warn` を出すことも扱う
-- [ ] 4.2 `bin/uskn-harness` の `sync` と `doctor` を改め、4.1のテストが通ることを確かめる
-- [ ] 4.3 `bin/tests/user-settings.bats` を10個の道具に改め、`templates/user/settings.json` から `uskn-loop *` を外す。テストが通ることを確かめる
-- [ ] 4.4 `bin/tests/makefile.bats` からループのテストの対応を外し、スキルの参照ファイルの対応を確かめるテストに替える。`Makefile` の `FAST_BATS` を改め、テストが通ることを確かめる
-- [ ] 4.5 `bin/uskn-loop`、`loop/`、`bin/tests/uskn-loop.bats`、`bin/tests/fixtures/loop-bin/` を消す。`bin/tests/bats-portability.bats` と `bin/tests/skill-commands.bats` の参照を直し、`bats bin/tests` が通ることを確かめる
-- [ ] 4.6 `skills/spec-pr/` と `bin/tests/spec-pr-skill.bats` を消す。`skills/spec/SKILL.md` の終わりの案内から `/spec-pr` を外し、`make verify-skills` と `bats bin/tests` が通ることを確かめる
+- [x] 4.1 `bin/tests/uskn-harness.bats` を改め、失敗することを確かめる。`sync` が `~/.local/bin/uskn-loop` を作らないこと、残ったsymlinkを消すこと、通常のファイルを残すことを扱う。`doctor` が残ったsymlinkに `warn` を出すことも扱う
+- [x] 4.2 `bin/uskn-harness` の `sync` と `doctor` を改め、4.1のテストが通ることを確かめる
+- [x] 4.3 `bin/tests/user-settings.bats` を10個の道具に改め、`templates/user/settings-admin.json` から `uskn-loop *` を外す。分ける前の設定断片との比較は、`uskn-loop *` を除いて比べる。テストが通ることを確かめる
+- [x] 4.4 `bin/tests/makefile.bats` からループのテストの対応を外し、スキルの参照ファイルの対応を確かめるテストに替える。`Makefile` の `FAST_BATS` を改め、テストが通ることを確かめる
+- [x] 4.5 `bin/uskn-loop`、`loop/`、`bin/tests/uskn-loop.bats`、`bin/tests/fixtures/loop-bin/` を消す。`bin/tests/bats-portability.bats` と `bin/tests/skill-commands.bats` の参照を直し、`bats bin/tests` が通ることを確かめる
+- [x] 4.6 `skills/spec-pr/` と `bin/tests/spec-pr-skill.bats` を消し、`bin/tests/confined-push-skills.bats` の対象から `spec-pr` を外す。`skills/spec/SKILL.md` の終わりの案内から `/spec-pr` を外し、`make verify-skills` と `bats bin/tests` が通ることを確かめる
 
 ## 5. 文書
 
 - [ ] 5.1 `openspec/glossary.yml` の監査役の定義を、ループの外でも通じる形に改める。textlintとterms-checkが通ることを確かめる
 - [ ] 5.2 `README.md`、`AGENTS.md`、`docs/setup-new-machine.md` から `uskn-loop` と `spec-pr` の記述を外し、`audit` と差分の検査を足す。textlintとterms-checkが通ることを確かめる
-- [ ] 5.3 `docs/adr/0015-loop-outside-harness.md` を書き、`docs/adr/0007-loop-runner.md` の状態の行に置き換えを書く。textlintとterms-checkが通ることを確かめる
+- [ ] 5.3 `docs/adr/0016-loop-outside-harness.md` を書き、`docs/adr/0007-loop-runner.md` の状態の行に置き換えを書く。textlintとterms-checkが通ることを確かめる
 
 ## 6. 統合の確認
 
