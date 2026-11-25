@@ -37,7 +37,7 @@
 - `loop-run`: 能力ごと廃止する
 - `loop-criteria`: 能力ごと廃止する。検査の一部は `diff-check` と `audit-skill` へ移す
 - `loop-progress-comment`: 能力ごと廃止する
-- `spec-pr-skill`: 能力ごと廃止する。閉じた環境でコミットで止まる要件も、スキルとともに消える
+- `spec-pr-skill`: 能力ごと廃止する。閉じた環境のコミットで止まる要件も、スキルとともに消える
 
 ## Impact
 

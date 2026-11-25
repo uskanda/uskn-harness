@@ -1,6 +1,6 @@
 # ADR-0007: 仕様PRのループはハーネスに置き、段階2ではサーバー単位で動かす
 
-- 状態：採用（2026-10-01）
+- 状態：ADR-0016が置き換えた（2026-11-26）。`uskn-loop` と `spec-pr` は廃止し、外側のループはハーネスの外の製品に置く。採用は2026-10-01
 - 決定者：uskanda（change `add-loop-run` のgrilling。第1ラウンドのQ2とQ10、第3ラウンドのQ1とQ2）
 - 関連：調査と提案は `docs/loop-engineering-2026-09.md`、仕様PRは `spec-pr` スキル（change `add-spec-pr`）
 

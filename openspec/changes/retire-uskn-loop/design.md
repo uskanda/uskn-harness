@@ -6,7 +6,7 @@
 
 - `uskn-loop` は `bin/uskn-loop` と `loop/` の約1,400行で、仕様PRを受けて実装役と監査役を交互に動かす。段階1（手元から手動で起動）だけが実装されている
 - `loop/lib/sensors.sh` は、検証規約、`openspec validate`、tasks.md、未コミットの変更、テストの削除、skipの追加、検証の設定の変更を調べる。比べる先は `<base>...HEAD` で、コミット済みの変更だけを見る
-- `sync` は `~/.local/bin/uskn-loop` をsymlinkで張り、`doctor` はその向き先を確かめる。設定断片の `sandbox.excludedCommands` は `uskn-loop *` を持つ
+- `sync` は `~/.local/bin/uskn-loop` をsymlinkで張り、`doctor` はその向き先を確かめる。管理者の環境用の設定断片 `templates/user/settings-admin.json` の `sandbox.excludedCommands` は `uskn-loop *` を持つ
 - `sync` は、ハーネスから消えたスキルを指す `~/.claude/skills` のsymlinkを消す（`prune_stale_skill_links`）。消えた実行ファイルのsymlinkを消す仕組みは無い
 - 適用記録にあって設定断片に無い要素は、`sync` がliveから消す（`user-settings` の既存の要件）
 - 外側のループの製品は、`claude -p` にユーザー層の設定を読ませない。ハーネスのhookとスキルは、その実行では働かない
@@ -53,12 +53,14 @@ issueを起点に起動し、新しい文脈でラウンドを繰り返す外側
 `doctor` は、ハーネスの中を指す `~/.local/bin/uskn-loop` が残っていれば `warn` を出し、`sync` を促す。
 `~/.claude/skills/spec-pr` のsymlinkは、既存の `prune_stale_skill_links` が消す。
 
-設定断片から `uskn-loop *` を外す。liveからは、適用記録との差として `sync` が消す。
+管理者の環境用の設定断片から `uskn-loop *` を外す。liveからは、適用記録との差として `sync` が消す。
+分ける前の設定断片と合成を比べるテストは、fixtureを変えずに `uskn-loop *` を除いて比べる。
+`spec-pr` が閉じた環境のコミットで止まる要件も、スキルとともに消す。閉じた環境の `pr` スキルが同じ役割を持つ。
 
 `openspec/glossary.yml` のループの用語（仕様PR、実装役、完了基準、停止条件、ウォッチャー、進捗コメント）は残す。ADR-0007と `docs/loop-engineering-2026-09.md` が使っているためである。
 監査役の定義は、ループの外でも通じる形に改める。
 
-ADR-0007の状態の行に、ADR-0016で置き換えたことを書く。
+ADR-0007の状態の行に、ADR-0016で置き換えたことを書く。ADR-0011の状態の行にも、決定2の道具から `uskn-loop` を外したことを書く。
 
 ### D3 差分の検査は `uskn-diff-check` の1つにする
 
