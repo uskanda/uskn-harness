@@ -30,9 +30,11 @@ Notificationには引数 `notification`、UserPromptSubmitには `stop`、Stop�
 - **THEN** `claude-notify-hook done` が1回だけ実行される。ユーザー層のsettings.jsonにhookは無い
 
 ### Requirement: コマンドの公開
-syncは `plugins/uskn-notify/bin/` の各コマンドについて、`~/.local/bin/<name>` をそのコマンドへのsymlinkにしなければならない（MUST）。
+管理者の環境の間、syncは、通知の各コマンドについて `~/.local/bin/<name>` をそのコマンドへのsymlinkにしなければならない（MUST）。
+通知のコマンドとは、`plugins/uskn-notify/bin/` の下のファイルである。
 同じ名前の実ファイルがあるときは上書きせず、`conflict` と報告する。終了コードは0のまま。
 既にそのコマンドを指すsymlinkなら `ok` と報告する。
+閉じた環境では、通知のコマンドを置かない（harness-syncの要件「閉じた環境の通知」）。
 
 #### Scenario: 新しい WSL 端末
 - **WHEN** 何も入っていないWSL端末でsyncを実行する
@@ -61,7 +63,8 @@ syncは、受信の常駐プロセス、ntfyの購読、VOICEVOX ENGINEを新し
 - **THEN** `~/Library/LaunchAgents` に通知のplistは作られない
 
 ### Requirement: 既存の LaunchAgent の入れ直し
-macOSで通知のLaunchAgentのplistがあり、対応するコマンドの中身が前回入れたときと違うとき、syncはそのコマンドの `install` を実行しなければならない（MUST）。
+管理者の環境のmacOSで、syncは条件を満たすLaunchAgentのコマンドの `install` を実行しなければならない（MUST）。
+条件は、通知のLaunchAgentのplistがあり、対応するコマンドの中身が前回入れたときと違うことである。
 対象は `com.claude.notify-daemon` と `com.claude.notify-ntfy-sub` の2つ。
 前回入れたときのコマンドの中身は、状態としてハッシュで残す。ハッシュが無いときは、違うものとして扱う。
 入れ直したときは `updated`、中身が同じときは `ok` と報告する。
@@ -77,6 +80,10 @@ macOSで通知のLaunchAgentのplistがあり、対応するコマンドの中�
 #### Scenario: Linux
 - **WHEN** Linuxでsyncを実行する
 - **THEN** LaunchAgentの手順は実行されず、出力にも現れない
+
+#### Scenario: 閉じた環境の macOS
+- **WHEN** 閉じた環境のmacOSで、plistがありハッシュの記録が無い状態でsyncを実行する
+- **THEN** `install` は実行されず、LaunchAgentの手順は出力に現れない
 
 ### Requirement: 取り除くときのコマンド
 `sync --remove` のとき、syncは `~/.local/bin` の下のsymlinkのうち、`plugins/uskn-notify/bin/` を指すものを消さなければならない（MUST）。

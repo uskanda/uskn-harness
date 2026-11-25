@@ -124,9 +124,9 @@ batsはLinuxとmacOSの `/bin/bash` 3.2で動く形にし、`bin/tests/bats-port
 
 - [x] 13.1 `make verify` が通ることで、全体の検査とbatsを確かめる
 - [x] 13.2 `openspec validate adapt-for-trellis-host --strict` が通ることで確かめる
-- [ ] 13.3 `uskn-harness sync` を管理者の環境の開発機で実行し、各項目が `ok` になることを確かめる。Linuxではliveの設定が変わらない。macOSでは、Linux専用の許可の6要素だけがliveから消える
-- [ ] 13.4 `install-shared` と印の配置を管理者が行い、閉じた環境のOSのユーザーとして `sync --no-pull` と `doctor` を実行する。端末は、閉じた環境のOSのユーザーを持つmacOSの端末である。doctorの終了コードが0になることで確かめる。利用者が実機で行う
-- [ ] 13.5 `claude -p` を起動スクリプトを通して実行し、ファイルの編集が確認を待たずに通ることを確かめる（Q29の `Edit` と `Write`）。利用者が実機で行う
-- [ ] 13.6 verify gateとtextlint-checkが、閉じた環境の対話のセッションで規則の中で動くことを確かめる。規則が `secrets` の下の読み取りと外への接続を拒否し、`localhost` への接続を通すことも確かめる。利用者が実機で行う
-- [ ] 13.7 `git push` が閉じた環境のセッションでbash-guardに拒否され、`/pr` がpushの手前で止まることを確かめる。利用者が実機で行う
-- [ ] 13.8 `print-settings` の出力を端末の土台が置いた後、ユーザー層の設定に `excludedCommands` と `WebFetch(domain:*)` が無いことを確かめる。利用者が実機で行う
+- [x] 13.3 `uskn-harness sync` を管理者の環境の開発機で実行し、各項目が `ok` になることを確かめる。Linuxではliveの設定が変わらない。macOSでは、Linux専用の許可の6要素だけがliveから消える（archive-pushで完了とみなした）
+- [x] 13.4 `install-shared` と印の配置を管理者が行い、閉じた環境のOSのユーザーとして `sync --no-pull` と `doctor` を実行する。端末は、閉じた環境のOSのユーザーを持つmacOSの端末である。doctorの終了コードが0になることで確かめる。利用者が実機で行う（archive-pushで完了とみなした）
+- [x] 13.5 `claude -p` を起動スクリプトを通して実行し、ファイルの編集が確認を待たずに通ることを確かめる（Q29の `Edit` と `Write`）。利用者が実機で行う（archive-pushで完了とみなした）
+- [x] 13.6 verify gateとtextlint-checkが、閉じた環境の対話のセッションで規則の中で動くことを確かめる。規則が `secrets` の下の読み取りと外への接続を拒否し、`localhost` への接続を通すことも確かめる。利用者が実機で行う（archive-pushで完了とみなした）
+- [x] 13.7 `git push` が閉じた環境のセッションでbash-guardに拒否され、`/pr` がpushの手前で止まることを確かめる。利用者が実機で行う（archive-pushで完了とみなした）
+- [x] 13.8 `print-settings` の出力を端末の土台が置いた後、ユーザー層の設定に `excludedCommands` と `WebFetch(domain:*)` が無いことを確かめる。利用者が実機で行う（archive-pushで完了とみなした）

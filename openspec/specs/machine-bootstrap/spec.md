@@ -11,11 +11,15 @@ dotfilesへ写すbootstrapの正本は `templates/chezmoi/run_after_uskn-harness
 
 - gitの存在確認
 - miseが無ければ `~/.local/bin/mise` に導入
-- `~/.local/share/uskn-harness` が無ければ用意する。`~/repos/uskn-harness` があればsymlink、無ければGitHubからclone
+- `~/.local/share/uskn-harness` が無ければ用意する。開発用のcheckoutがあればsymlink、無ければGitHubからclone
 - 最後に `uskn-harness sync`
 
+開発用のcheckoutの場所は、`~/.config/uskn-harness/dev-checkout` の1行目である。`~` で始まる値はホームに展開する。
+ファイルが無いか空のときは `~/repos/uskn-harness` とする。
+jqの入る前に走るので、このファイルはJSONにしない。
 Windowsでは何もしない。
 スクリプトはファイルの適用の後に走るので、dotfilesが同じapplyで消したファイルの跡にsyncがsymlinkを置ける。
+閉じた環境は、このスクリプトの対象外である。閉じた環境のcheckoutとsyncの実行は、端末の土台が用意する。
 
 #### Scenario: 新しい Linux マシン
 - **WHEN** `chezmoi apply` が初回実行される
@@ -28,6 +32,14 @@ Windowsでは何もしない。
 #### Scenario: ハーネスが進んでいる
 - **WHEN** ハーネスのupstreamが進んだ状態で `chezmoi apply` する
 - **THEN** `sync` がcheckoutをfast-forwardし、新しい版で導入を続ける
+
+#### Scenario: 開発用の checkout を別の場所に置く
+- **WHEN** `~/.config/uskn-harness/dev-checkout` が `~/src/uskn-harness` を指し、そこにgitのcheckoutがあり、参照点が無い
+- **THEN** 参照点は `~/src/uskn-harness` へのsymlinkになり、cloneは行われない
+
+#### Scenario: 設定の無い端末
+- **WHEN** `~/.config/uskn-harness/dev-checkout` が無く、`~/repos/uskn-harness` にgitのcheckoutがあり、参照点が無い
+- **THEN** 参照点は `~/repos/uskn-harness` へのsymlinkになる
 
 ### Requirement: 失敗時の振る舞い
 ネットワークが無いなどで途中失敗した場合、スクリプトは非ゼロで終わり、何が済んで何が残ったかを標準エラーに出力しなければならない（MUST）。部分的に作られたsymlinkは次回の `sync` が引き継ぐ。

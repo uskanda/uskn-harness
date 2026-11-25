@@ -114,11 +114,12 @@
 - **THEN** 要約行が「add-xをarchiveし、main specsに反映」のコミットが1つでき、本文に `x` が並ぶ
 
 ### Requirement: pushする
-コミットの後、`archive-push` は `push` スキルでpushしなければならない（MUST）。
+管理者の環境の間、コミットの後、`archive-push` は `push` スキルでpushしなければならない（MUST）。
 保護ブランチでの確認やpushの拒否の扱いは `push` スキルに従う。
+閉じた環境では、pushの前に止まる（要件「閉じた環境ではコミットで止まる」）。
 
 #### Scenario: 保護されていないブランチ
-- **WHEN** 現在のブランチが保護ブランチでない
+- **WHEN** 管理者の環境で、現在のブランチが保護ブランチでない
 - **THEN** コミットがoriginへpushされ、報告にpushしたブランチとコミットが載る
 
 ### Requirement: 呼ぶのはユーザーか統合の操作をするスキル
@@ -139,3 +140,12 @@
 #### Scenario: 宣言のある変更と無い変更
 - **WHEN** 進行中の変更が `add-x` と `add-y` の2つで、`add-y` に `.archive-later` があり、引数なしで `archive-push` を実行する
 - **THEN** 尋ねずに `add-x` だけをarchiveする
+
+### Requirement: 閉じた環境ではコミットで止まる
+`archive-push` は、pushの前にプラグインのコマンド `uskn-environment` を実行しなければならない（MUST）。
+出力が `confined` のとき、`archive-push` はarchiveとコミットまでを行い、pushしてはならない（MUST NOT）。
+報告には、archiveした変更とコミットと、pushは外側が行うことを書く。
+
+#### Scenario: 閉じた環境
+- **WHEN** 閉じた環境で `/archive-push add-x` を実行する
+- **THEN** archiveのコミットができ、pushは行われず、報告に外側でpushする旨が載る
