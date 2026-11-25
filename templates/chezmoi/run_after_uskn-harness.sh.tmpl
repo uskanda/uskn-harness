@@ -11,9 +11,22 @@ command -v git >/dev/null || { echo "uskn-harness: git is required" >&2; exit 1;
 if [ ! -x "$HOME/.local/bin/mise" ] && ! command -v mise >/dev/null; then
   curl -fsSL https://mise.run | MISE_INSTALL_PATH="$HOME/.local/bin/mise" sh
 fi
+# The dev checkout: the first line of ~/.config/uskn-harness/dev-checkout (an absolute path, or one starting with ~),
+# else ~/repos/uskn-harness. One plain line, since this runs before jq exists.
+DEV="$HOME/repos/uskn-harness"
+if [ -f "$HOME/.config/uskn-harness/dev-checkout" ]; then
+  line=""
+  IFS= read -r line < "$HOME/.config/uskn-harness/dev-checkout" || true
+  line="${line%$'\r'}"
+  case "$line" in
+    \~) DEV="$HOME" ;;
+    \~/*) DEV="$HOME/${line#\~/}" ;;
+    /*) DEV="$line" ;;
+  esac
+fi
 if [ ! -e "$H" ]; then
   mkdir -p "$(dirname "$H")"
-  if [ -d "$HOME/repos/uskn-harness/.git" ]; then ln -s "$HOME/repos/uskn-harness" "$H"
+  if [ -d "$DEV/.git" ]; then ln -s "$DEV" "$H"
   else git clone --quiet https://github.com/uskanda/uskn-harness.git "$H" || { echo "uskn-harness: clone failed; the next chezmoi apply (or uskn-harness sync) tries again" >&2; exit 1; }; fi
 fi
 exec "$H/bin/uskn-harness" sync

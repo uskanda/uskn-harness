@@ -47,6 +47,20 @@ copy_makefile() {
   [ "$status" -ne 0 ]; [[ "$output" == *"[terms]"* ]] || false; [[ "$output" == *"VERIFY_STRICT"* ]] || false
 }
 
+@test "verify-terms leaves out a document that the root's .textlintignore matches" {
+  command -v python3 >/dev/null || skip "python3 missing"
+  D="$BATS_TEST_TMPDIR/r"; copy_makefile "$D"
+  cp "$REPO/plugins/uskn-harness/hooks/scripts/terms-check.sh" "$D/plugins/uskn-harness/hooks/scripts/"
+  printf '# t\n\n設定は `nowhere-at-all.yaml` に置く。\n' > "$D/README.md"
+  printf '# t\n\n`README.md` を読む。\n' > "$D/AGENTS.md"
+  ( cd "$D" && git init -q -b main && git add -A && git -c user.name=t -c user.email=t@x commit -qm init )
+  run env -u MAKEFLAGS make -C "$D" verify-terms
+  [ "$status" -ne 0 ]; [[ "$output" == *"nowhere-at-all.yaml"* ]] || false
+  printf 'README.md\n' > "$D/.textlintignore"
+  run env -u MAKEFLAGS make -C "$D" verify-terms
+  [ "$status" -eq 0 ]; [[ "$output" != *"nowhere-at-all.yaml"* ]] || false
+}
+
 @test "verify-skills parses every frontmatter as YAML: an unquoted colon fails and names the file" {
   has_yaml || skip "python3 with PyYAML is not available"
   fx="$BATS_TEST_TMPDIR/skills"

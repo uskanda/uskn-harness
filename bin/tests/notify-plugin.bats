@@ -150,3 +150,28 @@ agents_in_sourced_cli() {
   [[ "$output" == *"ok        notify command claude-notify"* ]] || false
   [[ "$output" == *"warn      notify command claude-notify-hook"*"$BIN/claude-notify-hook"* ]] || false
 }
+
+# ------------------------------------------------------------------ the confined environment (spec: notify-plugin)
+
+load fixtures/confined
+
+@test "confined sync puts no notify command into ~/.local/bin and removes the links into the harness" {
+  CO="$BATS_TEST_TMPDIR/co"; confined_copy "$CO"; shared_tools "$BATS_TEST_TMPDIR/tools"; mark_confined "$CO" "$BATS_TEST_TMPDIR/tools"
+  ln -s "$CO/plugins/uskn-notify/bin/claude-notify-hook" "$BIN/claude-notify-hook"
+  echo mine > "$BIN/claude-notify-nag"
+  USKN_HARNESS_DIR="$CO" run "$CLI" sync --no-pull
+  [ "$status" -eq 0 ]
+  [ ! -e "$BIN/claude-notify" ]; [ ! -L "$BIN/claude-notify" ]
+  [ ! -L "$BIN/claude-notify-hook" ]
+  [ "$(cat "$BIN/claude-notify-nag")" = mine ]
+}
+
+@test "confined sync on macOS runs no LaunchAgent step and does not mention it" {
+  CO="$BATS_TEST_TMPDIR/co"; confined_copy "$CO"; shared_tools "$BATS_TEST_TMPDIR/tools"; mark_confined "$CO" "$BATS_TEST_TMPDIR/tools"
+  mkdir -p "$AGENTS"; : > "$AGENTS/com.claude.notify-daemon.plist"
+  USKN_HARNESS_DIR="$CO" USKN_HARNESS_OS=Darwin run "$CLI" sync --no-pull
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"LaunchAgent"* ]] || false
+  refute grep -q install "$USKN_HARNESS_STUB_LOG"
+  [ ! -e "$RECORDS" ]
+}

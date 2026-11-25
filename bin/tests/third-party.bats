@@ -388,3 +388,35 @@ staleness_off() { printf '{"env":{"IMPECCABLE_NO_STALENESS_CHECK":"1"}}\n' > "$C
   run "$CLI" doctor
   [[ "$output" == *"ok"*"IMPECCABLE_NO_STALENESS_CHECK"* ]] || false
 }
+
+# ---------------------------------------------------------------- the confined environment (spec: harness-sync)
+
+load fixtures/confined
+
+confined_env() {
+  CO="$BATS_TEST_TMPDIR/co"; TOOLS="$BATS_TEST_TMPDIR/tools"
+  confined_copy "$CO"; shared_tools "$TOOLS"; mark_confined "$CO" "$TOOLS"
+  export USKN_HARNESS_DIR="$CO"
+}
+
+@test "confined sync links each third-party skill to the shared tools dir and runs no skills CLI" {
+  confined_env
+  run "$CLI" sync --no-pull
+  [ "$status" -eq 0 ]
+  for n in grilling humanizer frontend-design impeccable; do
+    [ "$(readlink "$SKILLS/$n")" = "$TOOLS/skills/$n" ] || { echo "$n -> $(readlink "$SKILLS/$n")"; false; }
+  done
+  refute grep -qE 'skills@|impeccable|curl' "$USKN_HARNESS_STUB_LOG"
+  [ ! -e "$SKILLS/expo-skills" ]
+}
+
+@test "confined sync: a skill missing from the shared tools dir is a warn asking for install-shared; a real dir is a conflict" {
+  confined_env
+  rm -rf "$TOOLS/skills/grilling"
+  mkdir -p "$SKILLS/humanizer"; echo mine > "$SKILLS/humanizer/SKILL.md"
+  run "$CLI" sync --no-pull
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"warn      third-party grilling"*"install-shared"* ]] || false
+  [[ "$output" == *"conflict  third-party humanizer"* ]] || false
+  [ "$(cat "$SKILLS/humanizer/SKILL.md")" = mine ]
+}

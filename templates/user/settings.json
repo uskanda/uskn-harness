@@ -9,7 +9,6 @@
   "inputNeededNotifEnabled": true,
   "model": "opus[1m]",
   "permissions": {
-    "defaultMode": "auto",
     "additionalDirectories": [
       "/tmp"
     ],
@@ -28,11 +27,8 @@
       "Bash(bash --version)",
       "Bash(claude --version)",
       "WebSearch",
-      "Bash(apt-cache *)",
       "Bash(grep -iE *)",
       "Bash(command -v *)",
-      "Bash(chezmoi --version)",
-      "Bash(chezmoi source-path *)",
       "Bash(openspec --help)",
       "Bash(openspec --version)",
       "Bash(openspec show *)",
@@ -42,45 +38,18 @@
       "Bash(openspec instructions *)",
       "Bash(openspec archive *)",
       "Bash(openspec validate *)",
-      "Bash(systemctl is-enabled *)",
-      "Bash(systemctl is-active *)",
-      "Bash(lscpu)",
       "Read(//etc/**)",
-      "Read(//usr/lib/**)",
-      "Read(//tmp/**)",
-      "Read(//sys/devices/system/cpu/**)",
-      "WebFetch(domain:*)"
+      "Read(//tmp/**)"
     ]
   },
-  "remoteControlAtStartup": true,
   "theme": "auto",
   "tui": "fullscreen",
   "sandbox": {
     "enabled": true,
-    "failIfUnavailable": false,
-    "allowUnsandboxedCommands": true,
-    "excludedCommands": [
-      "git *",
-      "gh *",
-      "glab *",
-      "docker *",
-      "mise *",
-      "claude *",
-      "uskn-harness *",
-      "uskn-loop *",
-      "chezmoi *",
-      "ssh *",
-      "scp *"
-    ],
-    "network": {
-      "allowAllUnixSockets": true
-    },
     "filesystem": {
       "allowWrite": [
         "~/.cache",
         "~/.npm",
-        "~/.local/share/mise",
-        "~/.local/share/pnpm",
         "~/.local/state"
       ],
       "denyWrite": [

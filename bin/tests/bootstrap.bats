@@ -63,3 +63,21 @@ refute() { ! "$@"; }
   [ -L "$dest/.local/share/uskn-harness" ]
   [ ! -e "$HOME/.local/share/uskn-harness" ]
 }
+
+@test "the dev checkout named in ~/.config/uskn-harness/dev-checkout becomes the stable path; nothing is cloned" {
+  mkdir -p "$HOME/src" "$HOME/.config/uskn-harness"
+  ln -s "$REPO" "$HOME/src/uskn-harness"
+  printf '~/src/uskn-harness\n' > "$HOME/.config/uskn-harness/dev-checkout"
+  run bash "$BODY"
+  [ "$status" -eq 0 ]
+  [ "$(readlink "$HOME/.local/share/uskn-harness")" = "$HOME/src/uskn-harness" ]
+  refute grep -q 'git clone' "$USKN_HARNESS_STUB_LOG"
+}
+
+@test "without the dev-checkout file, ~/repos/uskn-harness is the dev checkout" {
+  ln -s "$REPO" "$HOME/repos/uskn-harness"
+  mkdir -p "$HOME/src"; ln -s "$REPO" "$HOME/src/uskn-harness"
+  run bash "$BODY"
+  [ "$status" -eq 0 ]
+  [ "$(readlink "$HOME/.local/share/uskn-harness")" = "$HOME/repos/uskn-harness" ]
+}

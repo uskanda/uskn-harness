@@ -3,6 +3,7 @@
 # HOME and CLAUDE_CONFIG_DIR point into $BATS_TEST_TMPDIR; network steps are stubbed and logged.
 # A fake `claude` in the temporary HOME's .local/bin sits first on PATH, so the real one never decides a result.
 
+bats_require_minimum_version 1.5.0
 REPO="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
 CLI="$REPO/bin/uskn-harness"
 
@@ -22,6 +23,9 @@ setup() {
   export PATH="$HOME/.local/bin:$PATH"
   fake_claude "$MIN (Claude Code)"
 }
+
+# A confined test makes its checkout and tools dir read-only; give the write bit back so bats can remove them.
+teardown() { chmod -R u+w "$BATS_TEST_TMPDIR" 2>/dev/null || true; }
 
 fake_claude() { # <what `claude --version` prints>
   printf '#!/bin/sh\necho "%s"\n' "$1" > "$HOME/.local/bin/claude"
@@ -1214,11 +1218,379 @@ live_hosts() { jq -r '.sandbox.network.allowedDomains // [] | .[]' "$CLAUDE_CONF
 @test "sandbox-allow-host --remove refuses a fragment host and asks for a pull request" {
   local h="$BATS_TEST_TMPDIR/harness"
   mkdir -p "$h/templates/user"
-  cp "$REPO/deps.json" "$h/"
+  cp "$REPO/deps.json" "$h/"; cp "$REPO"/templates/user/settings*.json "$h/templates/user/"
   jq '.sandbox.network.allowedDomains = ["fragment.example.test"]' "$REPO/templates/user/settings.json" > "$h/templates/user/settings.json"
   USKN_HARNESS_DIR="$h" run "$CLI" sandbox-allow-host --remove fragment.example.test
   [ "$status" -eq 2 ]
   [[ "$output" == *"pull request"* ]] || false
   [[ "$output" == *"'fragment.example.test' is a default"* ]] || false
   [ ! -e "$HOME/.config/uskn-harness/settings.json" ]
+}
+
+# ---- environment kind (spec: environment-kind)
+
+load fixtures/confined
+# env_of <checkout>: the kind, shared tools dir and marker state the installer reads from <checkout>/.uskn-environment
+env_of() {
+  run env USKN_HARNESS_KIND=admin bash -c "USKN_HARNESS_SOURCED=1 . '$CLI'; HARNESS='$1'; environment_read; printf '%s|%s|%s|%s\n' \"\$ENV_KIND\" \"\$ENV_TOOLS\" \"\$ENV_SECRETS\" \"\$ENV_MARKER\""
+}
+
+@test "environment: a checkout without a marker is the admin environment" {
+  mkdir -p "$BATS_TEST_TMPDIR/co"
+  env_of "$BATS_TEST_TMPDIR/co"
+  [ "$status" -eq 0 ]
+  [ "$output" = "admin|||none" ]
+}
+
+@test "environment: kind=confined with tools and secrets is the confined environment" {
+  mkdir -p "$BATS_TEST_TMPDIR/co"
+  printf '# set by the administrator\n\nkind=confined\ntools=/opt/shared\nsecrets=/opt/secrets' > "$BATS_TEST_TMPDIR/co/.uskn-environment"
+  env_of "$BATS_TEST_TMPDIR/co"
+  [ "$output" = "confined|/opt/shared|/opt/secrets|ok" ]
+}
+
+@test "environment: a misspelt kind or an unreadable marker counts as confined, marked invalid" {
+  mkdir -p "$BATS_TEST_TMPDIR/co"
+  printf 'kind=confind\n' > "$BATS_TEST_TMPDIR/co/.uskn-environment"
+  env_of "$BATS_TEST_TMPDIR/co"
+  [ "$output" = "confined|||invalid" ]
+  rm "$BATS_TEST_TMPDIR/co/.uskn-environment"; mkdir "$BATS_TEST_TMPDIR/co/.uskn-environment"
+  env_of "$BATS_TEST_TMPDIR/co"
+  [ "$output" = "confined|||invalid" ]
+}
+
+@test "environment: sync reads the marker of HARNESS and says which environment it installs" {
+  run "$CLI" sync --no-pull --dry-run
+  [[ "$output" == *"info      environment: admin"* ]] || false
+  local co="$BATS_TEST_TMPDIR/co"
+  confined_copy "$co"; mark_confined "$co" "$BATS_TEST_TMPDIR/tools"
+  USKN_HARNESS_DIR="$co" run "$CLI" sync --no-pull --dry-run
+  [[ "$output" == *"info      environment: confined"* ]] || false
+}
+
+@test "environment: git ignores the marker, so it never enters the repository" {
+  command -v git >/dev/null || skip "git missing"
+  git -C "$REPO" rev-parse --git-dir >/dev/null 2>&1 || skip "not a git checkout"
+  git -C "$REPO" check-ignore -q .uskn-environment
+}
+
+@test "sandbox-allow-host: an element of the kind or OS fragment counts as a fragment element too" {
+  local h="$BATS_TEST_TMPDIR/harness"
+  mkdir -p "$h/templates/user"
+  cp "$REPO/deps.json" "$h/"; cp "$REPO"/templates/user/settings*.json "$h/templates/user/"
+  printf '{"sandbox":{"network":{"allowedDomains":["linux.example.test"]}}}\n' > "$h/templates/user/settings-linux.json"
+  export USKN_HARNESS_DIR="$h" USKN_HARNESS_OS=Linux
+  "$CLI" sandbox-allow-host gl.example.test >/dev/null
+  run "$CLI" sandbox-allow-host --list
+  echo "$output" | grep -qE '^fragment +linux\.example\.test$'
+  echo "$output" | grep -qE '^machine +gl\.example\.test$'
+  run "$CLI" sandbox-allow-host --remove linux.example.test
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"pull request"* ]] || false
+  live_hosts | grep -qxF linux.example.test
+}
+
+# ---- install-shared (spec: shared-tools)
+
+# fake_shared_tools: a mise whose install succeeds and whose where names a fake node / jq, an npx that writes the skill
+# a skills CLI would, and a curl that fails (no network). Each records its arguments in $BATS_TEST_TMPDIR/calls.
+fake_shared_tools() {
+  local f="$BATS_TEST_TMPDIR/fake" calls="$BATS_TEST_TMPDIR/calls"
+  mkdir -p "$f/node/bin" "$f/jq/bin"
+  printf '#!/bin/sh\necho "mise MISE_DATA_DIR=$MISE_DATA_DIR $*" >> "%s"\ncase "$1" in where) case "$2" in node*) echo "%s/node" ;; jq*) echo "%s/jq" ;; esac ;; esac\nexit 0\n' "$calls" "$f" "$f" > "$HOME/.local/bin/mise"
+  printf '#!/bin/sh\necho "npm $*" >> "%s"\nexit 0\n' "$calls" > "$f/node/bin/npm"
+  printf '#!/bin/sh\necho "npx $*" >> "%s"\nname="${4##*@}"\nmkdir -p ".claude/skills/$name" && printf -- "---\\nname: %%s\\n---\\n" "$name" > ".claude/skills/$name/SKILL.md"\n' "$calls" > "$f/node/bin/npx"
+  printf '#!/bin/sh\nexit 0\n' > "$f/node/bin/node"; cp "$f/node/bin/node" "$f/jq/bin/jq"
+  printf '#!/bin/sh\necho "curl $*" >> "%s"\nexit 6\n' "$calls" > "$HOME/.local/bin/curl"
+  chmod +x "$HOME/.local/bin/mise" "$HOME/.local/bin/curl" "$f"/node/bin/* "$f/jq/bin/jq"
+}
+
+@test "install-shared: mise, npm, the skills CLI and Impeccable all work under <dir>, and the user layer stays as it was" {
+  local D="$BATS_TEST_TMPDIR/shared"
+  before="$(snapshot)"
+  run "$CLI" install-shared "$D"
+  [ "$status" -eq 0 ]
+  [ "$(snapshot)" = "$before" ]
+  grep -qE "MISE_DATA_DIR=$D/mise .*install node@$(dep .runtimes.node.version)\$" "$USKN_HARNESS_STUB_LOG"
+  grep -qE "MISE_DATA_DIR=$D/mise .*install jq@$(dep .runtimes.jq.version)\$" "$USKN_HARNESS_STUB_LOG"
+  grep -qF "$D/bin/npm install -g --prefix $D/npm $(npm_specs textlint)" "$USKN_HARNESS_STUB_LOG"
+  grep -qF "$D/bin/npm install -g --prefix $D/npm $(npm_specs openspec)" "$USKN_HARNESS_STUB_LOG"
+  grep -qF "$D/bin/npx -y skills@$(dep .clis.skills.version) add mattpocock/skills#$(dep .skills.grilling.ref)@grilling -a claude-code -y" "$USKN_HARNESS_STUB_LOG"
+  grep -qF "releases/download/$(dep .skills.impeccable.ref)/$(dep .skills.impeccable.asset)" "$USKN_HARNESS_STUB_LOG"
+  grep -F "$(dep .skills.impeccable.asset)" "$USKN_HARNESS_STUB_LOG" | grep -qF "$D"
+  refute grep -qE ' -g -a claude-code' "$USKN_HARNESS_STUB_LOG"
+}
+
+@test "install-shared: an item whose record matches deps.json is not installed again" {
+  local D="$BATS_TEST_TMPDIR/shared"
+  shared_tools "$D"
+  run "$CLI" install-shared "$D"
+  [ "$status" -eq 0 ]
+  [ ! -s "$USKN_HARNESS_STUB_LOG" ]
+  [[ "$output" == *"ok"*"textlint"* ]] || false
+  [[ "$output" == *"ok"*"grilling"* ]] || false
+  [[ "$output" == *"ok"*"node"* ]] || false
+}
+
+@test "install-shared: a raised pin installs that item only" {
+  local D="$BATS_TEST_TMPDIR/shared"
+  shared_tools "$D"
+  jq '.clis.textlint.version = "0.0.1"' "$D/installed.json" > "$D/i.json" && mv "$D/i.json" "$D/installed.json"
+  run "$CLI" install-shared "$D"
+  [ "$status" -eq 0 ]
+  [ "$(grep -c . "$USKN_HARNESS_STUB_LOG")" -eq 1 ]
+  grep -qF "$(npm_specs textlint)" "$USKN_HARNESS_STUB_LOG"
+}
+
+@test "install-shared --dry-run plans and changes nothing; without <dir> it exits 2" {
+  local D="$BATS_TEST_TMPDIR/shared"
+  run "$CLI" install-shared --dry-run "$D"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"plan"*"$D"* ]] || false
+  [ ! -e "$D" ]
+  [ ! -s "$USKN_HARNESS_STUB_LOG" ]
+  run "$CLI" install-shared
+  [ "$status" -eq 2 ]
+  run "$CLI" install-shared --dry-run
+  [ "$status" -eq 2 ]
+}
+
+@test "install-shared: links the tools into <dir>/bin, copies the skills, records what it installed, and exits 1 on a failed step" {
+  unset USKN_HARNESS_STUB_NET
+  fake_shared_tools
+  local D="$BATS_TEST_TMPDIR/shared"
+  run --separate-stderr "$CLI" install-shared "$D"
+  [ "$status" -eq 1 ]
+  [[ "$stderr" == *"1 step(s) failed"* ]] || false
+  [ "$(readlink "$D/bin/node")" = "$BATS_TEST_TMPDIR/fake/node/bin/node" ]
+  [ "$(readlink "$D/bin/npx")" = "$BATS_TEST_TMPDIR/fake/node/bin/npx" ]
+  [ "$(readlink "$D/bin/jq")" = "$BATS_TEST_TMPDIR/fake/jq/bin/jq" ]
+  [ "$(readlink "$D/bin/textlint")" = "$D/npm/bin/textlint" ]
+  [ "$(readlink "$D/bin/openspec")" = "$D/npm/bin/openspec" ]
+  [ -f "$D/skills/grilling/SKILL.md" ]
+  [ "$(jq -r .clis.textlint.version "$D/installed.json")" = "$(dep .clis.textlint.version)" ]
+  [ "$(jq -r .skills.grilling.ref "$D/installed.json")" = "$(dep .skills.grilling.ref)" ]
+  [ "$(jq -r .runtimes.node.version "$D/installed.json")" = "$(dep .runtimes.node.version)" ]
+  [ "$(jq -r '.skills | has("impeccable")' "$D/installed.json")" = false ]
+  [ ! -e "$SKILLS/grilling" ]
+  : > "$BATS_TEST_TMPDIR/calls"
+  run "$CLI" install-shared "$D"
+  [ "$status" -eq 1 ]
+  refute grep -qE '^(npm|npx|mise .* install)' "$BATS_TEST_TMPDIR/calls"
+  grep -q '^curl' "$BATS_TEST_TMPDIR/calls"
+}
+
+# ---- the confined environment's sync (spec: harness-sync)
+
+# confined_env: a marked copy of the repository and a shared tools dir matching deps.json; sets CO and TOOLS
+confined_env() {
+  CO="$BATS_TEST_TMPDIR/co"; TOOLS="$BATS_TEST_TMPDIR/tools"
+  confined_copy "$CO"; shared_tools "$TOOLS"; mark_confined "$CO" "$TOOLS"
+  export USKN_HARNESS_DIR="$CO"
+}
+
+@test "confined sync: no checkout update, no mise, npm or skills CLI; the shared tools record is reported" {
+  confined_env
+  run "$CLI" sync
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"skipped   update: confined environment"* ]] || false
+  refute grep -qE 'mise|npm install|skills@|impeccable' "$USKN_HARNESS_STUB_LOG"
+  [[ "$output" == *"ok        textlint $(dep .clis.textlint.version) (shared tools $TOOLS)"* ]] || false
+  [[ "$output" == *"ok        node $(dep .runtimes.node.version) (shared tools $TOOLS)"* ]] || false
+  [ -L "$SKILLS/commit" ]
+  [ -L "$SKILLS/uskn-harness" ]
+}
+
+@test "confined sync: a tools record behind deps.json is a warn that asks for install-shared" {
+  confined_env
+  jq '.clis.textlint.version = "0.0.1"' "$TOOLS/installed.json" > "$TOOLS/i.json" && mv "$TOOLS/i.json" "$TOOLS/installed.json"
+  run "$CLI" sync --no-pull
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"warn      textlint"*"0.0.1"*"$(dep .clis.textlint.version)"*"install-shared"* ]] || false
+}
+
+@test "confined sync: no shared tools dir is a fail; the other steps still run and sync exits 1" {
+  confined_env
+  rm -rf "$TOOLS"
+  run "$CLI" sync --no-pull
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"fail      shared tools"*"$TOOLS"* ]] || false
+  [ -L "$SKILLS/commit" ]
+  [ -f "$CLAUDE_CONFIG_DIR/settings.json" ]
+  mark_confined "$CO"
+  run "$CLI" sync --no-pull
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"fail      shared tools"*"tools="* ]] || false
+}
+
+@test "confined sync: the admin-only skills are not linked, and a link left from before is removed" {
+  confined_env
+  ln -s "$CO/skills/cleanup" "$SKILLS/cleanup"
+  run "$CLI" sync --no-pull
+  [ "$status" -eq 0 ]
+  [ ! -e "$SKILLS/cleanup" ]; [ ! -L "$SKILLS/cleanup" ]
+  [ ! -e "$SKILLS/set-workspace-theme" ]; [ ! -L "$SKILLS/set-workspace-theme" ]
+  [[ "$output" == *"removed   skill cleanup"* ]] || false
+  [ -L "$SKILLS/commit" ]
+}
+
+@test "admin sync still links the admin-only skills" {
+  run "$CLI" sync --no-pull
+  [ -L "$SKILLS/cleanup" ]
+  [ -L "$SKILLS/set-workspace-theme" ]
+}
+
+@test "confined sync: /opsx:* commands come from the shared tools' openspec, not the one in the home" {
+  confined_env
+  unset USKN_HARNESS_STUB_NET
+  for o in "$TOOLS/bin/openspec" "$HOME/.local/bin/openspec"; do
+    printf '#!/bin/sh\necho "$0" >> "%s/openspec.calls"\nmkdir -p .claude/commands/opsx\nfor w in apply archive explore propose sync update; do echo x > .claude/commands/opsx/$w.md; done\n' "$BATS_TEST_TMPDIR" > "$o"
+    chmod +x "$o"
+  done
+  run "$CLI" sync --no-pull
+  [ "$(cat "$BATS_TEST_TMPDIR/openspec.calls")" = "$TOOLS/bin/openspec" ]
+  [ -f "$CLAUDE_CONFIG_DIR/commands/opsx/apply.md" ]
+}
+
+# ---- sandbox-exclude, sandbox-allow-host in the confined environment (spec: harness-sync)
+
+@test "confined: sandbox-exclude and sandbox-allow-host refuse with exit 2 and create no overlay; --list still lists" {
+  confined_env
+  "$CLI" sync --no-pull >/dev/null
+  for args in "sandbox-exclude|terraform *" "sandbox-exclude|--remove|git *" "sandbox-allow-host|gl.example.test" "sandbox-allow-host|--remove|gl.example.test"; do
+    IFS='|' read -r -a a <<<"$args"
+    run --separate-stderr "$CLI" "${a[@]}"
+    [ "$status" -eq 2 ] || { echo "$args: $status"; false; }
+    [[ "$stderr" == *"confined environment"* ]] || false
+    [[ "$stderr" == *"terminal base"* ]] || false
+  done
+  [ ! -e "$HOME/.config/uskn-harness/settings.json" ]
+  run "$CLI" sandbox-exclude --list
+  [ "$status" -eq 0 ]
+  run "$CLI" sandbox-allow-host --list
+  [ "$status" -eq 0 ]
+}
+
+@test "--help covers the confined environment, install-shared and print-settings" {
+  run "$CLI" --help
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"uskn-harness install-shared"* ]] || false
+  [[ "$output" == *"uskn-harness print-settings"* ]] || false
+  [[ "$output" == *".uskn-environment"* ]] || false
+  [[ "$output" == *"confined"* ]] || false
+  [[ "$output" == *"USKN_MARKER_UID"* ]] || false
+}
+
+# ---- doctor in the confined environment (spec: harness-doctor)
+
+not_root() { [ "$(id -u)" != 0 ] || skip "root can write anything, so the write checks cannot fail here"; }
+# trusted_confined: a confined checkout whose marker, checkout and tools dir pass doctor's ownership and write checks
+trusted_confined() {
+  confined_env
+  "$CLI" sync --no-pull >/dev/null
+  export USKN_MARKER_UID="$(id -u)"
+  chmod -R a-w "$CO" "$TOOLS"
+}
+
+@test "doctor: the environment line says admin without a marker" {
+  run "$CLI" doctor
+  [[ "$output" == *"ok        environment: admin"* ]] || false
+}
+
+@test "doctor: a marker not owned by uid 0, writable by the user, or with a wrong kind is a fail" {
+  not_root
+  confined_env
+  run "$CLI" doctor
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"fail      environment: confined"*"owner uid $(id -u), not 0"* ]] || false
+  USKN_MARKER_UID="$(id -u)" run "$CLI" doctor
+  [[ "$output" == *"fail      environment: confined"*"can write it"* ]] || false
+  [[ "$output" != *"owner uid"* ]] || false
+  printf 'kind=confind\n' > "$CO/.uskn-environment"; chmod a-w "$CO/.uskn-environment"
+  USKN_MARKER_UID="$(id -u)" run "$CLI" doctor
+  [[ "$output" == *"fail      environment: confined"*"kind"* ]] || false
+}
+
+@test "doctor: a trusted marker, read-only checkout and tools dir are ok" {
+  not_root
+  trusted_confined
+  run "$CLI" doctor
+  [[ "$output" == *"ok        environment: confined"* ]] || false
+  [[ "$output" == *"ok        confined: "*"read-only"* ]] || false
+  refute grep -qE '^fail +(environment|confined)' <<<"$output"
+}
+
+@test "doctor: a checkout or shared tools dir the confined user can write is a fail naming the path" {
+  not_root
+  confined_env
+  run "$CLI" doctor
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"fail      confined:"*"$CO"*"$TOOLS"* ]] || false
+}
+
+@test "doctor: a shared tools record behind deps.json is a warn with both versions and install-shared" {
+  confined_env
+  "$CLI" sync --no-pull >/dev/null
+  jq '.clis.textlint.version = "0.0.1" | .skills.grilling.ref = "old"' "$TOOLS/installed.json" > "$TOOLS/i.json" && mv "$TOOLS/i.json" "$TOOLS/installed.json"
+  rm "$SKILLS/humanizer"
+  run "$CLI" doctor
+  [[ "$output" == *"warn      textlint"*"0.0.1"*"$(dep .clis.textlint.version)"*"install-shared"* ]] || false
+  [[ "$output" == *"warn      third-party grilling"*"old"*"install-shared"* ]] || false
+  [[ "$output" == *"warn      third-party humanizer"*"$TOOLS/skills/humanizer"* ]] || false
+  [[ "$output" == *"ok        third-party frontend-design"* ]] || false
+}
+
+@test "doctor: an overlay key the confined sync leaves out is a warn naming its path" {
+  confined_env
+  mkdir -p "$HOME/.config/uskn-harness"
+  printf '{"sandbox":{"network":{"allowedDomains":["gl.example.test"]}}}\n' > "$HOME/.config/uskn-harness/settings.json"
+  "$CLI" sync --no-pull >/dev/null
+  run "$CLI" doctor
+  [[ "$output" == *"warn      user settings"*"sandbox.network.allowedDomains"* ]] || false
+  [[ "$output" == *"ok        user settings"* ]] || false
+}
+
+@test "doctor: the confined environment on Linux, or without sandbox-exec, is a fail" {
+  confined_env
+  USKN_HARNESS_OS=Linux run "$CLI" doctor
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"fail      sandbox-exec"*"Linux"* ]] || false
+  mkdir -p "$BATS_TEST_TMPDIR/sbx"; printf '#!/bin/sh\nexit 0\n' > "$BATS_TEST_TMPDIR/sbx/sandbox-exec"; chmod +x "$BATS_TEST_TMPDIR/sbx/sandbox-exec"
+  PATH="$BATS_TEST_TMPDIR/sbx:$PATH" USKN_HARNESS_OS=Darwin run "$CLI" doctor
+  [[ "$output" == *"ok        sandbox-exec"* ]] || false
+}
+
+@test "doctor: the confined environment reports no notify command line and no admin-only skill" {
+  confined_env
+  "$CLI" sync --no-pull >/dev/null
+  run "$CLI" doctor
+  [[ "$output" != *"notify command"* ]] || false
+  refute grep -qE 'skill (cleanup|set-workspace-theme)( |:|$)' <<<"$output"
+  [[ "$output" != *"plugin uskn-notify"* ]] || false
+  run env USKN_HARNESS_DIR="$REPO" "$CLI" doctor
+  [[ "$output" == *"notify command"* ]] || false
+  [[ "$output" != *"sandbox-exec"* ]] || false
+}
+
+# ---- the dev checkout (spec: harness-doctor, machine-bootstrap)
+
+@test "doctor: a managed clone at the stable path next to a separate dev checkout is a warn with the replacement steps" {
+  mkdir -p "$STABLE/.git" "$HOME/src/uskn-harness/.git" "$HOME/.config/uskn-harness"
+  printf '~/src/uskn-harness\n' > "$HOME/.config/uskn-harness/dev-checkout"
+  before="$(snapshot)"
+  run "$CLI" doctor
+  [[ "$output" == *"warn      stable path: $STABLE is a managed clone"*"$HOME/src/uskn-harness"* ]] || false
+  [[ "$output" == *"mv $STABLE "*"ln -s $HOME/src/uskn-harness $STABLE"* ]] || false
+  [ "$(snapshot)" = "$before" ]
+  [ -d "$STABLE" ]; [ ! -L "$STABLE" ]
+}
+
+@test "doctor: no replacement warn without a dev checkout, or when the stable path already links to it" {
+  mkdir -p "$STABLE/.git"
+  run "$CLI" doctor
+  [[ "$output" != *"is a managed clone"* ]] || false
+  rm -rf "$STABLE"; mkdir -p "$HOME/repos" "$(dirname "$STABLE")"
+  ln -s "$REPO" "$HOME/repos/uskn-harness"; ln -s "$HOME/repos/uskn-harness" "$STABLE"
+  run "$CLI" doctor
+  [[ "$output" != *"is a managed clone"* ]] || false
 }

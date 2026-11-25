@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "defaultMode": "auto",
+    "allow": [
+      "Bash(chezmoi --version)",
+      "Bash(chezmoi source-path *)",
+      "WebFetch(domain:*)"
+    ]
+  },
+  "remoteControlAtStartup": true,
+  "sandbox": {
+    "failIfUnavailable": false,
+    "allowUnsandboxedCommands": true,
+    "excludedCommands": [
+      "git *",
+      "gh *",
+      "glab *",
+      "docker *",
+      "mise *",
+      "claude *",
+      "uskn-harness *",
+      "uskn-loop *",
+      "chezmoi *",
+      "ssh *",
+      "scp *"
+    ],
+    "network": {
+      "allowAllUnixSockets": true
+    },
+    "filesystem": {
+      "allowWrite": [
+        "~/.local/share/mise",
+        "~/.local/share/pnpm"
+      ]
+    }
+  }
+}

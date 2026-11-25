@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# uskn-environment: the environment kind of this machine, for skills that act differently in a confined environment
+# (openspec: environment-kind). Claude Code puts the plugin's bin/ on the Bash tool's PATH.
+#   uskn-environment    admin | confined, one line, exit 0
+# The answer comes from the marker .uskn-environment at the root of the checkout this plugin belongs to, and from
+# nothing else: no argument or variable changes it. No marker: admin. A marker that is wrong or unreadable: confined.
+set -u
+# shellcheck source=../hooks/scripts/lib/common.sh
+. "$(dirname "$0")/../hooks/scripts/lib/common.sh"
+environment_read ""
+printf '%s\n' "$ENV_KIND"
