@@ -143,7 +143,7 @@ terms:
     aliases: []
     en: "progress comment"
   - term: "設定断片"
-    definition: "ハーネスが持つ、ユーザー層の `~/.claude/settings.json` へマージするキーの集合 `templates/user/settings.json`。"
+    definition: "ハーネスが `templates/user/` に持つ、ユーザー層の `~/.claude/settings.json` へマージするキーの集合で、共通の `settings.json`、環境の種類別の `settings-admin.json` と `settings-confined.json`、OS別の設定断片から成る。"
     aliases: ["フラグメント", "settings断片"]
     en: "settings fragment"
   - term: "端末別設定"
@@ -178,3 +178,39 @@ terms:
     definition: "変更をまだarchiveしないことを示す、変更のディレクトリに置いたファイル `.archive-later`。理由を1行書く。"
     aliases: []
     en: "archive-later declaration"
+  - term: "端末の土台"
+    definition: "端末のOSのユーザー、sandboxの最低線、Claude Codeの起動スクリプトを用意する、ハーネスの外の仕組み。"
+    aliases: []
+    en: "host foundation"
+  - term: "最低線"
+    definition: "端末の土台が `--settings` で固定し、ユーザー層の設定より先に効くsandboxと権限の設定。"
+    aliases: ["ベースライン"]
+    en: "sandbox baseline"
+  - term: "環境の種類"
+    definition: "ハーネスを導入する環境を、管理者の環境と閉じた環境に分けた区別で、コードでは `admin` と `confined` と書く。"
+    aliases: []
+    en: "environment kind"
+  - term: "管理者の環境"
+    definition: "ハーネスのcheckoutと道具を、使うOSのユーザー自身が書き換えられる環境。"
+    aliases: ["admin環境"]
+    en: "admin environment"
+  - term: "閉じた環境"
+    definition: "エージェントを動かすOSのユーザーが、ハーネスのcheckoutと道具を書き換えられず、sandboxの最低線を端末の土台が決める環境。"
+    aliases: ["confined環境", "制限環境"]
+    en: "confined environment"
+  - term: "環境の印"
+    definition: "環境の種類と閉じた環境の置き場を書いた、checkoutの直下にあるrootの持ち物のファイル `.uskn-environment`。"
+    aliases: ["マーカー"]
+    en: "environment marker"
+  - term: "共有の置き場"
+    definition: "管理者がピンどおりの道具とサードパーティスキルを置き、閉じた環境のOSのユーザーが読むだけのディレクトリで、入れた版の記録 `installed.json` を持つ。"
+    aliases: ["共有プレフィックス"]
+    en: "shared tool prefix"
+  - term: "OS別の設定断片"
+    definition: "LinuxかmacOSの一方だけで意味を持つキーを持つ設定断片 `templates/user/settings-linux.json` と `templates/user/settings-darwin.json`。"
+    aliases: []
+    en: "per-OS settings fragment"
+  - term: "開発用のcheckout"
+    definition: "管理者の環境でハーネスを直すための作業ツリーで、既定の置き場は `~/repos/uskn-harness`。"
+    aliases: []
+    en: "development checkout"
