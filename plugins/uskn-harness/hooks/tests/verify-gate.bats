@@ -156,3 +156,60 @@ blocked() { echo "$output" | jq -e '.decision == "block"' >/dev/null; }
   [ ! -e "$USKN_STATE_DIR/sessions/sid/project" ]
   [ ! -e "$USKN_STATE_DIR/sessions/sid/started" ]
 }
+
+# ---- the confined environment (spec: verify-gate, confined-hook-sandbox). The plugin is copied into a checkout of
+# its own with a confined marker; a fake sandbox-exec first on PATH logs its arguments and runs the command.
+confined_gate() {
+  CO="$BATS_TEST_TMPDIR/checkout"; mkdir -p "$CO/plugins"
+  cp -R "$BATS_TEST_DIRNAME/../.." "$CO/plugins/uskn-harness"
+  TOOLS="$BATS_TEST_TMPDIR/tools"; SECRETS="$BATS_TEST_TMPDIR/secrets"; mkdir -p "$TOOLS/bin" "$SECRETS"
+  printf 'kind=confined\ntools=%s\nsecrets=%s\n' "$TOOLS" "$SECRETS" > "$CO/.uskn-environment"
+  CSCRIPT="$CO/plugins/uskn-harness/hooks/scripts/verify-gate.sh"
+  RULES="$(cd "$CO" && pwd -P)/plugins/uskn-harness/hooks/scripts/lib/confined.sb"
+  SBLOG="$BATS_TEST_TMPDIR/sandbox-exec.log"; mkdir -p "$BATS_TEST_TMPDIR/sbx"
+  cat > "$BATS_TEST_TMPDIR/sbx/sandbox-exec" <<SB
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$SBLOG"
+while [ \$# -gt 0 ]; do case "\$1" in -f | -D | -p) shift 2 ;; *) break ;; esac; done
+exec "\$@"
+SB
+  chmod +x "$BATS_TEST_TMPDIR/sbx/sandbox-exec"
+  export HOME="$BATS_TEST_TMPDIR/h"; mkdir -p "$HOME"
+}
+cstop() { printf '{"session_id":"sid","cwd":"%s","hook_event_name":"Stop","stop_hook_active":false}' "$R" | "$CSCRIPT"; }
+
+@test "confined on macOS: the verify convention and the fingerprint's git run under the rules, with the shared tools on PATH" {
+  confined_gate
+  printf 'verify:\n\t@echo run >> runs.log\n\t@echo "$$PATH" > "%s/path.log"\n\t@echo verify-ok\n' "$BATS_TEST_TMPDIR" > "$R/Makefile"
+  USKN_HARNESS_OS=Darwin PATH="$BATS_TEST_TMPDIR/sbx:$PATH" run cstop
+  [ "$status" -eq 0 ]; [ -z "$output" ]; [ "$(runs)" -eq 1 ]
+  [ -s "$USKN_STATE_DIR/sessions/sid/verified" ]
+  grep -qxF -- "-f $RULES -D SECRETS=$SECRETS bash -c make verify" "$SBLOG"
+  grep -qE -- "^-f $RULES -D SECRETS=$SECRETS git -C .*/repo status" "$SBLOG"
+  [ "$(cut -d: -f1 "$BATS_TEST_TMPDIR/path.log")" = "$TOOLS/bin" ]
+  refute grep -qF "$HOME/.local" "$BATS_TEST_TMPDIR/path.log"
+}
+
+@test "confined on macOS: a verify that fails under the rules blocks as before" {
+  confined_gate
+  touch "$R/FAIL"
+  USKN_HARNESS_OS=Darwin PATH="$BATS_TEST_TMPDIR/sbx:$PATH" run cstop
+  blocked
+  echo "$output" | jq -r '.reason' | grep -q "expected 2 got 3"
+  grep -qxF -- "-f $RULES -D SECRETS=$SECRETS bash -c make verify" "$SBLOG"
+}
+
+@test "confined without the rules (not macOS, or no sandbox-exec): verify does not run, a systemMessage says so" {
+  confined_gate
+  echo x > "$R/new.txt"
+  USKN_HARNESS_OS=Linux PATH="$BATS_TEST_TMPDIR/sbx:$PATH" run cstop
+  [ "$status" -eq 0 ]; [ "$(runs)" -eq 0 ]
+  echo "$output" | jq -e 'has("decision") | not' >/dev/null
+  echo "$output" | jq -r '.systemMessage' | grep -q "not verified"
+  echo "$output" | jq -r '.systemMessage' | grep -q "sandbox-exec"
+  [ ! -e "$SBLOG" ]
+  P="$(path_without sandbox-exec)"
+  USKN_HARNESS_OS=Darwin PATH="$P" run cstop
+  [ "$(runs)" -eq 0 ]
+  echo "$output" | jq -r '.systemMessage' | grep -q "not verified"
+}

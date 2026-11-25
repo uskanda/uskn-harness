@@ -101,8 +101,9 @@ README.md はコミットせず、未コミットのまま残す。
 
 ### 8. Push and report
 
-Run the Skill tool with `push`. It pushes the commits as they are and owns the protected-branch decision and any
-rejection.
+Run `uskn-environment` first. On `confined` the run ends at the commit: skip the push, and add to the report that the
+push is done from outside the confined environment. On `admin`, run the Skill tool with `push`. It pushes the commits
+as they are and owns the protected-branch decision and any rejection.
 
 Report: the change and its archive path, the synced capabilities, the tasks settled in step 3 with their class, the
 commits, the branch pushed, and any paths left uncommitted.

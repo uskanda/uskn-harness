@@ -1,6 +1,6 @@
 # ADR-0009: Bashのルートの外への書き込みはClaude Codeのsandboxで制限する
 
-- 状態：採用（2026-10-23）。ADR-0001 §7のPreToolUse Bashの行のうち、「他のパターンは警告」を差し替える
+- 状態：採用（2026-10-23）。ADR-0001 §7のPreToolUse Bashの行のうち、「他のパターンは警告」を差し替える。閉じた環境では、決定1にADR-0015の例外がある
 - 決定者：uskanda（change `adopt-bash-sandbox` のgrilling。第1ラウンドのQ1、第2ラウンドのQ2からQ7）
 - 関連：issue #5、#6
 

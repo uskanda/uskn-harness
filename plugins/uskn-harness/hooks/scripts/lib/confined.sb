@@ -1,0 +1,11 @@
+;; confined.sb: the rules the hooks run repository code under in a confined environment (openspec:
+;; confined-hook-sandbox, design D7). lib/common.sh passes it as sandbox-exec -f confined.sb [-D SECRETS=<dir>].
+;; It forbids two things and leaves the rest to the OS user's own rights:
+;;   - reading or writing under SECRETS, the marker's secrets directory (no rule when the marker has none)
+;;   - connecting out, except to localhost (a test server of the verify convention); Unix sockets stay closed
+(version 1)
+(allow default)
+(deny network-outbound)
+(allow network-outbound (remote ip "localhost:*"))
+(if (param "SECRETS")
+    (deny file-read* file-write* (subpath (param "SECRETS"))))

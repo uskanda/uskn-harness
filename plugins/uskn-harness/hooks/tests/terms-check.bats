@@ -193,3 +193,81 @@ path_without_python() {
   [[ "$output" == *".mcp.json"* ]] || false
   [[ "$output" != *"notes.txt"* ]] || false
 }
+
+# ---- the git root of each file (spec: terminology-guard). Repository b has a glossary term that a does not.
+repo_b() {
+  B="$BATS_TEST_TMPDIR/b"; mkdir -p "$B/docs" "$B/openspec"
+  cat > "$B/openspec/glossary.yml" <<'YAML'
+version: 1
+terms:
+  - term: "スキーマ"
+    definition: "形。"
+    aliases: []
+    en: "schema"
+YAML
+  printf 'b.conf\n' > "$B/openspec/known-names.txt"
+  ( cd "$B" && git init -q -b main && git add -A && git commit -qm init )
+  printf '# t\n\nこの文書はスキーマを書く。`b.conf` も読む。日本語の文章である。\n' > "$B/docs/s.md"
+}
+hook_in() { # <cwd> <file>
+  jq -c -n --arg f "$2" --arg cwd "$1" '{session_id:"s", cwd:$cwd, hook_event_name:"PostToolUse", tool_name:"Write", tool_input:{file_path:$f}, tool_response:{}}' | "$SCRIPT"
+}
+
+@test "hook mode: a document of another repository is checked against that repository's glossary and names" {
+  repo_b
+  run hook_in "$R" "$B/docs/s.md"
+  [ "$status" -eq 0 ]; [ -z "$output" ]
+  printf '# t\n\nこの文書はスキーマを書く。日本語の文章である。\n' > "$R/docs/s.md"   # the same word in a, without it
+  run hook_in "$B" "$R/docs/s.md"
+  ctx | grep -q "スキーマ"
+}
+
+@test "a document outside every repository is not checked, in hook mode and in CLI mode" {
+  O="$BATS_TEST_TMPDIR/outside"; mkdir -p "$O"
+  printf '# t\n\nこのフレームワークは `harness.yaml` を読む。日本語の文章である。\n' > "$O/x.md"
+  run hook_in "$R" "$O/x.md"
+  [ "$status" -eq 0 ]; [ -z "$output" ]
+  printf '# t\n\n`Makefile` を読む。\n' > "$R/docs/clean.md"
+  run cli "$O/x.md" "$R/docs/clean.md"
+  [ "$status" -eq 0 ]; [ -z "$output" ]
+}
+
+@test ".textlintignore: docs/legacy/** leaves a document out; docs/legacy/ leaves nothing out" {
+  mkdir -p "$R/docs/legacy/old"
+  printf '# t\n\n設定は `harness.yaml` に置く。\n' > "$R/docs/legacy/a.md"
+  printf '# t\n\n設定は `harness.yaml` に置く。\n' > "$R/docs/legacy/old/b.md"
+  printf '# ignored\n\ndocs/legacy/**\n' > "$R/.textlintignore"
+  run hook "$R/docs/legacy/a.md"; [ "$status" -eq 0 ]; [ -z "$output" ]
+  run cli "$R/docs/legacy/a.md" docs/legacy/old/b.md; [ "$status" -eq 0 ]; [ -z "$output" ]
+  printf 'docs/legacy/\n' > "$R/.textlintignore"
+  run hook "$R/docs/legacy/a.md"; ctx | grep -q "harness.yaml"
+  run cli "$R/docs/legacy/a.md"; [ "$status" -eq 1 ]
+}
+
+@test "CLI mode with documents of two repositories uses each one's glossary" {
+  repo_b
+  printf '# t\n\nこの文書はスキーマを書く。日本語の文章である。\n' > "$R/docs/s.md"
+  run cli "$B/docs/s.md" "$R/docs/s.md"
+  [ "$status" -eq 1 ]
+  [ "$(printf '%s\n' "$output" | grep -c 'スキーマ')" -eq 1 ]
+  [[ "$output" == *"docs/s.md"* ]] || false
+  run cli "$B/docs/s.md"
+  [ "$status" -eq 0 ]; [ -z "$output" ]
+}
+
+@test "hook mode in a confined environment runs git under the rules, and checks nothing without them" {
+  CO="$BATS_TEST_TMPDIR/checkout"; mkdir -p "$CO/plugins"
+  cp -R "$BATS_TEST_DIRNAME/../.." "$CO/plugins/uskn-harness"
+  printf 'kind=confined\n' > "$CO/.uskn-environment"
+  CSCRIPT="$CO/plugins/uskn-harness/hooks/scripts/terms-check.sh"
+  SBLOG="$BATS_TEST_TMPDIR/sandbox-exec.log"; mkdir -p "$BATS_TEST_TMPDIR/sbx"
+  printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" >> "%s"\nwhile [ $# -gt 0 ]; do case "$1" in -f | -D) shift 2 ;; *) break ;; esac; done\nexec "$@"\n' "$SBLOG" > "$BATS_TEST_TMPDIR/sbx/sandbox-exec"
+  chmod +x "$BATS_TEST_TMPDIR/sbx/sandbox-exec"
+  printf '# t\n\n設定は `harness.yaml` に置く。\n' > "$R/docs/ng.md"
+  input="$(jq -c -n --arg f "$R/docs/ng.md" --arg cwd "$R" '{session_id:"s", cwd:$cwd, tool_name:"Write", tool_input:{file_path:$f}}')"
+  run env USKN_HARNESS_OS=Darwin PATH="$BATS_TEST_TMPDIR/sbx:$PATH" "$CSCRIPT" <<<"$input"
+  ctx | grep -q "harness.yaml"
+  grep -q "confined.sb git -C .* ls-files" "$SBLOG"
+  run env USKN_HARNESS_OS=Linux "$CSCRIPT" <<<"$input"
+  [ "$status" -eq 0 ]; [ -z "$output" ]
+}

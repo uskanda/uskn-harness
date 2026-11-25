@@ -7,7 +7,7 @@ macOS、Ubuntu、WSL2（Ubuntu）の端末にuskn-harnessを入れる手順。
 ## 仕組み
 
 1. dotfiles（`uskanda/dotfiles`）をchezmoiで適用するたびに、bootstrapのスクリプトがファイルの適用の後に走る。正本は `templates/chezmoi/run_after_uskn-harness.sh.tmpl`
-2. スクリプトは、miseと `~/.local/share/uskn-harness` が無ければ用意する。miseは `~/.local/bin/mise` に入れる。`~/repos/uskn-harness` にcheckoutがあればsymlink、無ければGitHubからcloneする
+2. スクリプトは、miseと `~/.local/share/uskn-harness` が無ければ用意する。miseは `~/.local/bin/mise` に入れる。開発用のcheckoutがあればsymlink、無ければGitHubからcloneする。開発用のcheckoutの既定の置き場は `~/repos/uskn-harness` で、変え方は「開発用のcheckoutの置き場」の節にある
 3. 最後に `uskn-harness sync` が走り、6つを揃える。miseのNodeとjq、ピンしたCLI、スキルとプラグインのsymlink、OpenSpec schema、ユーザー層CLAUDE.md、ユーザー層のsettings.json。
    あわせて、ハーネスから削除したスキルのsymlinkと、30日より長く更新されていないセッションの状態を消す
 4. 2回目以降の `chezmoi apply` でも、スクリプトはsyncまで走る。syncは冪等で、手で置いたものは `conflict` として触らない
@@ -68,13 +68,23 @@ hookスクリプトはmacOSのBSD系コマンドに対応している。`date -j
 
 `sync` は `~/.claude/settings.json` を丸ごと置かず、ハーネスの設定断片をマージする（spec `user-settings`）。
 
-- 設定断片 `templates/user/settings.json` のキーは、syncのたびにハーネスの値で上書きする。`/model` や `/config` で変えた値も、次のsyncで戻る
+設定断片は `templates/user/` の5つのファイルに分かれる。syncは次の順に重ねた合成を、liveへマージする。
+
+1. 共通の `settings.json`。両方の環境の種類と両方のOSで同じキーを持つ
+2. 環境の種類別の `settings-admin.json` か `settings-confined.json`。sandboxを緩めるキーは管理者の環境用にある
+3. OS別の設定断片の `settings-linux.json` か `settings-darwin.json`。Linuxだけで意味を持つ許可はLinux用にある。ほかのOSでは重ねない
+4. 端末別設定 `~/.config/uskn-harness/settings.json`
+
+配列は集合の和として重ねるので、後のファイルは要素を足せるが、消せない。
+合成は `uskn-harness print-settings` で標準出力に出せる。このコマンドは、liveの設定と適用記録を書き換えない。
+
+- 設定断片のキーは、syncのたびにハーネスの値で上書きする。`/model` や `/config` で変えた値も、次のsyncで戻る
 - 設定断片に無いキーは残す。Claude Codeが書いたキーや、端末で足した `permissions.allow` の要素がこれに当たる
 - `/effort` が `modelSettings` に書いた値は、syncのたびに消す。effortの既定値は、設定断片のtop-levelの `effortLevel` である
 - 設定断片から消したキーと要素は、syncが適用記録と比べてliveからも消す。適用記録は `~/.local/state/uskn-harness/settings-applied.json` にある
 
 1台の端末だけで使う値は、端末別設定 `~/.config/uskn-harness/settings.json` に書く。端末別設定はリポジトリに入らない。
-書き方は設定断片と同じで、syncは設定断片の後に端末別設定をマージする。
+書き方は設定断片と同じで、syncは3つの設定断片の後に端末別設定を重ねる。
 
 ```json
 {
@@ -96,6 +106,9 @@ dotfilesが配っていた `~/.claude/settings.json` がある端末では、初
 ## Bash の sandbox
 
 ユーザー層のsettings.jsonは、Claude Codeのsandboxを有効にする（ADR-0009、ADR-0011、ADR-0012、ADR-0013）。
+この節は管理者の環境の設定を説明する。sandboxを緩めるキーは、管理者の環境用の設定断片 `settings-admin.json` にある。
+閉じた環境ではこれらのキーを持ち込まない（ADR-0015、「閉じた環境」の節）。
+
 sandboxに残るのは、中身を前もって読めない実行（`npm`、`make`、`python` など）である。
 `git`、`gh`、`glab`、`docker`、`mise`、`claude`、`uskn-harness`、`uskn-loop`、`chezmoi`、`ssh`、`scp` は、sandboxの外で動く。
 sandboxの中のBashが書けるのは、作業ディレクトリ、一時ディレクトリ、`/add-dir` で追加したディレクトリ、設定断片の挙げるキャッシュとツールのデータだけである。
@@ -132,6 +145,87 @@ bwrap --ro-bind / / --dev /dev --proc /proc --unshare-user -- unshare --user --m
 - `excludedCommands` は、1つの単純なコマンドだけから成り、先頭がパターンと一致するコマンドだけを、sandboxの外で動かす。`cd <dir> && uskn-harness sync` や `git push | tail` はsandboxの中で動くので、単独で実行する。bash-guardは、sandboxの中で失敗すると分かっている形（`git push` や `git fetch`、`glab`、`docker` など）を拒否し、ほかの形は知らせるだけにする。gitに `-C` や `-c`、`--git-dir` を付けても、sandboxの中で動く。作業ツリーの中では、gitを選択肢なしで実行する。別のディレクトリでは、先に `cd <dir>` だけを実行する
 - sandboxのコマンドの実行中は、作業ディレクトリの直下の `.bashrc` や `.claude/agents` などに、0バイトの仮ファイルが置かれる。実行が終わると消える。verify gateの指紋と `verify-fast` は、仮ファイルを数えない。`git status` に出たときは、commitせず、消さない
 - 端末でsandboxを切るときは、端末別設定で `sandbox.enabled` を `false` にしてsyncを実行する
+
+## 閉じた環境
+
+環境の種類には、管理者の環境と閉じた環境の2つがある（ADR-0015）。
+閉じた環境では、エージェントを動かすOSのユーザーが、ハーネスのcheckoutと道具を書き換えられない。
+sandboxの最低線は、端末の土台が `--settings` で固定する。
+ここまでの節は管理者の環境の手順で、この節は閉じた環境で違う点をまとめる。
+
+### 環境の印
+
+環境の種類は、checkoutの直下の環境の印 `.uskn-environment` だけで決まる。引数や環境変数では変わらない。
+印が無ければ管理者の環境である。印は `key=value` の行から成り、管理者がrootの持ち物の読み取り専用のファイルとして置く。
+
+```text
+kind=confined
+tools=<共有の置き場の絶対パス>
+secrets=<秘密の置き場の絶対パス>
+```
+
+- `kind` には `confined` だけを書く。ほかの値の印と読めない印は、閉じた環境として扱われ、doctorが `fail` を出す
+- `tools` には、共有の置き場を書く
+- `secrets` には、トークンなどを置くディレクトリを書く。hookの規則が、その下の読み書きを禁じる。書かなくてもよい
+- `.uskn-environment` は `.gitignore` にあり、リポジトリに入らない
+
+### 導入の順番
+
+1. 管理者が、閉じた環境のOSのユーザーの書けない場所にcheckoutを置き、その直下に印を置く
+2. 管理者が `uskn-harness install-shared <tools>` を実行し、共有の置き場を作る
+3. 端末の土台が、閉じた環境のOSのユーザーとして `uskn-harness sync --no-pull` を実行する
+4. 端末の土台が、`uskn-harness print-settings` の出力を、自分の持ち物の設定として置く
+5. 閉じた環境のOSのユーザーとして `uskn-harness doctor` を実行し、終了コードが0になることを確かめる
+
+checkoutの更新は管理者が行う。閉じた環境のsyncは、`--no-pull` が無くてもcheckoutの更新を飛ばす。
+
+### 共有の置き場
+
+共有の置き場は、管理者が `uskn-harness install-shared <dir>` で作る。中身は `deps.json` のピンどおりである。
+
+| パス | 中身 |
+|---|---|
+| `<dir>/bin/` | node、npm、npx、jq、ピンしたnpmのCLIへのsymlink |
+| `<dir>/mise/` | miseの入れたnodeとjq |
+| `<dir>/npm/` | ピンしたnpmのCLI |
+| `<dir>/skills/<name>/` | サードパーティスキル |
+| `<dir>/installed.json` | 入れた版とrefの記録 |
+
+- 版とrefが記録と同じ項目は入れ直さない。`--dry-run` を付けると、予定だけを出す
+- 環境の種類を見ず、ユーザー層の設定を書き換えない
+- 置き場の持ち主とモードは変えない。閉じた環境のOSのユーザーが読めて書けない状態にするのは、端末の土台の仕事である
+- `deps.json` のピンを変えたら、管理者がもう一度実行する。それまでは、閉じた環境のsyncとdoctorが版の違いを `warn` で知らせる
+
+### 閉じた環境のsync
+
+- miseとnpmとskills CLIを実行しない。共有の置き場の記録を `deps.json` と比べて報告する
+- サードパーティスキルは、`~/.claude/skills/<name>` から `<tools>/skills/<name>` へのsymlinkにする
+- `/opsx:*` は、共有の置き場のopenspecで作る
+- 読み上げ通知のプラグインuskn-notify、通知のコマンド、LaunchAgentを入れない。管理者の環境だけのスキル（`cleanup`、`set-workspace-theme`）も入れない。既にあるsymlinkは消す
+- ユーザー層の設定には、閉じた環境の合成を使う。端末別設定にあるsandboxを緩めるキーは持ち込まず、外したキーを `warn` で報告する
+- `sandbox-exclude` と `sandbox-allow-host` は、`--list` 以外を終了コード2で断る。sandboxの外で動かす道具と接続先は、端末の土台が決める
+
+### hookの規則
+
+閉じた環境のhookは、PATHの先頭に `<tools>/bin` だけを足す。miseのshimsや `~/.local/bin` など、ホームの下の道具は使わない。
+hookは、リポジトリのコードを `sandbox-exec` の規則の中で動かす。規則のファイルは `plugins/uskn-harness/hooks/scripts/lib/confined.sb` である。
+対象は3種類ある。verify gateの検証規約、textlint-checkのtextlint、hookが実行するgitである。
+規則が禁じるのは次の2つで、ほかの操作は閉じた環境のOSのユーザーの権限に任せる。
+
+- 印の `secrets` の下の読み書き
+- 外への接続。検証のテスト用のサーバーのため、`localhost` への接続は許す。Unixソケットへの接続は許さない
+
+規則を使えないとき、hookはコマンドを動かさずに知らせる。verify gateは `systemMessage` で、textlint-checkは `additionalContext` で知らせる。
+Linuxの閉じた環境は対象外である。`sandbox-exec` はmacOSだけにあるので、Linuxのhookはリポジトリのコードを動かさず、doctorは `fail` を出す。
+
+### gitの範囲
+
+閉じた環境のセッションは、ローカルのcommitまでを行う。pushとPRは外側が行う。
+
+- `push`、`pr`、`release`、`spec-pr`、`archive-push` は、リモートへ書く前に `uskn-environment` を実行する。出力が `confined` なら、ブランチとcommitを報告して止まる
+- bash-guardは、`git push`、`gh pr create`、`glab mr create` を拒否する。`git commit` は拒否しない
+- 無人の実行（起動スクリプトを通した `claude -p`）は、ルートの外への書き込みを拒否されると、そこで止まる。拒否は `/add-dir` を前提にしており、ハーネスは別の手段を用意しない
+- uskn-loopとswitchboardは、閉じた環境では動かさない。閉じた環境では、`claude -p --permission-mode auto` の権限モードがdefaultに戻るため
 
 ## 読み上げ通知
 
@@ -170,6 +264,28 @@ uskn-harness doctor
 作業中のcheckout（開発機など）ではスキップして理由を出し、導入は続ける。`--no-pull` で止められる。
 更新でHEADが動いたときは、新しい `bin/uskn-harness` を同じ引数で実行し直す。
 
+## 開発用のcheckoutの置き場
+
+bootstrapのスクリプトとdoctorは、開発用のcheckoutの置き場を `~/.config/uskn-harness/dev-checkout` の1行目から読む。
+1行目には、絶対パスか `~` で始まるパスを書く。ファイルが無いときは `~/repos/uskn-harness` を使う。
+
+```bash
+mkdir -p ~/.config/uskn-harness
+echo '~/src/uskn-harness' > ~/.config/uskn-harness/dev-checkout
+```
+
+参照点がまだ無い端末では、bootstrapのスクリプトが、そのパスに `.git` があれば参照点をそこへのsymlinkにする。
+参照点が既にmanaged cloneの端末では、syncもbootstrapのスクリプトも参照点を置き換えない。
+doctorが `warn` で手順を示す。次のコマンドを手で実行し、置き換える。
+
+```bash
+mv ~/.local/share/uskn-harness ~/.local/share/uskn-harness.old
+ln -s <開発用のcheckout> ~/.local/share/uskn-harness
+uskn-harness sync
+```
+
+`uskn-harness doctor` でその `warn` が消えたことを確かめてから、`~/.local/share/uskn-harness.old` を消す。
+
 ## 取り除く
 
 ```bash
@@ -199,3 +315,10 @@ mise、npm globalのCLI、状態ディレクトリは残る。
 | `sandbox: bwrap cannot create a nested user namespace ...` | `bwrap` の中でユーザー名前空間を入れ子に作れない。sandboxの中のBashは全て失敗する。Ubuntu 26.04の `bwrap-userns-restrict` が原因 | 上のsandboxの節の4つのコマンドで、`bwrap-userns-restrict` を外す |
 | `user settings: sync would ...` | liveのsettings.jsonが、syncの書く値と違う。`/effort` や `/model` の後に出る | `uskn-harness sync` |
 | `user settings: ... is not a JSON object` | settings.jsonか端末別設定をJSONとして読めない。syncは何も書かない | ファイルを直してから `uskn-harness sync` |
+| `environment: confined, but the marker ... is not trustworthy` | 環境の印の値が誤りか読めない。または、持ち主がrootでないか、閉じた環境のOSのユーザーが書ける | 管理者が印を直し、rootの持ち物の読み取り専用のファイルにする |
+| `confined: <user> can write ...` | 閉じた環境のOSのユーザーが、checkoutか共有の置き場に書ける。エージェントがhookや道具を書き換えられる | 端末の土台が、持ち主とモードを直す |
+| `sandbox-exec: not on Linux ...` / `sandbox-exec missing ...` | 閉じた環境のhookが、リポジトリのコードを動かせない。Linuxの閉じた環境は対象外 | macOSの端末で使う |
+| `shared tools: ... has no tools= line` / `shared tools: ... does not exist` | 環境の印に `tools` が無いか、共有の置き場が無い。syncは道具とサードパーティスキルを扱えない | 管理者が印に `tools` を書き、`uskn-harness install-shared <dir>` を実行する |
+| `<cli>: the shared tools record has ...` / `third-party <name>: the shared tools record has ...` | 共有の置き場の記録の版が、`deps.json` のピンと違う | 管理者が `uskn-harness install-shared <dir>` を実行する |
+| `user settings: the confined environment does not carry these keys of ...` | 端末別設定に、sandboxを緩めるキーがある。閉じた環境のsyncは持ち込まない | 端末別設定からそのキーを消す。要る値は、端末の土台の最低線で決める |
+| `stable path: ... is a managed clone, while the dev checkout is ...` | 参照点がmanaged cloneのままで、開発用のcheckoutが別にある | 「開発用のcheckoutの置き場」の節の手順で、手で置き換える |

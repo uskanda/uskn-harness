@@ -8,6 +8,9 @@
 #
 # Contract: exit 0 in hook mode whatever happens; silent when there is nothing to report; skipped entirely
 # when USKN_SKIP_TERMS=1. Code fences, code spans, links and English documents are out of scope.
+# Each file is checked against the repository it belongs to: the git root of its directory (symlinks resolved)
+# gives the glossary, the known names, and the tracked files, whatever cwd or CLAUDE_PROJECT_DIR say. A file outside
+# every repository, or one that the root's .textlintignore matches, is not checked.
 # CLI mode never hides a failure of the check itself: a python error exits 2, and a missing python3 exits 1 under
 # VERIFY_STRICT=1 (0 with a note otherwise). Tracked files that hold NUL bytes are left out of the name corpus.
 set -u
@@ -33,9 +36,6 @@ else
   FILES=("$(realpath_m "$F")")
 fi
 
-ROOT="$(work_root "${CWD:-$PWD}")"   # the git top level of cwd: a worktree reads its own files
-GLOSSARY="$ROOT/openspec/glossary.yml"
-ALLOW="$ROOT/openspec/known-names.txt"
 COMMON="${USKN_COMMON_WORDS:-$(harness_dir)/skills/ja-writing/common-words.txt}"
 
 # The whole check is one awk-free python pass: the text work (fences, spans, katakana runs) is beyond
@@ -46,12 +46,20 @@ if ! have python3; then
   echo "terms-check: python3 not found; skipped" >&2; exit 0
 fi
 
+# A hook in a confined environment runs git on the repository under the rules (lib/confined.sb): .git/config can
+# name programs. Without the rules it checks nothing. The CLI is run by make verify, already inside them.
+RUN_PREFIX=()
+if [ "$MODE" = hook ]; then run_prefix || exit 0; fi
+
 ERR="$(mktemp "${TMPDIR:-/tmp}/terms-check.XXXXXX")" || exit 0
 trap 'rm -f "$ERR"' EXIT
-OUT="$(python3 - "$ROOT" "$GLOSSARY" "$ALLOW" "$COMMON" "${FILES[@]}" <<'PY' 2>"$ERR"
+OUT="$(python3 - "$COMMON" ${RUN_PREFIX[@]+"${RUN_PREFIX[@]}"} -- "${FILES[@]}" <<'PY' 2>"$ERR"
 import os, re, subprocess, sys
 
-root, glossary_path, allow_path, common_path, *files = sys.argv[1:]
+args = sys.argv[1:]
+common_path = args[0]
+sep = args.index("--", 1)
+prefix, files = args[1:sep], args[sep + 1:]
 if not files:
     sys.exit(0)
 
@@ -66,52 +74,92 @@ def read(p):
         return ""
     return data.decode("utf-8", errors="replace")
 
-# ---- what counts as an existing name -------------------------------------------------
-def git(*args):
+def git_root(f):
+    """The resolved git top level of the file's directory, or None outside every repository."""
+    d = os.path.dirname(os.path.realpath(f))
+    while d and not os.path.isdir(d):
+        d = os.path.dirname(d)
     try:
-        return subprocess.run(["git", "-C", root, *args], capture_output=True, text=True,
-                              timeout=20).stdout.split()
+        r = subprocess.run([*prefix, "git", "-C", d, "rev-parse", "--show-toplevel"], capture_output=True, text=True,
+                           timeout=20)
     except Exception:
-        return []
+        return None
+    top = r.stdout.strip()
+    return os.path.realpath(top) if r.returncode == 0 and top else None
 
-def real_entry(rel):
-    # a regular file or a directory; the Claude Code sandbox lays /dev/null over some names (.mcp.json, .bashrc)
-    full = os.path.join(root, rel)
-    return os.path.isfile(full) or os.path.isdir(full)
+def glob_re(pat):
+    """A .textlintignore line as textlint reads it: a glob over the path from the root; ** spans directories."""
+    out, i = "", 0
+    while i < len(pat):
+        if pat.startswith("**/", i):
+            out += "(?:.*/)?"; i += 3
+        elif pat.startswith("**", i):
+            out += ".*"; i += 2
+        elif pat[i] == "*":
+            out += "[^/]*"; i += 1
+        elif pat[i] == "?":
+            out += "[^/]"; i += 1
+        else:
+            out += re.escape(pat[i]); i += 1
+    return re.compile(out + r"\Z")
 
-# untracked files count too: a document may name a file added in the same change
-tracked = git("ls-files") + [p for p in git("ls-files", "--others", "--exclude-standard") if real_entry(p)]
-paths = set(tracked)
-for p in tracked:
-    paths.add(os.path.basename(p))
-    paths.update(p.split("/"))
-corpus = []
-for p in tracked:
-    if p.endswith((".md", ".markdown")):
-        continue
-    if "/tests/" in p or p.endswith((".bats", ".test.ts", ".test.js", "_test.py")):
-        continue     # a fixture names things that deliberately do not exist
-    corpus.append(read(os.path.join(root, p)))
-corpus = "\n".join(corpus)
-allow = {ln.strip() for ln in read(allow_path).splitlines() if ln.strip() and not ln.startswith("#")}
+def ignored(root, rel):
+    for ln in read(os.path.join(root, ".textlintignore")).splitlines():
+        ln = ln.strip()
+        if not ln or ln.startswith("#") or ln.startswith("!") or ln.endswith("/"):
+            continue      # a line that ends in / names a directory, and matches no file
+        if glob_re(ln.lstrip("/")).match(rel):
+            return True
+    return False
 
-# ---- glossary and common words -------------------------------------------------------
-canonical, alias_of = set(), {}
-gl = read(glossary_path)
-if gl:
-    term = None
-    for line in gl.splitlines():
-        m = re.match(r'\s*-\s+term:\s*"?([^"\n]+)"?\s*$', line)
-        if m:
-            term = m.group(1).strip()
-            canonical.add(term)
-            continue
-        m = re.match(r'\s*aliases:\s*\[(.*)\]\s*$', line)
-        if m and term:
-            for a in re.findall(r'"([^"]+)"', m.group(1)):
-                alias_of[a] = term
 common = {ln.strip() for ln in read(common_path).splitlines() if ln.strip() and not ln.startswith("#")}
-known_terms = canonical | common | set(alias_of)
+
+def load(root):
+    """What the repository at root counts as existing names and known terms."""
+    def git(*a):
+        try:
+            return subprocess.run([*prefix, "git", "-C", root, *a], capture_output=True, text=True,
+                                  timeout=20).stdout.split()
+        except Exception:
+            return []
+
+    def real_entry(rel):
+        # a regular file or a directory; the Claude Code sandbox lays /dev/null over some names (.mcp.json, .bashrc)
+        full = os.path.join(root, rel)
+        return os.path.isfile(full) or os.path.isdir(full)
+
+    # untracked files count too: a document may name a file added in the same change
+    tracked = git("ls-files") + [p for p in git("ls-files", "--others", "--exclude-standard") if real_entry(p)]
+    paths = set(tracked)
+    for p in tracked:
+        paths.add(os.path.basename(p))
+        paths.update(p.split("/"))
+    corpus = []
+    for p in tracked:
+        if p.endswith((".md", ".markdown")):
+            continue
+        if "/tests/" in p or p.endswith((".bats", ".test.ts", ".test.js", "_test.py")):
+            continue     # a fixture names things that deliberately do not exist
+        corpus.append(read(os.path.join(root, p)))
+    allow = {ln.strip() for ln in read(os.path.join(root, "openspec", "known-names.txt")).splitlines()
+             if ln.strip() and not ln.startswith("#")}
+    canonical, alias_of = set(), {}
+    gl = read(os.path.join(root, "openspec", "glossary.yml"))
+    if gl:
+        term = None
+        for line in gl.splitlines():
+            m = re.match(r'\s*-\s+term:\s*"?([^"\n]+)"?\s*$', line)
+            if m:
+                term = m.group(1).strip()
+                canonical.add(term)
+                continue
+            m = re.match(r'\s*aliases:\s*\[(.*)\]\s*$', line)
+            if m and term:
+                for a in re.findall(r'"([^"]+)"', m.group(1)):
+                    alias_of[a] = term
+    return dict(paths=paths, corpus="\n".join(corpus), allow=allow, canonical=canonical, alias_of=alias_of,
+                known_terms=canonical | common | set(alias_of), gl=gl, top={p.split("/")[0] for p in tracked},
+                real_entry=real_entry)
 
 def prose(text):
     text = re.sub(r"^```.*?^```", "", text, flags=re.S | re.M)   # fenced code
@@ -122,9 +170,7 @@ NAME_SPAN = re.compile(r"`([^`\n]+)`")
 KATAKANA = re.compile(r"[ァ-ヶー]{3,}")
 QUOTED = re.compile(r"「([^」\n]{2,20})」")
 
-TOP = {p.split("/")[0] for p in tracked}
-
-def is_name_like(tok):
+def is_name_like(tok, ctx):
     """A name this repository is responsible for. Anything that names another system is out of scope:
     the check cannot tell a real foreign name from an invented one, and guessing would drown the signal."""
     if re.search(r"[^\x00-\x7F]", tok):      # holds non-ASCII: it is prose, not a name
@@ -138,22 +184,22 @@ def is_name_like(tok):
     if re.fullmatch(r"v(?:\d{2}|YY)\.(?:\d{2}|MM)\.[\dX]+", tok):   # version examples
         return False
     if "/" in tok:                            # a path: ours only when it starts at a top-level entry
-        return tok.lstrip("~/").split("/")[0] in TOP
+        return tok.lstrip("~/").split("/")[0] in ctx["top"]
     if re.fullmatch(r"[\d.]+", tok):          # section and version numbers
         return False
     return "." in tok.lstrip(".")             # a bare word is not a name; a filename is
 
-def name_exists(tok):
-    if tok in allow or tok in paths or tok in canonical:
+def name_exists(tok, ctx):
+    if tok in ctx["allow"] or tok in ctx["paths"] or tok in ctx["canonical"]:
         return True
     bare = tok.strip("~/.")
-    if bare in paths or bare.split("/")[0] in paths:
+    if bare in ctx["paths"] or bare.split("/")[0] in ctx["paths"]:
         return True
     # a file or directory that exists in the working tree counts even when git does not track it yet
     for cand in (tok, bare):
-        if cand and not cand.startswith("/") and real_entry(cand):
+        if cand and not cand.startswith("/") and ctx["real_entry"](cand):
             return True
-    if tok in corpus or bare in corpus:
+    if tok in ctx["corpus"] or bare in ctx["corpus"]:
         return True
     return False
 
@@ -162,19 +208,29 @@ def japanese(text):
     return len(text) > 0 and kana * 100 // max(len(text), 1) >= 3
 
 findings = []
+repos = {}
 for f in files:
     raw = read(f)
     if not raw:
         continue
+    root = git_root(f)
+    if root is None:
+        continue                               # outside every repository: nothing to check it against
+    rel = os.path.relpath(os.path.realpath(f), root)
+    if ignored(root, rel):
+        continue
+    if root not in repos:
+        repos[root] = load(root)
+    ctx = repos[root]
+    alias_of, known_terms = ctx["alias_of"], ctx["known_terms"]
     body = prose(raw)
-    rel = os.path.relpath(f, root)
     for tok in dict.fromkeys(NAME_SPAN.findall(body)):
-        if is_name_like(tok) and not name_exists(tok):
+        if is_name_like(tok, ctx) and not name_exists(tok, ctx):
             findings.append(f"{rel}: 実在しない名前 `{tok}`。"
                             f"実物の名前に直すか、仮名なら <> で囲むか、openspec/known-names.txt に足す")
     if not japanese(body):
         continue
-    if not gl:
+    if not ctx["gl"]:
         continue
     text = re.sub(r"`[^`\n]*`", "", body)
     text = re.sub(r"\[([^\]]*)\]\([^)\s]*\)", r"\1", text)
@@ -197,7 +253,7 @@ for f in files:
             continue
         if any(c in w for c in " /、。"):            # a phrase or a list, not a term
             continue
-        if w in paths or w in allow:                # a file or a name that is already known
+        if w in ctx["paths"] or w in ctx["allow"]:  # a file or a name that is already known
             continue
         if w in alias_of:
             findings.append(f"{rel}: 用語集は「{alias_of[w]}」。「{w}」は避ける別名")

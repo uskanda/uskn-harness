@@ -7,3 +7,5 @@ node_modules/
 CLAUDE.local.md
 # Impeccable runtime state (screenshots, sessions) if it is ever run here
 .impeccable/runtime/
+# The environment marker: one per machine, put there by the administrator (openspec: environment-kind)
+.uskn-environment

@@ -79,3 +79,15 @@ refute() { ! "$@"; }
   [ "$status" -eq 0 ]
   refute grep -qE 'validate --strict plugins/uskn-harness( |;|$)' "$REPO/Makefile"
 }
+
+@test "confined sync leaves out uskn-notify, removes its old link, and keeps uskn-harness" {
+  plugin uskn-notify
+  ln -s "$FX/plugins/uskn-notify" "$SKILLS/uskn-notify"
+  mkdir -p "$BATS_TEST_TMPDIR/tools"
+  printf 'kind=confined\ntools=%s\n' "$BATS_TEST_TMPDIR/tools" > "$FX/.uskn-environment"
+  run "$CLI" sync --no-pull
+  [ ! -e "$SKILLS/uskn-notify" ]; [ ! -L "$SKILLS/uskn-notify" ]
+  [[ "$output" == *"removed   plugin uskn-notify"* ]] || false
+  [ -L "$SKILLS/uskn-harness" ]
+  [ -L "$SKILLS/zz-extra" ]
+}

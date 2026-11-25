@@ -12,11 +12,12 @@ setup() {
   ( cd "$R" && git init -q -b main && git remote add origin git@github.com:o/r.git && git add -A && git commit -qm init )
 }
 
-@test "bin/ holds uskn-archive-check, uskn-repo-context, and uskn-terms-check, executable, and nothing else" {
+@test "bin/ holds uskn-archive-check, uskn-environment, uskn-repo-context, and uskn-terms-check, executable, and nothing else" {
   [ -x "$BIN/uskn-archive-check" ]
+  [ -x "$BIN/uskn-environment" ]
   [ -x "$BIN/uskn-repo-context" ]
   [ -x "$BIN/uskn-terms-check" ]
-  [ "$(ls "$BIN" | sort | tr '\n' ' ')" = "uskn-archive-check uskn-repo-context uskn-terms-check " ]
+  [ "$(ls "$BIN" | sort | tr '\n' ' ')" = "uskn-archive-check uskn-environment uskn-repo-context uskn-terms-check " ]
 }
 
 @test "uskn-repo-context gives what session-start.sh gives, in every mode" {
@@ -59,4 +60,41 @@ setup() {
   run "$HOME/.claude/skills/uskn-harness/bin/uskn-repo-context" --plain hosting "$R"
   [ "$status" -eq 0 ]
   [ "$output" = github ]
+}
+
+# ---- uskn-environment (spec: environment-kind): admin or confined on one line, from the marker of the checkout the
+# plugin belongs to. The plugin is copied into a checkout of its own so the marker can be placed next to it.
+env_checkout() {
+  CO="$BATS_TEST_TMPDIR/checkout"; mkdir -p "$CO/plugins"
+  cp -R "$BIN/.." "$CO/plugins/uskn-harness"
+  ENVBIN="$CO/plugins/uskn-harness/bin/uskn-environment"
+}
+
+@test "uskn-environment: admin without a marker, confined with kind=confined, exit 0 and one line" {
+  env_checkout
+  run "$ENVBIN"
+  [ "$status" -eq 0 ]; [ "$output" = admin ]; [ "${#lines[@]}" -eq 1 ]
+  printf 'kind=confined\ntools=/opt/shared\n' > "$CO/.uskn-environment"
+  run "$ENVBIN"
+  [ "$status" -eq 0 ]; [ "$output" = confined ]; [ "${#lines[@]}" -eq 1 ]
+}
+
+@test "uskn-environment: a mistyped kind is confined, and variables do not change the answer" {
+  env_checkout
+  printf 'kind=confind\n' > "$CO/.uskn-environment"
+  run "$ENVBIN"
+  [ "$status" -eq 0 ]; [ "$output" = confined ]
+  printf 'kind=confined\n' > "$CO/.uskn-environment"
+  mkdir -p "$BATS_TEST_TMPDIR/elsewhere"
+  run env USKN_HARNESS_DIR="$BATS_TEST_TMPDIR/elsewhere" USKN_ENVIRONMENT=admin ENV_KIND=admin "$ENVBIN"
+  [ "$output" = confined ]
+}
+
+@test "uskn-environment works through a symlinked plugin directory, reading the marker of the real checkout" {
+  env_checkout
+  printf 'kind=confined\n' > "$CO/.uskn-environment"
+  mkdir -p "$HOME/.claude/skills"
+  ln -s "$CO/plugins/uskn-harness" "$HOME/.claude/skills/uskn-harness"
+  run "$HOME/.claude/skills/uskn-harness/bin/uskn-environment"
+  [ "$status" -eq 0 ]; [ "$output" = confined ]
 }

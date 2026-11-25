@@ -31,18 +31,19 @@ is_placeholder() {
 # untracked_files <repo-top>: the untracked files, not ignored, NUL-separated, without the placeholders
 untracked_files() {
   local f
-  git -C "$1" ls-files --others --exclude-standard -z 2>/dev/null | while IFS= read -r -d '' f; do
+  confined_run git -C "$1" ls-files --others --exclude-standard -z 2>/dev/null | while IFS= read -r -d '' f; do
     is_placeholder "$1" "$f" || printf '%s\0' "$f"
   done
 }
 # tree_fingerprint <repo-top>: HEAD, status of tracked files, tracked diff, and the content hashes of untracked files
 # (status alone would miss edits to a file that is untracked from the start). Placeholders do not count.
+# In a confined environment git runs under the rules: .git/config can name programs (core.fsmonitor, filters).
 tree_fingerprint() {
   {
-    git -C "$1" rev-parse HEAD 2>/dev/null || echo none
-    git -C "$1" status --porcelain --untracked-files=no 2>/dev/null
-    git -C "$1" diff HEAD 2>/dev/null
-    untracked_files "$1" | (cd "$1" && xargs -0 git hash-object -- 2>/dev/null) || true
+    confined_run git -C "$1" rev-parse HEAD 2>/dev/null || echo none
+    confined_run git -C "$1" status --porcelain --untracked-files=no 2>/dev/null
+    confined_run git -C "$1" diff HEAD 2>/dev/null
+    untracked_files "$1" | (cd "$1" && confined_run xargs -0 git hash-object -- 2>/dev/null) || true
   } | sha
 }
 # with_timeout <seconds> <command...>: run an external command under a time cap; exit 124 when the cap was hit.
@@ -82,7 +83,66 @@ under() { case "$1" in "$2" | "$2"/*) return 0 ;; *) return 1 ;; esac; }
 # harness_dir: the harness checkout. USKN_HARNESS_DIR wins (tests); else five levels above this file, symlinks resolved
 harness_dir() {
   if [ -n "${USKN_HARNESS_DIR:-}" ]; then printf '%s' "$USKN_HARNESS_DIR"
-  else realpath_m "$(dirname "$(realpath_m "${BASH_SOURCE[0]}")")/../../../../.."; fi
+  else checkout_dir; fi
+}
+# checkout_dir: the checkout this plugin belongs to, five levels above this file with symlinks resolved. Unlike
+# harness_dir, no variable moves it: the environment marker is read here, and the confined user can set variables.
+checkout_dir() { realpath_m "$(dirname "$(realpath_m "${BASH_SOURCE[0]}")")/../../../../.."; }
+# environment_read <checkout | "">: the environment marker, <checkout>/.uskn-environment ("" for checkout_dir), read
+# with the read builtin only (it runs before jq exists). Sets ENV_KIND (admin | confined), ENV_TOOLS, ENV_SECRETS,
+# and ENV_MARKER (none | ok | invalid). No marker: admin. A marker whose kind is not confined, or that cannot be read,
+# is invalid and counts as confined: whoever put it there meant to tighten. (openspec: environment-kind)
+environment_read() {
+  local f line key kind=""
+  f="${1:-$(checkout_dir)}/.uskn-environment"
+  ENV_KIND=admin ENV_TOOLS="" ENV_SECRETS="" ENV_MARKER=none
+  [ -e "$f" ] || [ -L "$f" ] || return 0
+  ENV_KIND=confined ENV_MARKER=invalid
+  { [ -f "$f" ] && [ -r "$f" ]; } || return 0
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%$'\r'}"
+    case "$line" in '' | '#'*) continue ;; *=*) ;; *) continue ;; esac
+    key="${line%%=*}"
+    case "$key" in
+      kind) kind="${line#*=}" ;;
+      tools) ENV_TOOLS="${line#*=}" ;;
+      secrets) ENV_SECRETS="${line#*=}" ;;
+    esac
+  done < "$f"
+  [ "$kind" = confined ] && ENV_MARKER=ok
+  return 0
+}
+# Read once per hook process. Reset here so that nothing inherited from the caller's environment counts.
+ENV_KIND="" ENV_TOOLS="" ENV_SECRETS="" ENV_MARKER=""
+environment_load() { [ -n "$ENV_KIND" ] || environment_read ""; }
+# host_os: Darwin, Linux, ...; USKN_HARNESS_OS stands in for uname -s (tests). It cannot loosen anything: only
+# Darwin with sandbox-exec runs repository code in a confined environment.
+host_os() { printf '%s' "${USKN_HARNESS_OS:-$(uname -s 2>/dev/null)}"; }
+# hook_path: the PATH the hooks run with. Admin: the mise shims and ~/.local/bin first. Confined: the shared tools'
+# bin/ first and nothing under the home, which the agent can write. (openspec: confined-hook-sandbox)
+hook_path() {
+  environment_load
+  if [ "$ENV_KIND" = confined ]; then printf '%s' "${ENV_TOOLS:+$ENV_TOOLS/bin:}$PATH"
+  else printf '%s' "$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"; fi
+}
+# run_prefix: sets RUN_PREFIX, the words to put in front of a command of the repository (a verify convention,
+# textlint, git on the working tree). Admin: none. Confined: sandbox-exec with lib/confined.sb, and SECRETS when the
+# marker names one. Returns 125, with RUN_PREFIX empty, when the rules cannot be used: not macOS, or no sandbox-exec.
+# Expand it as ${RUN_PREFIX[@]+"${RUN_PREFIX[@]}"} (bash 3.2 with set -u fails on an empty array).
+run_prefix() {
+  RUN_PREFIX=()
+  environment_load
+  [ "$ENV_KIND" = confined ] || return 0
+  { [ "$(host_os)" = Darwin ] && have sandbox-exec; } || return 125
+  RUN_PREFIX=(sandbox-exec -f "$(dirname "$(realpath_m "${BASH_SOURCE[0]}")")/confined.sb")
+  [ -z "$ENV_SECRETS" ] || RUN_PREFIX+=(-D "SECRETS=$ENV_SECRETS")
+  return 0
+}
+# confined_run <command...>: run a command of the repository the way the environment requires: directly when admin,
+# under the rules when confined. 125 without running it when the rules cannot be used.
+confined_run() {
+  run_prefix || return 125
+  ${RUN_PREFIX[@]+"${RUN_PREFIX[@]}"} "$@"
 }
 # work_root <cwd>: the git top level of cwd, else cwd (resolved). The checks (verify gate, textlint, terms) work
 # here: in a worktree, cwd moves while CLAUDE_PROJECT_DIR stays at the session's start.

@@ -27,6 +27,9 @@ and use its values. Do not re-detect by hand when either is available.
 
 - `git rev-parse --show-toplevel` succeeds (inside a repository) and `git remote get-url origin` succeeds. If either fails, stop and report.
 - `git branch --show-current` gives the current branch. Stop on a detached HEAD.
+- `uskn-environment` prints the environment kind. On `confined` the run ends at the local commit: steps 2–4-B still
+  commit, and in place of the push in 4-A step 5, of 4-C, and of step 5, go to step 6. The report names the branch
+  and the commits, and says the push and the pull request are done from outside the confined environment.
 
 ### 2. Uncommitted changes?
 

@@ -17,6 +17,12 @@ the user's call.
 
 ## Steps
 
+### Confined environment
+
+In a confined environment `uskn-harness sandbox-exclude` takes nothing but `--list`: it exits 2 with a message that
+says why. Show that message as it is and stop, with the settings as they are. Say that the host foundation decides
+which commands run outside the sandbox there.
+
 ### 1. Read the argument
 
 - `--list`: run `uskn-harness sandbox-exclude --list` and show it. Done.
