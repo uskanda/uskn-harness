@@ -36,7 +36,7 @@
 
 ## 6. 統合の確認
 
-- [ ] 6.1 `make verify VERIFY_STRICT=1` と `openspec validate --all --strict` が終了コード0で終わることを確かめる
+- [x] 6.1 `make verify VERIFY_STRICT=1` と `openspec validate --all --strict` が終了コード0で終わることを確かめる
 - [x] 6.2 `grep -rn uskn-loop` を実行し、残る場所を確かめる。残ってよいのは、ADR、`docs/loop-engineering-2026-09.md`、`openspec/changes/archive/`、このchangeである
   - archiveまでのmain specsにも残る。archiveのときに、このchangeの差分で消える
   - 残ったsymlinkを扱う `bin/uskn-harness` とそのテスト、`docs/setup-new-machine.md` のwarnの表にも残る
